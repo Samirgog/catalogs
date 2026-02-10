@@ -4,50 +4,113 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Copy, Download, Share2, QrCode } from 'lucide-react';
+import { ArrowLeft, Copy, Download, Share2, QrCode, AlertCircle } from 'lucide-react';
 import QRCode from 'qrcode';
-// import { useQRLinks } from '../hooks/useQR';
+import { useQRLinks } from '../hooks/useQR';
+import { catalogService } from '../services/catalogs';
+import type { QRLink, Catalog } from '@/types';
 
-type LinkData = {
+interface LinkData {
   url: string;
   qrCodeDataUrl: string;
   catalogTitle: string;
-};
+  qrLink: QRLink;
+}
 
 export function LinksPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
   const navigate = useNavigate();
   
   // Use QR hook
-//   const { qrLinks, loading: qrLoading, error: qrError, generateQRForCatalog } = useQRLinks(catalogId || '');
+  const { qrLinks, loading: qrLoading, error: qrError, generateQRForCatalog } = useQRLinks(catalogId || '');
   
   const [linkData, setLinkData] = useState<LinkData | null>(null);
+  const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [isGenerating, setIsGenerating] = useState(true);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
 
-  // Generate QR code when catalogId changes
+  // Fetch catalog data
   useEffect(() => {
-    if (catalogId) {
-      const catalogTitle = catalogId === 'new' ? 'Новый каталог' : `Catalog ${catalogId}`;
-      const baseUrl = window.location.origin;
-      const catalogUrl = `${baseUrl}/#/catalog/${catalogId}`;
+    const fetchCatalog = async () => {
+      if (!catalogId) return;
       
-      // Generate QR code
-      QRCode.toDataURL(catalogUrl, { width: 300 })
-        .then((qrCodeDataUrl: string) => {
+      try {
+        const catalogData = await catalogService.getById(catalogId);
+        setCatalog(catalogData);
+        if (!catalogData) {
+          setCatalogError('Каталог не найден');
+        }
+      } catch (err) {
+        console.error('Error fetching catalog:', err);
+        setCatalogError('Ошибка загрузки каталога');
+      }
+    };
+    
+    fetchCatalog();
+  }, [catalogId]);
+
+  // Generate or fetch QR code when catalog and QR links change
+  useEffect(() => {
+    let isMounted = true;
+    
+    const handleQRGeneration = async () => {
+      if (!catalogId || !catalog || qrLoading || !isMounted) return;
+      
+      // Check if we already have link data for this catalog
+      if (linkData && linkData.qrLink.target_id === catalogId) {
+        return;
+      }
+      
+      setIsGenerating(true);
+      setCatalogError(null);
+      
+      try {
+        let qrLink: QRLink;
+        
+        // Check if QR code already exists
+        if (qrLinks && qrLinks.length > 0) {
+          // Use existing QR code
+          qrLink = qrLinks[0];
+        } else {
+          // Generate new QR code
+          const slug = `catalog-${catalogId}-${Date.now()}`;
+          qrLink = await generateQRForCatalog(slug);
+        }
+        
+        // Generate QR code image
+        const baseUrl = window.location.origin;
+        const catalogUrl = `${baseUrl}/#/catalog/${catalogId}`;
+        
+        const qrCodeDataUrl = await QRCode.toDataURL(catalogUrl, { width: 300 });
+        
+        if (isMounted) {
           setLinkData({
             url: catalogUrl,
             qrCodeDataUrl,
-            catalogTitle
+            catalogTitle: catalog.title,
+            qrLink
           });
+        }
+        
+      } catch (err) {
+        if (isMounted) {
+          console.error('Error handling QR code:', err);
+          setCatalogError('Ошибка при создании QR-кода');
+        }
+      } finally {
+        if (isMounted) {
           setIsGenerating(false);
-        })
-        .catch((err: unknown) => {
-          console.error('Error generating QR code:', err);
-          setIsGenerating(false);
-        });
-    }
-  }, [catalogId]);
+        }
+      }
+    };
+    
+    handleQRGeneration();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [catalogId, catalog, qrLinks, qrLoading]);
 
   const handleCopyLink = async () => {
     if (linkData?.url) {
@@ -94,10 +157,33 @@ export function LinksPage() {
     navigate(-1);
   };
 
-  if (isGenerating) {
+  if (isGenerating || qrLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-lg">Генерация ссылки и QR-кода...</div>
+      </div>
+    );
+  }
+
+  if (catalogError || qrError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center max-w-md p-6">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold mb-2">Ошибка</h2>
+          <p className="text-muted-foreground mb-4">
+            {catalogError || qrError}
+          </p>
+          <Button onClick={() => navigate(-1)}>Назад</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!catalog) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-lg">Загрузка каталога...</div>
       </div>
     );
   }
@@ -109,7 +195,7 @@ export function LinksPage() {
           <Button variant="ghost" size="icon" onClick={handleBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-xl font-bold ml-2">Ссылка и QR-код</h1>
+          <h1 className="text-xl font-bold ml-2">Ссылка и QR-код: {catalog.title}</h1>
         </div>
       </div>
 
@@ -120,7 +206,7 @@ export function LinksPage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <QrCode className="w-5 h-5 mr-2" />
-                  QR-код каталога
+                  QR-код: {catalog.title}
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col items-center space-y-4">

@@ -1,5 +1,5 @@
 import useSWR, { useSWRConfig } from 'swr';
-import { qrService } from '../services/business/qr';
+import { qrService } from '../services/qr';
 import type { QRLink } from '../../types';
 
 // SWR fetcher function

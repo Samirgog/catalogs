@@ -11,5 +11,11 @@ export default defineConfig({
   },
   server: {
     allowedHosts: true,
+  },
+  base: '/catalogs/',
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
   }
 });
