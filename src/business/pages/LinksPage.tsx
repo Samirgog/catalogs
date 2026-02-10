@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Copy, Download, Share2, QrCode } from 'lucide-react';
 import QRCode from 'qrcode';
+// import { useQRLinks } from '../hooks/useQR';
 
 type LinkData = {
   url: string;
@@ -16,14 +17,17 @@ type LinkData = {
 export function LinksPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
   const navigate = useNavigate();
+  
+  // Use QR hook
+//   const { qrLinks, loading: qrLoading, error: qrError, generateQRForCatalog } = useQRLinks(catalogId || '');
+  
   const [linkData, setLinkData] = useState<LinkData | null>(null);
   const [isGenerating, setIsGenerating] = useState(true);
   const [copySuccess, setCopySuccess] = useState(false);
 
+  // Generate QR code when catalogId changes
   useEffect(() => {
-    // Simulate fetching catalog data and generating links
-    // In a real app, this would fetch from an API
-    setTimeout(() => {
+    if (catalogId) {
       const catalogTitle = catalogId === 'new' ? 'Новый каталог' : `Catalog ${catalogId}`;
       const baseUrl = window.location.origin;
       const catalogUrl = `${baseUrl}/#/catalog/${catalogId}`;
@@ -42,7 +46,7 @@ export function LinksPage() {
           console.error('Error generating QR code:', err);
           setIsGenerating(false);
         });
-    }, 800);
+    }
   }, [catalogId]);
 
   const handleCopyLink = async () => {

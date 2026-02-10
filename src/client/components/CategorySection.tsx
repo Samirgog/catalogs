@@ -1,15 +1,14 @@
 import { ItemCard } from "./ItemCard";
-import type { Item } from "../../types";
-import { BusinessType } from "../../types";
+import type { CatalogType, Item } from "../../types";
 
 type Props = {
   id: string;
   title: string;
   items: Item[];
-  businessType?: BusinessType;
+  businessType?: CatalogType;
 };
 
-export function CategorySection({ id, title, items, businessType = BusinessType.goods }: Props) {
+export function CategorySection({ id, title, items, businessType = 'goods' }: Props) {
     return (
         <section id={id} className="scroll-mt-24">
           <h2 className="mb-3 text-lg font-semibold">{title}</h2>

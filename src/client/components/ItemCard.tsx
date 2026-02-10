@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { BusinessType, type Item } from "../../types";
+import type { Item, CatalogType } from "../../types";
 import { ItemActions } from "./ItemActions";
 
 type Props = {
@@ -8,10 +8,10 @@ type Props = {
   price?: number;
   description?: string;
   item: Item;
-  businessType?: BusinessType;
+  businessType?: CatalogType;
 };
 
-export function ItemCard({ srcImage, title, description, item, businessType = BusinessType.goods }: Props) {
+export function ItemCard({ srcImage, title, description, item, businessType = 'goods' }: Props) {
   return (
     <Card>
       <CardContent className="flex gap-4 p-3">

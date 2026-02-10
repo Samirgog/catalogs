@@ -3,3 +3,5 @@ export * from './catalogs';
 export * from './categories';
 export * from './items';
 export * from './actions';
+export * from './images';
+export * from './qr';

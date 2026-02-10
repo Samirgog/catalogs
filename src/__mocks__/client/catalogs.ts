@@ -1,36 +1,100 @@
-import type { Catalog } from '../../types';
-
-export const mockClientCatalogs: Catalog[] = [
-  {
-    id: 'catalog-1',
-    owner_id: 'user-1',
-    title: 'Основное меню',
-    description: 'Полное меню нашего ресторана',
-    type: 'goods',
-    banner_url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=200&fit=crop',
-    settings: {
-      sbp_enabled: true,
-      sbp_link: 'https://sbp.example.com/pay',
-      on_delivery: true
+export const mockCatalog = {
+  id: "business.ts-1",
+  title: "Кофейня Espresso Bar",
+  banner_url:
+      "https://images.unsplash.com/photo-1509042239860-f550ce710b93",
+  catalogs: [
+    {
+      id: "catalog-1",
+      title: "Основное меню",
+      categories: [
+        {
+          id: "cat-1",
+          title: "Кофе",
+          order: 1,
+          items: [
+            {
+              id: "p-1",
+              title: "Американо",
+              description: "Молоко, кофе, сахар",
+              price: 150,
+              image_url:
+                  "https://images.unsplash.com/photo-1511920170033-f8396924c348",
+            },
+            {
+              id: "p-2",
+              title: "Капучино",
+              description: "Молоко, кофе, сахар",
+              price: 200,
+              image_url:
+                  "https://images.unsplash.com/photo-1521305916504-4a1121188589",
+            },
+            {
+              id: "p-3",
+              title: "Эспрессо",
+              description: "Молоко, кофе, сахар",
+              price: 180,
+              image_url:
+                  "https://images.unsplash.com/photo-1521305916504-4a1121188589",
+            },
+            {
+              id: "p-4",
+              description: "Молоко, кофе, сахар",
+              title: "Латте",
+              price: 220,
+              image_url:
+                  "https://images.unsplash.com/photo-1521305916504-4a1121188589",
+            },
+            {
+              id: "p-5",
+              description: "Молоко, кофе, сахар",
+              title: "Матча",
+              price: 250,
+              image_url:
+                  "https://images.unsplash.com/photo-1521305916504-4a1121188589",
+            }
+          ],
+        },
+        {
+          id: "cat-2",
+          title: "Десерты",
+          order: 2,
+          items: [
+            {
+              id: "p-6",
+              title: "Чизкейк",
+              description: "Молоко, кофе, сахар",
+              price: 280,
+              image_url:
+                  "https://images.unsplash.com/photo-1551024601-bec78aea704b",
+            },
+            {
+              id: "p-7",
+              title: "Чизкейк",
+              description: "Молоко, кофе, сахар",
+              price: 280,
+              image_url:
+                  "https://images.unsplash.com/photo-1551024601-bec78aea704b",
+            },
+            {
+              id: "p-8",
+              description: "Молоко, кофе, сахар",
+              title: "Чизкейк",
+              price: 280,
+              image_url:
+                  "https://images.unsplash.com/photo-1551024601-bec78aea704b",
+            },
+            {
+              id: "p-9",
+              description: "Молоко, кофе, сахар",
+              title: "Чизкейк",
+              price: 280,
+              image_url:
+                  "https://images.unsplash.com/photo-1551024601-bec78aea704b",
+            },
+          ],
+        },
+      ],
     },
-    is_active: true,
-    created_at: '2024-01-15T10:00:00Z',
-    updated_at: '2024-02-01T14:30:00Z',
-    categories: []
-  },
-  {
-    id: 'catalog-3',
-    owner_id: 'user-2',
-    title: 'Массажные услуги',
-    description: 'Профессиональные массажные процедуры',
-    type: 'services',
-    banner_url: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=200&fit=crop',
-    settings: {
-      contact_info: '@massage_master'
-    },
-    is_active: true,
-    created_at: '2024-01-25T13:20:00Z',
-    updated_at: '2024-01-30T16:10:00Z',
-    categories: []
-  }
-];
+  ],
+};

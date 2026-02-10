@@ -1,16 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Plus, Minus } from "lucide-react";
 import { useCartStore } from "../stores/cart";
-import { BusinessType, type Item } from "../../types";
+import type { CatalogType, Item } from "../../types";
 import { useNavigate } from "react-router-dom";
 import { useBookingStore } from "../stores";
 
 type Props = {
   item: Item;
-  businessType?: BusinessType;
+  businessType?: CatalogType;
 };
 
-export function ItemActions({ item, businessType = BusinessType.goods }: Props) {
+export function ItemActions({ item, businessType = 'goods' }: Props) {
   const navigate = useNavigate();
   const { items, addItem, removeItem, updateQuantity } = useCartStore();
   const { setSelectedItem } = useBookingStore();
@@ -46,7 +46,7 @@ export function ItemActions({ item, businessType = BusinessType.goods }: Props) 
 
   // Render different actions based on business type
   switch (businessType) {
-    case BusinessType.goods:
+    case 'goods':
       return (
         <>
           {isInCart ? (
@@ -86,7 +86,7 @@ export function ItemActions({ item, businessType = BusinessType.goods }: Props) 
           )}
         </>
       );
-    case BusinessType.service:
+    case 'services':
       return (
         <Button
           size="sm"

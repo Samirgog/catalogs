@@ -1,10 +1,10 @@
 import React from "react";
 import { ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import {mockCatalog} from "@/../__mocks__/catalog";
+import { mockCatalog } from "../../__mocks__/client/catalogs";
 import { useCartStore } from "../stores/cart";
 import { CatalogHeader, CategorySection, CategoryTabs } from "../components";
-import { BusinessType } from "../../types";
+import { type CatalogType } from "../../types";
 
 export const CatalogPage: React.FunctionComponent = () => {
     const navigate = useNavigate();
@@ -13,7 +13,7 @@ export const CatalogPage: React.FunctionComponent = () => {
     
     // For now, we'll assume a default business type of 'food'
     // In a real implementation, this would come from the actual business data
-    const businessType: BusinessType = BusinessType.goods; // or 'service' or 'retail' depending on the actual business type
+    const businessType: CatalogType = 'goods'; // or 'service' or 'retail' depending on the actual business type
 
     if (isLoading) return <div className="p-4">Загрузка…</div>;
     if (error) return <div className="p-4">Ошибка</div>;

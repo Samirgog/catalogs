@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ArrowLeft, Save } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useActions } from '../hooks/useActions';
+import type { ActionType } from '../../types';
 
 type CatalogType = 'products' | 'services';
 
@@ -24,31 +26,120 @@ const catalogOptions = [
 ];
 
 export function ActionsEditorPage() {
+  const { catalogId } = useParams<{ catalogId: string }>();
   const navigate = useNavigate();
+  
+  // Get existing actions for this catalog
+  const { actions, loading, error, createAction, updateAction } = useActions(catalogId || '');
+  
   const [catalogType, setCatalogType] = useState<CatalogType>('products');
   const [sbpEnabled, setSbpEnabled] = useState(false);
   const [onDeliveryEnabled, setOnDeliveryEnabled] = useState(false);
   const [sbpLink, setSbpLink] = useState('');
   const [contactInfo, setContactInfo] = useState('');
 
-  React.useEffect(() => {
-    console.log('ActionsEditorPage mounted');
-  }, []);
+  // Load existing actions when component mounts
+  useEffect(() => {
+    if (actions.length > 0) {
+      // Load existing configuration
+      const orderAction = actions.find(a => a.type === 'order');
+      const payAction = actions.find(a => a.type === 'pay');
+      const bookAction = actions.find(a => a.type === 'book');
+      const chatAction = actions.find(a => a.type === 'chat');
+      
+      // Set catalog type based on existing actions
+      if (orderAction || payAction) {
+        setCatalogType('products');
+        setSbpEnabled(!!payAction?.is_enabled);
+        setOnDeliveryEnabled(!!orderAction?.is_enabled);
+        setSbpLink((payAction?.config?.sbp_link as string) || '');
+      } else if (bookAction || chatAction) {
+        setCatalogType('services');
+        setContactInfo((bookAction?.config?.contact_info as string) || (chatAction?.config?.chat_link as string) || '');
+      }
+    }
+  }, [actions]);
 
   const handleBack = () => {
     navigate(-1);
   };
 
-  const handleSave = () => {
-    // Save actions configuration
-    console.log('Saving actions configuration:', {
-      catalogType,
-      sbpEnabled,
-      onDeliveryEnabled,
-      sbpLink,
-      contactInfo
-    });
-    navigate('/catalogs');
+  const handleSave = async () => {
+    console.log({catalogId})
+    if (!catalogId) return;
+    
+    try {
+      if (catalogType === 'products') {
+        // Handle products actions
+        const orderAction = actions.find(a => a.type === 'order');
+        const payAction = actions.find(a => a.type === 'pay');
+        
+        // Create/update order action
+        if (orderAction) {
+          await updateAction(orderAction.id, {
+            is_enabled: onDeliveryEnabled,
+            config: { require_table_number: true }
+          });
+        } else {
+          await createAction({
+            type: 'order' as ActionType,
+            is_enabled: onDeliveryEnabled,
+            config: { require_table_number: true }
+          });
+        }
+        
+        // Create/update pay action
+        if (payAction) {
+          await updateAction(payAction.id, {
+            is_enabled: sbpEnabled,
+            config: { payment_method: 'sbp', sbp_link: sbpLink }
+          });
+        } else {
+          await createAction({
+            type: 'pay' as ActionType,
+            is_enabled: sbpEnabled,
+            config: { payment_method: 'sbp', sbp_link: sbpLink }
+          });
+        }
+      } else {
+        // Handle services actions
+        const bookAction = actions.find(a => a.type === 'book');
+        const chatAction = actions.find(a => a.type === 'chat');
+        
+        // Create/update book action
+        if (bookAction) {
+          await updateAction(bookAction.id, {
+            is_enabled: true,
+            config: { contact_method: 'telegram', contact_info: contactInfo }
+          });
+        } else {
+          await createAction({
+            type: 'book' as ActionType,
+            is_enabled: true,
+            config: { contact_method: 'telegram', contact_info: contactInfo }
+          });
+        }
+        
+        // Create/update chat action
+        if (chatAction) {
+          await updateAction(chatAction.id, {
+            is_enabled: true,
+            config: { chat_platform: 'telegram', chat_link: contactInfo }
+          });
+        } else {
+          await createAction({
+            type: 'chat' as ActionType,
+            is_enabled: true,
+            config: { chat_platform: 'telegram', chat_link: contactInfo }
+          });
+        }
+      }
+      
+      navigate('/catalogs');
+    } catch (err) {
+      console.error('Error saving actions:', err);
+      // TODO: Show error to user
+    }
   };
 
   return (

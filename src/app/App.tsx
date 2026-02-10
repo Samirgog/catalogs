@@ -14,25 +14,26 @@ import {
 import {
   ActionsEditorPage,
   CatalogsPage,
-  CategoriesEditorPage,
-  ItemsPage,
   LinksPage,
 } from '../business/pages';
 import { CatalogEditorPage } from '../business/pages/CatalogEditorPage';
-
-interface TelegramUser {
-  id: number;
-  first_name: string;
-  last_name?: string;
-  username?: string;
-  language_code?: string;
-  is_premium?: boolean;
-}
-
+import { CategoriesEditorPage } from '../business/pages/CategoriesEditorPage';
+import { useTelegramAuth } from '@/useTelegramAuth';
 
 
 export function App() {
+  const { 
+      isAuthenticated, 
+      isLoading, 
+      error, 
+      login, 
+    } = useTelegramAuth();
+    
   const [userMode, setUserMode] = useState<'business' | 'client' | null>('business');
+
+  useEffect(() => {
+    login();
+  }, [])
 
   // useEffect(() => {
   //   // Check for Telegram Web App parameters
@@ -73,10 +74,18 @@ export function App() {
   //   determineUserMode();
   // }, []);
 
-  if (!userMode) {
+  if (!userMode || isLoading || !isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">Загрузка...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Ошибка. Попробуйте войти снова.</div>
       </div>
     );
   }
@@ -102,9 +111,9 @@ export function App() {
               <Route path="/catalogs/:catalogId/edit" element={<CatalogEditorPage />} />
               <Route path="/catalogs/new" element={<CatalogEditorPage />} />
               <Route path="/catalogs/:catalogId/links" element={<LinksPage />} />
-              <Route path="/categories/editor" element={<CategoriesEditorPage />} />
-              <Route path="/actions/editor" element={<ActionsEditorPage />} />
-              <Route path="/items" element={<ItemsPage />} />
+              <Route path="/categories/editor/:catalogId" element={<CategoriesEditorPage />} />
+              <Route path="/categories/editor" element={<Navigate to="/catalogs" replace />} />
+              <Route path="/actions/editor/:catalogId" element={<ActionsEditorPage />} />
             </>
           )}
 

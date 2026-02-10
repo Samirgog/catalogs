@@ -9,8 +9,6 @@ export const actionService = {
       .from('actions')
       .select('*')
       .eq('catalog_id', catalogId)
-      .order('created_at', { ascending: true });
-
     if (error) throw error;
     return data || [];
   },

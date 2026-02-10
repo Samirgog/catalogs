@@ -1,15 +1,18 @@
 import useSWR, { useSWRConfig } from 'swr';
 import { catalogService } from '../services/catalogs';
 import type { Catalog, CatalogFormData } from '../../types';
+import { useUserStore } from '@/userStore';
 
 // SWR fetcher function
 const fetcher = (userId: string) => catalogService.getAll(userId);
 
 // Hook for managing catalogs
-export const useCatalogs = (userId: string) => {
+export const useCatalogs = () => {
+    const { user } = useUserStore();
+
   const { data: catalogs = [], error, isLoading, isValidating, mutate } = useSWR(
-    userId ? ['catalogs', userId] : null,
-    () => fetcher(userId),
+    user?.id ? ['catalogs', user.id] : null,
+    () => fetcher(user?.id || ''),
     {
       revalidateOnFocus: false,
       dedupingInterval: 30000, // 30 seconds
@@ -20,7 +23,7 @@ export const useCatalogs = (userId: string) => {
 
   const createCatalog = async (catalogData: CatalogFormData) => {
     try {
-      const newCatalog = await catalogService.create(catalogData, userId);
+      const newCatalog = await catalogService.create(catalogData, user?.id || '');
       
       // Optimistically update the cache
       await mutate(

@@ -6,108 +6,165 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Save, FolderOpen, Settings, Upload, X, Link } from 'lucide-react';
-import type { Catalog } from '../../types';
+import { useCatalog, useCatalogs } from '../hooks/useCatalogs';
+import { useImagePreview } from '../hooks/useImages';
+import { uploadImage } from '../services/images'; // Direct import for upload
+import type { CatalogFormData } from '../../types';
 
 export function CatalogEditorPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
   const navigate = useNavigate();
   const isEditing = catalogId && catalogId !== 'new';
   
-  // Sample initial data - in a real app this would come from an API
-  const initialCatalog: Catalog = {
-    id: catalogId || '',
-    title: '',
-    is_active: true,
-    settings: {},
-    created_at: new Date().toISOString(),
-    categories: []
-  };
+  // Use hooks for data management
+  const { catalog: fetchedCatalog, loading: catalogLoading, error: catalogError } = useCatalog(catalogId && catalogId !== 'new' ? catalogId : '');
+  const { createCatalog, updateCatalog } = useCatalogs();
   
-  const [catalog, setCatalog] = useState<Catalog>(initialCatalog);
-  const [isLoading, setIsLoading] = useState(isEditing); // Start loading if editing an existing catalog
-  const [bannerImage, setBannerImage] = useState<string | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // Image handling hooks
+  const { generatePreview, previewUrl, clearPreview } = useImagePreview();
+
+  
+  // Loading state
+  const isLoading = isEditing && catalogLoading;
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    // description: '',
+    banner_url: '',
+    is_active: true,
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Load catalog data if editing
+  
+  // Initialize form with fetched data
   useEffect(() => {
-    if (isEditing) {
-      // In a real app, this would fetch from an API
-      // For demo purposes, we'll simulate loading
-      setTimeout(() => {
-        setCatalog({
-          ...initialCatalog,
-          title: `Catalog ${catalogId}`, // Demo title
-          is_active: true,
-        });
-        setIsLoading(false);
-      }, 500);
-    } else {
-      // For new catalog, initialize with empty state
-      setCatalog(initialCatalog);
-      setIsLoading(false);
+    if (fetchedCatalog) {
+      setFormData({
+        title: fetchedCatalog.title,
+        // description: fetchedCatalog.description || '',
+        is_active: fetchedCatalog.is_active,
+        banner_url: fetchedCatalog.banner_url || '',
+      });
     }
-  }, [catalogId, isEditing]);
+  }, [fetchedCatalog]);
 
-  const handleInputChange = (field: keyof Catalog, value: any) => {
-    setCatalog(prev => ({
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
       ...prev,
-      [field]: value
+      [name]: value
     }));
   };
 
-  const handleSave = () => {
-    // In a real app, this would save to an API
-    console.log('Saving catalog:', catalog);
-    // Navigate back to catalogs list after saving
-    navigate('/catalogs');
+  const handleSave = async () => {
+    try {
+      const catalogData: CatalogFormData = {
+        title: formData.title,
+        // description: formData.description,
+        type: 'goods', // Default type
+        is_active: formData.is_active,
+        banner_url: formData.banner_url
+      };
+      
+      let savedCatalogId = catalogId;
+      
+      if (isEditing && catalogId) {
+        // Update existing catalog
+        await updateCatalog(catalogId, catalogData);
+      } else {
+        // Create new catalog
+        console.log('Creating catalog with data:', catalogData);
+        const newCatalog = await createCatalog(catalogData);
+        savedCatalogId = newCatalog.id;
+        console.log('Created new catalog with ID:', savedCatalogId);
+      }
+      
+      // Navigate to categories editor with the catalog ID
+      navigate(`/categories/editor/${savedCatalogId}`);
+    } catch (err) {
+      console.error('Error saving catalog:', err);
+      console.error('Ошибка сохранения каталога. Попробуйте еще раз.');
+    }
   };
 
   const handleConfigureCategories = () => {
-    // Navigate to categories configuration page
-    // This could be a separate route or modal in a real implementation
-    navigate('/categories/editor');
+    // Navigate to categories configuration page with catalog ID
+    if (isEditing && catalogId) {
+      navigate(`/categories/editor/${catalogId}`);
+    } else {
+      // For new catalogs, save first then navigate
+      handleSave();
+    }
   };
 
   const handleConfigureActions = () => {
     // Navigate to actions configuration page
     console.log('Navigating to /actions/editor');
-    navigate('/actions/editor');
+    navigate(`/actions/editor/${catalogId}`);
   };
 
   const handleGenerateLink = () => {
     // Navigate to links page with catalog ID
-    navigate(`/catalogs/${catalogId || 'new'}/links`);
+    if (isEditing && catalogId) {
+      navigate(`/catalogs/${catalogId}/links`);
+    } else {
+      alert('Пожалуйста, сначала сохраните каталог перед получением ссылки');
+    }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        alert('Пожалуйста, выберите файл изображения');
+        console.log('Please select an image file');
         return;
       }
       
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert('Размер файла не должен превышать 5 МБ');
+        console.log('File size should not exceed 5MB');
         return;
       }
       
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-        setBannerImage(file.name); // In real app, this would be the uploaded URL
-      };
-      reader.readAsDataURL(file);
+      try {
+        console.log('Starting image upload process...');
+        
+        // Create a safe filename using English transliteration
+        const timestamp = Date.now();
+        const safeFileName = `banner-${timestamp}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        const uploadPath = `catalogs/${safeFileName}`;
+        
+        console.log('Upload path:', uploadPath);
+        
+        // First, generate immediate preview
+        await generatePreview(file);
+        
+        // Then upload to Supabase storage (with fallback to base64)
+        const imageUrl = await uploadImage(file, uploadPath);
+        setFormData(prev => ({
+          ...prev,
+          banner_url: imageUrl
+        }));
+        console.log('Image uploaded successfully:', imageUrl);
+        
+        // Show appropriate success message
+        if (imageUrl.startsWith('data:image')) {
+          console.log('Image processed successfully! (Using local storage due to cloud storage issues)');
+        } else {
+          console.log('Image uploaded successfully!');
+        }
+      } catch (err) {
+        console.error('Image processing failed:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Image processing failed. Please try again.';
+        console.log(`Processing Error: ${errorMessage}`);
+      }
     }
   };
 
   const handleRemoveImage = () => {
-    setImagePreview(null);
-    setBannerImage(null);
+    clearPreview();
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -154,8 +211,9 @@ export function CatalogEditorPage() {
               <Label htmlFor="title">Название каталога</Label>
               <Input
                 id="title"
-                value={catalog.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
                 placeholder="Введите название каталога"
               />
             </div>
@@ -171,8 +229,13 @@ export function CatalogEditorPage() {
               </div>
               <Switch
                 id="is_active"
-                checked={!!catalog.is_active}
-                onCheckedChange={(checked: boolean) => handleInputChange('is_active', checked)}
+                checked={formData.is_active}
+                onCheckedChange={(checked: boolean) => 
+                  setFormData(prev => ({
+                    ...prev,
+                    is_active: checked
+                  }))
+                }
               />
             </div>
           </CardContent>
@@ -184,12 +247,19 @@ export function CatalogEditorPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {imagePreview ? (
+              {formData?.banner_url || previewUrl ? (
                 <div className="relative">
                   <img 
-                    src={imagePreview} 
+                    src={formData?.banner_url || previewUrl || ''} 
                     alt="Предпросмотр баннера" 
                     className="w-full h-48 object-cover rounded-lg border"
+                    onError={(e) => {
+                      console.error('Image failed to load:', e);
+                      console.log('Preview URL that failed:', formData?.banner_url || previewUrl);
+                    }}
+                    onLoad={() => {
+                      console.log('Image loaded successfully:', previewUrl);
+                    }}
                   />
                   <Button
                     type="button"
@@ -224,7 +294,7 @@ export function CatalogEditorPage() {
                 className="hidden"
               />
               
-              {imagePreview && (
+              {(formData?.banner_url || previewUrl) && (
                 <Button
                   type="button"
                   variant="outline"
@@ -238,7 +308,7 @@ export function CatalogEditorPage() {
             </div>
           </CardContent>
         </Card>
-
+        
         <div className="space-y-3">
           <Button
             className="w-full"
