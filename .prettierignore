@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+.nuxt/
+
+# Logs
+*.log
+
+# Environment
+.env*
+
+# Git
+.git/
+
+# IDE
+.vscode/
+.idea/
+
+# Others
+coverage/
+*.min.js
+*.min.css
