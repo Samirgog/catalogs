@@ -12,6 +12,9 @@ interface CategorySectionProps {
   onItemTouchStart: (category: any, item: any) => void;
   onItemTouchEnd: () => void;
   onItemCardClick: (category: any, item: any) => void;
+  onEditItem: (category: any, item: any) => void;
+  onDuplicateItem: (categoryId: string, item: any) => void;
+  onDeleteItem: (categoryId: string, itemId: string) => void;
 }
 
 export function CategorySection({
@@ -23,7 +26,10 @@ export function CategorySection({
   onItemMouseUp,
   onItemTouchStart,
   onItemTouchEnd,
-  onItemCardClick
+  onItemCardClick,
+  onEditItem,
+  onDuplicateItem,
+  onDeleteItem
 }: CategorySectionProps) {
   return (
     <section key={category.id} className="scroll-mt-24">
@@ -74,6 +80,9 @@ export function CategorySection({
             onItemTouchStart={onItemTouchStart}
             onItemTouchEnd={onItemTouchEnd}
             onItemCardClick={onItemCardClick}
+            onEditItem={onEditItem}
+            onDuplicateItem={onDuplicateItem}
+            onDeleteItem={onDeleteItem}
           />
         ))}
       </div>

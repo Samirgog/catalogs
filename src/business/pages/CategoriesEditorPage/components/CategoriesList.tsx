@@ -1,5 +1,10 @@
 import { Button } from '@/components/ui/button';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import type { Category, Item } from '../../../../types';
 
 interface CategoriesListProps {
@@ -12,6 +17,9 @@ interface CategoriesListProps {
   onItemTouchStart: (category: Category, item: Item) => void;
   onItemTouchEnd: () => void;
   onItemCardClick: (category: Category, item: Item) => void;
+  onEditItem: (category: Category, item: Item) => void;
+  onDuplicateItem: (categoryId: string, item: Item) => void;
+  onDeleteItem: (categoryId: string, itemId: string) => void;
 }
 
 export function CategoriesList({
@@ -23,7 +31,10 @@ export function CategoriesList({
   onItemMouseUp,
   onItemTouchStart,
   onItemTouchEnd,
-  onItemCardClick
+  onItemCardClick,
+  onEditItem,
+  onDuplicateItem,
+  onDeleteItem
 }: CategoriesListProps) {
   return (
     <div className="space-y-8">
@@ -39,6 +50,9 @@ export function CategoriesList({
           onItemTouchStart={onItemTouchStart}
           onItemTouchEnd={onItemTouchEnd}
           onItemCardClick={onItemCardClick}
+          onEditItem={onEditItem}
+          onDuplicateItem={onDuplicateItem}
+          onDeleteItem={onDeleteItem}
         />
       ))}
     </div>
@@ -55,6 +69,9 @@ interface CategorySectionProps {
   onItemTouchStart: (category: Category, item: Item) => void;
   onItemTouchEnd: () => void;
   onItemCardClick: (category: Category, item: Item) => void;
+  onEditItem: (category: Category, item: Item) => void;
+  onDuplicateItem: (categoryId: string, item: Item) => void;
+  onDeleteItem: (categoryId: string, itemId: string) => void;
 }
 
 function CategorySection({
@@ -66,7 +83,10 @@ function CategorySection({
   onItemMouseUp,
   onItemTouchStart,
   onItemTouchEnd,
-  onItemCardClick
+  onItemCardClick,
+  onEditItem,
+  onDuplicateItem,
+  onDeleteItem
 }: CategorySectionProps) {
   return (
     <section key={category.id} className="scroll-mt-24">
@@ -117,6 +137,9 @@ function CategorySection({
             onItemTouchStart={onItemTouchStart}
             onItemTouchEnd={onItemTouchEnd}
             onItemCardClick={onItemCardClick}
+            onEditItem={onEditItem}
+            onDuplicateItem={onDuplicateItem}
+            onDeleteItem={onDeleteItem}
           />
         ))}
       </div>
@@ -132,6 +155,9 @@ interface EditableItemCardProps {
   onItemTouchStart: (category: Category, item: Item) => void;
   onItemTouchEnd: () => void;
   onItemCardClick: (category: Category, item: Item) => void;
+  onEditItem: (category: Category, item: Item) => void;
+  onDuplicateItem: (categoryId: string, item: Item) => void;
+  onDeleteItem: (categoryId: string, itemId: string) => void;
 }
 
 function EditableItemCard({
@@ -141,49 +167,91 @@ function EditableItemCard({
   onItemMouseUp,
   onItemTouchStart,
   onItemTouchEnd,
-  onItemCardClick
+  onItemCardClick,
+  onEditItem,
+  onDuplicateItem,
+  onDeleteItem
 }: EditableItemCardProps) {
   return (
-    <div 
-      key={item.id}
-      className="relative"
-      onMouseDown={() => onItemMouseDown(category, item)}
-      onMouseUp={onItemMouseUp}
-      onMouseLeave={onItemMouseUp}
-      onTouchStart={() => onItemTouchStart(category, item)}
-      onTouchEnd={onItemTouchEnd}
-      onClick={() => onItemCardClick(category, item)}
-    >
-      <div className="bg-white border rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow p-3">
-        <div className="flex gap-4">
-          {item.image_url ? (
-            <img
-              src={item.image_url}
-              className="h-20 w-20 rounded-md object-cover"
-              alt={item.title}
-            />
-          ) : (
-            <div className="h-20 w-20 rounded-md bg-gray-200 flex items-center justify-center">
-              <div className="h-6 w-6 text-gray-400 bg-gray-300 rounded" />
-            </div>
-          )}
-          <div className="flex flex-1 flex-col">
-            <div className="flex flex-col">
-              <h3 className="font-medium">{item.title}</h3>
-              {item.description && (
-                <h5 className="font-regular text-gray-500 text-xs">
-                  {item.description}
-                </h5>
+    <Popover>
+      <PopoverTrigger asChild>
+        <div 
+          key={item.id}
+          className="relative"
+          onMouseDown={() => onItemMouseDown(category, item)}
+          onMouseUp={onItemMouseUp}
+          onMouseLeave={onItemMouseUp}
+          onTouchStart={() => onItemTouchStart(category, item)}
+          onTouchEnd={onItemTouchEnd}
+          onClick={() => onItemCardClick(category, item)}
+        >
+          <div className="bg-white border rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-shadow p-3">
+            <div className="flex gap-4">
+              {item.image_url ? (
+                <img
+                  src={item.image_url}
+                  className="h-20 w-20 rounded-md object-cover"
+                  alt={item.title}
+                />
+              ) : (
+                <div className="h-20 w-20 rounded-md bg-gray-200 flex items-center justify-center">
+                  <div className="h-6 w-6 text-gray-400 bg-gray-300 rounded" />
+                </div>
               )}
-            </div>
-            <div className="mt-3">
-              <div className="font-semibold text-base">
-                {item.price} ₽
+              <div className="flex flex-1 flex-col">
+                <div className="flex flex-col">
+                  <h3 className="font-medium">{item.title}</h3>
+                  {item.description && (
+                    <h5 className="font-regular text-gray-500 text-xs">
+                      {item.description}
+                    </h5>
+                  )}
+                </div>
+                <div className="mt-3">
+                  <div className="font-semibold text-base">
+                    {item.price} ₽
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </PopoverTrigger>
+      <PopoverContent className="w-48 p-2">
+        <div className="space-y-1">
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start py-2 text-left"
+            onClick={() => onEditItem(category, item)}
+          >
+            <Pencil className="h-4 w-4 mr-2" />
+            Редактировать
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start py-2 text-left"
+            onClick={() => onDuplicateItem(category.id, item)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span className="ml-2">Дублировать</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start py-2 text-left text-red-500 hover:text-red-700"
+            onClick={() => onDeleteItem(category.id, item.id)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+            </svg>
+            <span className="ml-2">Удалить</span>
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

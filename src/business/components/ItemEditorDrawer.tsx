@@ -3,8 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
-import { X, Upload } from 'lucide-react';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { Check, Upload } from 'lucide-react';
 
 interface ItemEditorDrawerProps {
   isOpen: boolean;
@@ -42,22 +42,21 @@ export function ItemEditorDrawer({
           <DrawerTitle>
             {editingItem ? 'Редактировать товар' : 'Создать товар'}
           </DrawerTitle>
-          <DrawerClose asChild>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="absolute right-4 top-4"
-              onClick={() => {
-                onClose();
-                // Clear category state if this was editing an existing item (not adding new)
-                if (editingItem && editingCategory && onCategoryClear) {
-                  onCategoryClear();
-                }
-              }}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </DrawerClose>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="absolute right-4 top-4"
+            onClick={async () => {
+              await onSubmit();
+              onClose();
+              // Clear category state after successful submission if editing existing item
+              if (editingItem && editingCategory && onCategoryClear) {
+                onCategoryClear();
+              }
+            }}
+          >
+            <Check className="w-5 h-5 text-green-600" />
+          </Button>
         </DrawerHeader>
         <div className="flex-1 overflow-y-auto space-y-4 py-4">
           <div>
@@ -117,7 +116,10 @@ export function ItemEditorDrawer({
                       onFormChange({...formData, image_url: ''});
                     }}
                   >
-                    <X className="h-4 w-4" />
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
                   </Button>
                 </div>
               ) : (
@@ -184,33 +186,7 @@ export function ItemEditorDrawer({
             />
           </div>
         </div>
-        <div className="flex gap-2 pt-4">
-          <Button 
-            className="flex-1" 
-            onClick={async () => {
-              await onSubmit();
-              // Clear category state after successful submission if editing existing item
-              if (editingItem && editingCategory && onCategoryClear) {
-                onCategoryClear();
-              }
-            }}
-          >
-            Сохранить
-          </Button>
-          <Button 
-            variant="outline" 
-            className="flex-1" 
-            onClick={() => {
-              onClose();
-              // Clear category state if this was editing an existing item (not adding new)
-              if (editingItem && editingCategory && onCategoryClear) {
-                onCategoryClear();
-              }
-            }}
-          >
-            Отмена
-          </Button>
-        </div>
+
       </DrawerContent>
     </Drawer>
   );

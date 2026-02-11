@@ -4,16 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCatalogs } from '../hooks/useCatalogs';
-import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 // import { useUserStore } from '@/userStore';
 
 export function CatalogsPage() {
   // const { user } = useUserStore();
   const { catalogs, loading, error } = useCatalogs();
   const navigate = useNavigate();
-  
-  // Enable auto back button for this page
-  useAutoBackButton();
   
   const handleEditCatalog = (catalogId: string) => {
     navigate(`/catalogs/${catalogId}/edit`);

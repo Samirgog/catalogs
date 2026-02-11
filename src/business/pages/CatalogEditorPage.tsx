@@ -11,11 +11,15 @@ import { useImagePreview } from '../hooks/useImages';
 import { uploadImage } from '../services/images'; // Direct import for upload
 import type { CatalogFormData } from '../../types';
 import { v4 as uuidv4 } from "uuid";
+import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 
 export function CatalogEditorPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
   const navigate = useNavigate();
   const isEditing = catalogId && catalogId !== 'new';
+
+  // Enable auto back button for this page
+  useAutoBackButton();
   
   // Use hooks for data management
   const { catalog: fetchedCatalog, loading: catalogLoading } = useCatalog(catalogId && catalogId !== 'new' ? catalogId : '');

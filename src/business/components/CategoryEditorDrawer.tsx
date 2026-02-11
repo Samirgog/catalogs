@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
-import { X } from 'lucide-react';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
+import { Check } from 'lucide-react';
 
 interface CategoryEditorDrawerProps {
   isOpen: boolean;
@@ -28,11 +28,17 @@ export function CategoryEditorDrawer({
           <DrawerTitle>
             {editingCategory ? 'Редактировать категорию' : 'Создать категорию'}
           </DrawerTitle>
-          <DrawerClose asChild>
-            <Button variant="ghost" size="icon" className="absolute right-4 top-4">
-              <X className="w-4 h-4" />
-            </Button>
-          </DrawerClose>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="absolute right-4 top-4"
+            onClick={() => {
+              onSubmit();
+              onClose();
+            }}
+          >
+            <Check className="w-5 h-5 text-green-600" />
+          </Button>
         </DrawerHeader>
         <div className="space-y-4 py-4">
           <div>
@@ -55,21 +61,7 @@ export function CategoryEditorDrawer({
             />
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button 
-            className="flex-1" 
-            onClick={onSubmit}
-          >
-            Сохранить
-          </Button>
-          <Button 
-            variant="outline" 
-            className="flex-1" 
-            onClick={onClose}
-          >
-            Отмена
-          </Button>
-        </div>
+
       </DrawerContent>
     </Drawer>
   );

@@ -5,7 +5,6 @@ import { CategoriesEditorHeader } from '../components/CategoriesEditorHeader';
 import { AddCategorySection } from '../components/AddCategorySection';
 import { CategoryEditorDrawer } from '../components/CategoryEditorDrawer';
 import { ItemEditorDrawer } from '../components/ItemEditorDrawer';
-import { ItemActionsDrawer } from '../components/ItemActionsDrawer';
 import { useCategories } from '../hooks/useCategories';
 import { useImagePreview } from '../hooks/useImages';
 import { CategoriesDataProvider } from './CategoriesEditorPage/CategoriesDataProvider';
@@ -18,6 +17,8 @@ import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 export function CategoriesEditorPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
   const navigate = useNavigate();
+
+  useAutoBackButton();
 
   // Category operations hooks
   const { createCategory, updateCategory, deleteCategory } = useCategories(catalogId ?? '');
@@ -90,7 +91,6 @@ function CategoriesEditorView({
   itemHandlers
 }: CategoriesEditorViewProps) {
   const navigate = useNavigate();
-  useAutoBackButton();
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // State management
@@ -111,7 +111,6 @@ function CategoriesEditorView({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
-  const [selectedItem, setSelectedItem] = useState<{category: Category; item: Item} | null>(null);
 
   // Hooks
   const { generatePreview, clearPreview } = useImagePreview();
@@ -287,9 +286,9 @@ function CategoriesEditorView({
   };
 
   // Long press handlers
-  const handleItemMouseDown = (category: Category, item: Item) => {
+  const handleItemMouseDown = (_category: Category, _item: Item) => {
     longPressTimer.current = setTimeout(() => {
-      setSelectedItem({category, item});
+      // Long press action - handled by popover now
     }, 500);
   };
 
@@ -300,9 +299,9 @@ function CategoriesEditorView({
     }
   };
 
-  const handleItemTouchStart = (category: Category, item: Item) => {
+  const handleItemTouchStart = (_category: Category, _item: Item) => {
     longPressTimer.current = setTimeout(() => {
-      setSelectedItem({category, item});
+      // Long press action - handled by popover now
     }, 500);
   };
 
@@ -313,16 +312,14 @@ function CategoriesEditorView({
     }
   };
 
-  const handleCloseItemActions = () => {
-    setSelectedItem(null);
-  };
 
   const handleItemCardClick = (category: Category, item: Item) => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
-    setSelectedItem({category, item});
+    // Open item editor directly on click
+    handleEditItem(category, item);
   };
 
   return (
@@ -386,6 +383,9 @@ function CategoriesEditorView({
           onItemTouchStart={handleItemTouchStart}
           onItemTouchEnd={handleItemTouchEnd}
           onItemCardClick={handleItemCardClick}
+          onEditItem={handleEditItem}
+          onDuplicateItem={(categoryId, item) => handleDuplicateItem(item, categoryId)}
+          onDeleteItem={handleDeleteItem}
         />
       </div>
 
@@ -432,14 +432,6 @@ function CategoriesEditorView({
         }}
       />
 
-      <ItemActionsDrawer
-        isOpen={!!selectedItem}
-        selectedItem={selectedItem}
-        onEdit={handleEditItem}
-        onDuplicate={() => selectedItem && handleDuplicateItem(selectedItem.item, selectedItem.category.id)}
-        onDelete={(itemId) => selectedItem && handleDeleteItem(itemId, selectedItem.category.id)}
-        onClose={handleCloseItemActions}
-      />
 
       {/* Navigation Button */}
       <div className="fixed bottom-6 left-4 right-4 px-4">

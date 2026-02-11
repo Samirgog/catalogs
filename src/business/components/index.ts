@@ -5,4 +5,4 @@ export * from './CategorySection';
 export * from './EditableItemCard';
 export * from './CategoryEditorDrawer';
 export * from './ItemEditorDrawer';
-export * from './ItemActionsDrawer';
+export * from './ItemActionsPopover';
