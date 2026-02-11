@@ -12,8 +12,6 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<'input'>>(
           // Mobile-specific styles
           'touch-manipulation caret-blue-500 selection:bg-blue-100 selection:text-blue-900',
           '[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none',
-          // Better mobile touch targets
-          'min-h-[44px] md:min-h-[36px]',
           className
         )}
         ref={ref}

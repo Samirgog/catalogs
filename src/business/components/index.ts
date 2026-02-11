@@ -1,5 +1,4 @@
 // Business Components Index
-export * from './CategoriesEditorHeader';
 export * from './AddCategorySection';
 export * from './CategorySection';
 export * from './EditableItemCard';

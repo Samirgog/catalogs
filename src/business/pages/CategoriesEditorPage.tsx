@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { CategoriesEditorHeader } from '../components/CategoriesEditorHeader';
 import { AddCategorySection } from '../components/AddCategorySection';
 import { CategoryEditorDrawer } from '../components/CategoryEditorDrawer';
 import { ItemEditorDrawer } from '../components/ItemEditorDrawer';
@@ -268,8 +267,9 @@ function CategoriesEditorView({
   };
 
   // Event handlers
-  const handleEditItem = (category: Category, item: Item) => {
-    setEditingCategory(category);
+  const handleEditItem = (_category: Category, item: Item) => {
+    // Don't set editingCategory when editing an item
+    // setEditingCategory(category);
     setEditingItem(item);
     setNewItemForm({
       title: item.title,
@@ -281,13 +281,13 @@ function CategoriesEditorView({
     });
   };
 
-  const handleBack = () => {
-    navigate(`/catalogs/${catalogId}/edit`);
-  };
-
+  // Long press state
+  const [isLongPress, setIsLongPress] = useState(false);
+  
   // Long press handlers
   const handleItemMouseDown = (_category: Category, _item: Item) => {
     longPressTimer.current = setTimeout(() => {
+      setIsLongPress(true);
       // Long press action - handled by popover now
     }, 500);
   };
@@ -297,10 +297,12 @@ function CategoriesEditorView({
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+    setIsLongPress(false);
   };
 
   const handleItemTouchStart = (_category: Category, _item: Item) => {
     longPressTimer.current = setTimeout(() => {
+      setIsLongPress(true);
       // Long press action - handled by popover now
     }, 500);
   };
@@ -310,21 +312,32 @@ function CategoriesEditorView({
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
+    setIsLongPress(false);
   };
 
 
-  const handleItemCardClick = (category: Category, item: Item) => {
+  const handleItemCardClick = (_category: Category, item: Item) => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
-    // Open item editor directly on click
-    handleEditItem(category, item);
+    
+    // Only open editor if it wasn't a long press
+    if (!isLongPress) {
+      // Open item editor directly on click
+      handleEditItem(_category, item);
+    }
+    
+    setIsLongPress(false);
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <CategoriesEditorHeader onBack={handleBack} />
+      <div className="p-4 border-b bg-background sticky top-0 z-20">
+        <div className="flex items-center">
+          <h1 className="text-xl font-bold ml-2 flex-1">Редактор каталога</h1>
+        </div>
+      </div>
 
       {/* Loading/Error states */}
       {(loading || !catalogId) && (
@@ -408,7 +421,6 @@ function CategoriesEditorView({
       <ItemEditorDrawer
         isOpen={!!editingItem || isAddingNewItem}
         editingItem={editingItem}
-        editingCategory={editingCategory}
         formData={newItemForm}
         previewUrl={previewUrl ?? null}
         onFormChange={setNewItemForm}
@@ -422,9 +434,6 @@ function CategoriesEditorView({
           setEditingItem(null);
           setIsAddingNewItem(false);
           resetItemForm();
-        }}
-        onCategoryClear={() => {
-          setEditingCategory(null);
         }}
         generatePreview={async (file) => {
           const url = await generatePreview(file);

@@ -9,7 +9,6 @@ import { Check, Upload } from 'lucide-react';
 interface ItemEditorDrawerProps {
   isOpen: boolean;
   editingItem: any;
-  editingCategory: any;
   formData: any;
   previewUrl: string | null;
   onFormChange: (data: any) => void;
@@ -17,14 +16,12 @@ interface ItemEditorDrawerProps {
   onClearPreview: () => void;
   onSubmit: () => void;
   onClose: () => void;
-  onCategoryClear?: () => void;
   generatePreview: (file: File) => Promise<void>;
 }
 
 export function ItemEditorDrawer({
   isOpen,
   editingItem,
-  editingCategory,
   formData,
   previewUrl,
   onFormChange,
@@ -32,12 +29,11 @@ export function ItemEditorDrawer({
   onClearPreview,
   onSubmit,
   onClose,
-  onCategoryClear,
   generatePreview
 }: ItemEditorDrawerProps) {
   return (
     <Drawer open={isOpen} onClose={onClose}>
-      <DrawerContent className="p-4 max-h-[90vh] flex flex-col">
+      <DrawerContent className="p-4 h-[90vh] flex flex-col max-h-screen">
         <DrawerHeader>
           <DrawerTitle>
             {editingItem ? 'Редактировать товар' : 'Создать товар'}
@@ -50,15 +46,16 @@ export function ItemEditorDrawer({
               await onSubmit();
               onClose();
               // Clear category state after successful submission if editing existing item
-              if (editingItem && editingCategory && onCategoryClear) {
-                onCategoryClear();
-              }
+              // Note: We no longer set editingCategory when editing items, so this check is not needed
+              // if (editingItem && editingCategory && onCategoryClear) {
+              //   onCategoryClear();
+              // }
             }}
           >
             <Check className="w-5 h-5 text-green-600" />
           </Button>
         </DrawerHeader>
-        <div className="flex-1 overflow-y-auto space-y-4 py-4">
+        <div className="flex-1 overflow-y-auto space-y-4 py-4 pb-8">
           <div>
             <Label htmlFor="item-title">Название</Label>
             <Input
@@ -186,7 +183,6 @@ export function ItemEditorDrawer({
             />
           </div>
         </div>
-
       </DrawerContent>
     </Drawer>
   );
