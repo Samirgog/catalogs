@@ -65,7 +65,6 @@ export function ActionsEditorPage() {
   };
 
   const handleSave = async () => {
-    console.log({catalogId})
     if (!catalogId) return;
     
     try {
