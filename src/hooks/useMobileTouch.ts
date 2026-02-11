@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 
 interface TouchHandlers {
   onTouchStart: (e: React.TouchEvent) => void;

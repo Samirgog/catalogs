@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useCategories } from '../../hooks/useCategories';
 import { itemService } from '../../services/items';
-import { uploadImage } from '../../services/images';
 import useSWR from 'swr';
 import type { Category, Item, ItemFormData } from '../../../types';
 
@@ -36,7 +35,6 @@ export function CategoriesDataProvider({ catalogId, children }: CategoriesDataPr
     data: allItems = [], 
     error: itemsError, 
     isLoading: itemsLoading,
-    isValidating: itemsValidating,
     mutate: mutateItems
   } = useSWR(
     categoryIds.length > 0 ? ['items-by-categories', categoryIds] : null,

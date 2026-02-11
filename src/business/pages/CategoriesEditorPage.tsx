@@ -13,11 +13,11 @@ import { CategoriesList } from './CategoriesEditorPage/components/CategoriesList
 import { CategoryHandlers, ItemHandlers } from './CategoriesEditorPage/handlers';
 import { FormValidator, ErrorHandler, ValidationError } from './CategoriesEditorPage/utils';
 import type { Category, Item, CategoryFormData, ItemFormData } from '@/types';
+import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 
 export function CategoriesEditorPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
   const navigate = useNavigate();
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Category operations hooks
   const { createCategory, updateCategory, deleteCategory } = useCategories(catalogId ?? '');
@@ -90,6 +90,7 @@ function CategoriesEditorView({
   itemHandlers
 }: CategoriesEditorViewProps) {
   const navigate = useNavigate();
+  useAutoBackButton();
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // State management
@@ -407,6 +408,7 @@ function CategoriesEditorView({
       <ItemEditorDrawer
         isOpen={!!editingItem || isAddingNewItem}
         editingItem={editingItem}
+        editingCategory={editingCategory}
         formData={newItemForm}
         previewUrl={previewUrl ?? null}
         onFormChange={setNewItemForm}
@@ -420,6 +422,9 @@ function CategoriesEditorView({
           setEditingItem(null);
           setIsAddingNewItem(false);
           resetItemForm();
+        }}
+        onCategoryClear={() => {
+          setEditingCategory(null);
         }}
         generatePreview={async (file) => {
           const url = await generatePreview(file);

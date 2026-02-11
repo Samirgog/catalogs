@@ -47,7 +47,7 @@ export const CatalogPage: React.FunctionComponent = () => {
                         key={c.id}
                         id={c.id}
                         title={c.title}
-                        items={c.items}
+                        items={c.items as any}
                         businessType={businessType}
                     />
                 ))}

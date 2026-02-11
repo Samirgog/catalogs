@@ -1,4 +1,4 @@
-import useSWR, { useSWRConfig } from 'swr';
+import useSWR from 'swr';
 import { qrService } from '../services/qr';
 import type { QRLink } from '../../types';
 
@@ -17,8 +17,6 @@ export const useQRLinks = (catalogId: string) => {
       dedupingInterval: 60000, // 1 minute
     }
   );
-
-  const { mutate: globalMutate } = useSWRConfig();
 
   const generateQRForCatalog = async (slug: string) => {
     try {

@@ -10,6 +10,7 @@ import { useCatalog, useCatalogs } from '../hooks/useCatalogs';
 import { useImagePreview } from '../hooks/useImages';
 import { uploadImage } from '../services/images'; // Direct import for upload
 import type { CatalogFormData } from '../../types';
+import { v4 as uuidv4 } from "uuid";
 
 export function CatalogEditorPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
@@ -17,7 +18,7 @@ export function CatalogEditorPage() {
   const isEditing = catalogId && catalogId !== 'new';
   
   // Use hooks for data management
-  const { catalog: fetchedCatalog, loading: catalogLoading, error: catalogError } = useCatalog(catalogId && catalogId !== 'new' ? catalogId : '');
+  const { catalog: fetchedCatalog, loading: catalogLoading } = useCatalog(catalogId && catalogId !== 'new' ? catalogId : '');
   const { createCatalog, updateCatalog } = useCatalogs();
   
   // Image handling hooks
@@ -129,15 +130,12 @@ export function CatalogEditorPage() {
       }
       
       try {
-        console.log('Starting image upload process...');
         
         // Create a safe filename using English transliteration
         const timestamp = Date.now();
-        const safeFileName = `banner-${timestamp}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        const safeFileName = `banner-${timestamp}-${uuidv4()}`;
         const uploadPath = `catalogs/${safeFileName}`;
-        
-        console.log('Upload path:', uploadPath);
-        
+                
         // First, generate immediate preview
         await generatePreview(file);
         
@@ -147,7 +145,6 @@ export function CatalogEditorPage() {
           ...prev,
           banner_url: imageUrl
         }));
-        console.log('Image uploaded successfully:', imageUrl);
         
         // Show appropriate success message
         if (imageUrl.startsWith('data:image')) {
@@ -177,7 +174,7 @@ export function CatalogEditorPage() {
 
 
   const handleBack = () => {
-    navigate(-1);
+    navigate('/catalogs');
   };
 
   if (isLoading) {

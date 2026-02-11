@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useActions } from '../hooks/useActions';
 import type { ActionType } from '../../types';
+import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 
 type CatalogType = 'products' | 'services';
 
@@ -28,9 +29,10 @@ const catalogOptions = [
 export function ActionsEditorPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
   const navigate = useNavigate();
+  useAutoBackButton();
   
   // Get existing actions for this catalog
-  const { actions, loading, error, createAction, updateAction } = useActions(catalogId || '');
+  const { actions, createAction, updateAction } = useActions(catalogId || '');
   
   const [catalogType, setCatalogType] = useState<CatalogType>('products');
   const [sbpEnabled, setSbpEnabled] = useState(false);
@@ -134,7 +136,7 @@ export function ActionsEditorPage() {
         }
       }
       
-      navigate('/catalogs');
+      // navigate('/catalogs');
     } catch (err) {
       console.error('Error saving actions:', err);
       // TODO: Show error to user

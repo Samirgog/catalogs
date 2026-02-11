@@ -1,5 +1,5 @@
 // Example usage of Telegram auth hook
-import { useTelegramAuth, useCurrentUser } from '../useTelegramAuth';
+import { useTelegramAuth } from '../useTelegramAuth';
 
 // Example component showing how to use the auth system
 export const AuthExampleComponent = () => {

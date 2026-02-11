@@ -9,6 +9,7 @@ import QRCode from 'qrcode';
 import { useQRLinks } from '../hooks/useQR';
 import { catalogService } from '../services/catalogs';
 import type { QRLink, Catalog } from '@/types';
+import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 
 interface LinkData {
   url: string;
@@ -20,6 +21,7 @@ interface LinkData {
 export function LinksPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
   const navigate = useNavigate();
+  useAutoBackButton();
   
   // Use QR hook
   const { qrLinks, loading: qrLoading, error: qrError, generateQRForCatalog } = useQRLinks(catalogId || '');

@@ -1,6 +1,5 @@
 import useSWR, { useSWRConfig } from 'swr';
 import { clientOrderService } from '../services/orders';
-import type { Order } from '../../types';
 
 // SWR fetcher for orders
 const orderFetcher = async (key: string, id: string) => {

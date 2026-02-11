@@ -29,7 +29,7 @@ export function App() {
       login, 
     } = useTelegramAuth();
     
-  const [userMode, setUserMode] = useState<'business' | 'client' | null>('business');
+  const [userMode] = useState<'business' | 'client' | null>('business');
 
   useEffect(() => {
     login();

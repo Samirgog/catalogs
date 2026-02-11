@@ -1,10 +1,6 @@
 import { clientSupabase } from '../../lib/supabase';
 import type { Catalog } from '../../types';
 
-interface PlaceCatalogWithCatalog {
-  catalogs: Catalog;
-}
-
 // Client Catalog Services
 export const clientCatalogService = {
   // Get public catalog by ID

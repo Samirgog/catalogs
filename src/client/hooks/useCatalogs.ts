@@ -1,6 +1,5 @@
 import useSWR from 'swr';
 import { clientCatalogService } from '../services/catalogs';
-import type { Catalog } from '../../types';
 
 // SWR fetcher function
 const fetcher = async (key: string, id: string) => {

@@ -1,5 +1,6 @@
 import { uploadImage } from '../../../services/images';
 import type { ItemFormData } from '../../../../types';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ItemHandlersProps {
   getItemHook: (categoryId: string) => {
@@ -27,7 +28,7 @@ export class ItemHandlers {
       // Handle image upload if file is provided
       if (imageFile) {
         const timestamp = Date.now();
-        const safeFileName = `${timestamp}-${imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        const safeFileName = `${timestamp}-${uuidv4()}`;
         const uploadPath = `items/${categoryId}/${safeFileName}`;
         
         imageUrl = await uploadImage(imageFile, uploadPath);
