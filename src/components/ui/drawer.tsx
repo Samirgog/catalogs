@@ -5,10 +5,14 @@ import { cn } from "@/lib/utils"
 
 const Drawer = ({
   shouldScaleBackground = true,
+  direction = 'bottom',
   ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
+}: React.ComponentProps<typeof DrawerPrimitive.Root> & {
+  direction?: 'top' | 'bottom' | 'left' | 'right';
+}) => (
   <DrawerPrimitive.Root
     shouldScaleBackground={shouldScaleBackground}
+    direction={direction}
     {...props}
   />
 )
@@ -34,23 +38,45 @@ DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DrawerPortal>
-    <DrawerOverlay />
-    <DrawerPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
-        className
-      )}
-      {...props}
-    >
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
-      {children}
-    </DrawerPrimitive.Content>
-  </DrawerPortal>
-))
+  React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content> & {
+    direction?: 'top' | 'bottom' | 'left' | 'right';
+  }
+>(({ className, children, direction = 'bottom', ...props }, ref) => {
+  const isHorizontal = direction === 'left' || direction === 'right';
+  
+  const getContentClasses = () => {
+    switch (direction) {
+      case 'top':
+        return "fixed inset-x-0 top-0 z-50 mt-24 flex h-auto flex-col rounded-b-[10px] border bg-background";
+      case 'left':
+        return "fixed inset-y-0 left-0 z-50 w-full max-w-md flex h-screen flex-col border bg-background";
+      case 'right':
+        return "fixed inset-y-0 right-0 z-50 w-full max-w-md flex h-screen flex-col border bg-background";
+      case 'bottom':
+      default:
+        return "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background";
+    }
+  };
+  
+  const getHandleClasses = () => {
+    if (isHorizontal) return "hidden";
+    return "mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted";
+  };
+  
+  return (
+    <DrawerPortal>
+      <DrawerOverlay />
+      <DrawerPrimitive.Content
+        ref={ref}
+        className={cn(getContentClasses(), className)}
+        {...props}
+      >
+        <div className={getHandleClasses()} />
+        {children}
+      </DrawerPrimitive.Content>
+    </DrawerPortal>
+  );
+})
 DrawerContent.displayName = "DrawerContent"
 
 const DrawerHeader = ({

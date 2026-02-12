@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Save, FolderOpen, Settings, Upload, X, Link } from 'lucide-react';
+import { Save, FolderOpen, Settings, Upload, X, Link } from 'lucide-react';
 import { useCatalog, useCatalogs } from '../hooks/useCatalogs';
 import { useImagePreview } from '../hooks/useImages';
 import { uploadImage } from '../services/images'; // Direct import for upload
@@ -175,12 +175,6 @@ export function CatalogEditorPage() {
     fileInputRef.current?.click();
   };
 
-
-
-  const handleBack = () => {
-    navigate('/catalogs');
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -193,9 +187,6 @@ export function CatalogEditorPage() {
     <div className="min-h-screen bg-background pb-24">
       <div className="p-4 border-b bg-background">
         <div className="flex items-center">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
           <h1 className="text-xl font-bold ml-2">
             {isEditing ? 'Редактировать каталог' : 'Создать каталог'}
           </h1>

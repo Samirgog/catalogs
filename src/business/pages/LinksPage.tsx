@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Copy, Download, Share2, QrCode, AlertCircle } from 'lucide-react';
+import { Copy, Download, Share2, QrCode, AlertCircle } from 'lucide-react';
 import QRCode from 'qrcode';
 import { useQRLinks } from '../hooks/useQR';
 import { catalogService } from '../services/catalogs';
@@ -155,10 +155,6 @@ export function LinksPage() {
     }
   };
 
-  const handleBack = () => {
-    navigate(-1);
-  };
-
   if (isGenerating || qrLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -194,9 +190,6 @@ export function LinksPage() {
     <div className="min-h-screen bg-background pb-24">
       <div className="p-4 border-b bg-background">
         <div className="flex items-center">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
           <h1 className="text-xl font-bold ml-2">Ссылка и QR-код: {catalog.title}</h1>
         </div>
       </div>

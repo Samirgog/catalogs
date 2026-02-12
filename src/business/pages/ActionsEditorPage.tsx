@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ArrowLeft, Save } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Save } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 import { useActions } from '../hooks/useActions';
 import type { ActionType } from '../../types';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
@@ -28,7 +28,6 @@ const catalogOptions = [
 
 export function ActionsEditorPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
-  const navigate = useNavigate();
   useAutoBackButton();
   
   // Get existing actions for this catalog
@@ -61,10 +60,6 @@ export function ActionsEditorPage() {
       }
     }
   }, [actions]);
-
-  const handleBack = () => {
-    navigate(-1);
-  };
 
   const handleSave = async () => {
     if (!catalogId) return;
@@ -147,9 +142,6 @@ export function ActionsEditorPage() {
     <div className="min-h-screen bg-background pb-24">
       <div className="p-4 border-b bg-background">
         <div className="flex items-center">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
           <h1 className="text-xl font-bold ml-2">Настройка действий</h1>
         </div>
       </div>
