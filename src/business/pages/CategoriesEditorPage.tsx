@@ -2,15 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AddCategorySection } from '../components/AddCategorySection';
-import { CategoryEditorDrawer } from '../components/CategoryEditorDrawer';
-import { ItemEditorDrawer } from '../components/ItemEditorDrawer';
 import { useCategories } from '../hooks/useCategories';
-import { useImagePreview } from '../hooks/useImages';
 import { CategoriesDataProvider } from './CategoriesEditorPage/CategoriesDataProvider';
 import { CategoriesList } from './CategoriesEditorPage/components/CategoriesList';
 import { CategoryHandlers, ItemHandlers } from './CategoriesEditorPage/handlers';
 import { FormValidator, ErrorHandler, ValidationError } from './CategoriesEditorPage/utils';
-import type { Category, Item, CategoryFormData, ItemFormData } from '@/types';
+import type { Category, Item, CategoryFormData } from '@/types';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 
 export function CategoriesEditorPage() {
@@ -93,26 +90,12 @@ function CategoriesEditorView({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // State management
-  const [isAddingNewItem, setIsAddingNewItem] = useState(false);
   const [newCategoryForm, setNewCategoryForm] = useState<CategoryFormData>({ 
     title: '', 
     position: 0 
   });
-  const [newItemForm, setNewItemForm] = useState<ItemFormData>({ 
-    title: '', 
-    description: '', 
-    price: 0, 
-    image_url: '', 
-    is_available: true, 
-    position: 0 
-  });
-  const [itemImageFile, setItemImageFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [editingItem, setEditingItem] = useState<Item | null>(null);
 
-  // Hooks
-  const { generatePreview, clearPreview } = useImagePreview();
+
 
   // Category operations
   const handleCreateCategory = async () => {
@@ -136,27 +119,7 @@ function CategoriesEditorView({
     }
   };
 
-  const handleUpdateCategory = async (categoryId: string) => {
-    try {
-      FormValidator.validateCategoryForm(newCategoryForm);
-      
-      const categoryData: Partial<CategoryFormData> = {
-        title: newCategoryForm.title.trim(),
-        position: newCategoryForm.position
-      };
 
-      await categoryHandlers.update(categoryId, categoryData);
-      setNewCategoryForm({ title: '', position: 0 });
-      setEditingCategory(null);
-      ErrorHandler.showSuccess('Category updated successfully');
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        ErrorHandler.showError(error, 'Invalid category data');
-      } else {
-        ErrorHandler.showError(error, 'Failed to update category');
-      }
-    }
-  };
 
   const handleDeleteCategory = async (categoryId: string) => {
     if (!window.confirm('Are you sure you want to delete this category?')) return;
@@ -170,43 +133,6 @@ function CategoriesEditorView({
   };
 
   // Item operations
-  const handleCreateItem = async (categoryId: string) => {
-    try {
-      FormValidator.validateItemForm(newItemForm);
-      
-      await itemHandlers.create(categoryId, newItemForm, itemImageFile);
-      
-      resetItemForm();
-      setEditingItem(null);
-      setIsAddingNewItem(false);
-      ErrorHandler.showSuccess('Item created successfully');
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        ErrorHandler.showError(error, 'Invalid item data');
-      } else {
-        ErrorHandler.showError(error, 'Failed to create item');
-      }
-    }
-  };
-
-  const handleUpdateItem = async (itemId: string, categoryId: string) => {
-    try {
-      FormValidator.validateItemForm(newItemForm);
-      
-      await itemHandlers.update(itemId, categoryId, newItemForm, itemImageFile);
-      
-      resetItemForm();
-      setEditingItem(null);
-      ErrorHandler.showSuccess('Item updated successfully');
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        ErrorHandler.showError(error, 'Invalid item data');
-      } else {
-        ErrorHandler.showError(error, 'Failed to update item');
-      }
-    }
-  };
-
   const handleDeleteItem = async (itemId: string, categoryId: string) => {
     try {
       await itemHandlers.delete(itemId, categoryId);
@@ -225,60 +151,12 @@ function CategoriesEditorView({
     }
   };
 
-  // Form helpers
-  const resetItemForm = () => {
-    setNewItemForm({ 
-      title: '', 
-      description: '', 
-      price: 0, 
-      image_url: '', 
-      is_available: true, 
-      position: 0 
-    });
-    setItemImageFile(null);
-    setPreviewUrl(null);
-    clearPreview();
-  };
-
   const handleCategorySubmit = async () => {
     try {
-      if (editingCategory) {
-        await handleUpdateCategory(editingCategory.id);
-      } else {
-        await handleCreateCategory();
-      }
+      await handleCreateCategory();
     } catch (error) {
       console.error('Category operation failed:', error);
     }
-  };
-
-  const handleItemSubmit = async () => {
-    if (!editingCategory) return;
-
-    try {
-      if (editingItem) {
-        await handleUpdateItem(editingItem.id, editingCategory.id);
-      } else {
-        await handleCreateItem(editingCategory.id);
-      }
-    } catch (error) {
-      console.error('Item operation failed:', error);
-    }
-  };
-
-  // Event handlers
-  const handleEditItem = (_category: Category, item: Item) => {
-    // Don't set editingCategory when editing an item
-    // setEditingCategory(category);
-    setEditingItem(item);
-    setNewItemForm({
-      title: item.title,
-      description: item.description || '',
-      price: item.price || 0,
-      image_url: item.image_url || '',
-      is_available: item.is_available ?? true,
-      position: item.position || 0
-    });
   };
 
   // Long press state
@@ -316,16 +194,16 @@ function CategoriesEditorView({
   };
 
 
-  const handleItemCardClick = (_category: Category, item: Item) => {
+  const handleItemCardClick = (category: Category, item: Item) => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
     
-    // Only open editor if it wasn't a long press
+    // Only navigate to editor if it wasn't a long press
     if (!isLongPress) {
-      // Open item editor directly on click
-      handleEditItem(_category, item);
+      // Navigate to item editor page
+      navigate(`/categories/${catalogId}/item-editor/${category.id}/${item.id}`);
     }
     
     setIsLongPress(false);
@@ -371,75 +249,29 @@ function CategoriesEditorView({
         <CategoriesList
           categories={categories}
           onEditCategory={(cat) => {
-            setEditingCategory(cat);
-            setNewCategoryForm({
-              title: cat.title,
-              position: cat.position || 0
-            });
+            // Navigate to category editor
+            navigate(`/categories/${catalogId}/category-editor/${cat.id}`);
           }}
           onDeleteCategory={handleDeleteCategory}
           onAddItem={(cat) => {
-            setEditingCategory(cat);
-            setEditingItem(null);
-            setIsAddingNewItem(true);
-            setNewItemForm({ 
-              title: '', 
-              description: '', 
-              price: 0, 
-              image_url: '', 
-              is_available: true, 
-              position: (cat.items?.length || 0) + 1 
-            });
+            // Navigate to item editor for new item
+            navigate(`/categories/${catalogId}/item-editor/${cat.id}`);
           }}
           onItemMouseDown={handleItemMouseDown}
           onItemMouseUp={handleItemMouseUp}
           onItemTouchStart={handleItemTouchStart}
           onItemTouchEnd={handleItemTouchEnd}
           onItemCardClick={handleItemCardClick}
-          onEditItem={handleEditItem}
+          onEditItem={(category, item) => {
+            // Navigate to item editor for existing item
+            navigate(`/categories/${catalogId}/item-editor/${category.id}/${item.id}`);
+          }}
           onDuplicateItem={(categoryId, item) => handleDuplicateItem(item, categoryId)}
           onDeleteItem={handleDeleteItem}
         />
       </div>
 
-      {/* Drawers */}
-      <CategoryEditorDrawer
-        isOpen={!!editingCategory && !editingItem && !isAddingNewItem}
-        editingCategory={editingCategory}
-        formData={{
-          title: newCategoryForm.title,
-          position: newCategoryForm.position ?? 0
-        }}
-        onFormChange={(data) => setNewCategoryForm(prev => ({ ...prev, ...data }))}
-        onSubmit={handleCategorySubmit}
-        onClose={() => {
-          setEditingCategory(null);
-          setNewCategoryForm({ title: '', position: 0 });
-        }}
-      />
 
-      <ItemEditorDrawer
-        isOpen={!!editingItem || isAddingNewItem}
-        editingItem={editingItem}
-        formData={newItemForm}
-        previewUrl={previewUrl ?? null}
-        onFormChange={setNewItemForm}
-        onFileChange={setItemImageFile}
-        onClearPreview={() => {
-          clearPreview();
-          setPreviewUrl(null);
-        }}
-        onSubmit={handleItemSubmit}
-        onClose={() => {
-          setEditingItem(null);
-          setIsAddingNewItem(false);
-          resetItemForm();
-        }}
-        generatePreview={async (file) => {
-          const url = await generatePreview(file);
-          setPreviewUrl(url);
-        }}
-      />
 
 
       {/* Navigation Button */}

@@ -18,6 +18,8 @@ import {
 } from '../business/pages';
 import { CatalogEditorPage } from '../business/pages/CatalogEditorPage';
 import { CategoriesEditorPage } from '../business/pages/CategoriesEditorPage';
+import { ItemEditorPage } from '../business/pages/ItemEditorPage';
+import { CategoryEditorPage } from '../business/pages/CategoryEditorPage';
 import { useTelegramAuth } from '@/useTelegramAuth';
 
 
@@ -113,6 +115,8 @@ export function App() {
               <Route path="/catalogs/:catalogId/links" element={<LinksPage />} />
               <Route path="/categories/editor/:catalogId" element={<CategoriesEditorPage />} />
               <Route path="/categories/editor" element={<Navigate to="/catalogs" replace />} />
+              <Route path="/categories/:catalogId/item-editor/:categoryId/:itemId?" element={<ItemEditorPage />} />
+              <Route path="/categories/:catalogId/category-editor/:categoryId?" element={<CategoryEditorPage />} />
               <Route path="/actions/editor/:catalogId" element={<ActionsEditorPage />} />
             </>
           )}
