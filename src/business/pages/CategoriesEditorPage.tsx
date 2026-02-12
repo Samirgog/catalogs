@@ -139,12 +139,16 @@ function CategoriesEditorView({
 
   // Item operations
   const handleDeleteItem = async (itemId: string, categoryId: string) => {
+    console.log('Attempting to delete item:', { itemId, categoryId });
     if (!window.confirm('Вы уверены, что хотите удалить этот товар?')) return;
     
     try {
+      console.log('Calling itemHandlers.delete...');
       await itemHandlers.delete(itemId, categoryId);
+      console.log('Delete successful');
       ErrorHandler.showSuccess('Item deleted successfully');
     } catch (error) {
+      console.error('Delete failed:', error);
       ErrorHandler.showError(error, 'Failed to delete item');
     }
   };

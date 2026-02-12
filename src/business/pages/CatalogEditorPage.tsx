@@ -145,10 +145,12 @@ export function CatalogEditorPage() {
         
         // Then upload to Supabase storage (with fallback to base64)
         const imageUrl = await uploadImage(file, uploadPath);
+        console.log('Uploaded image URL:', imageUrl);
         setFormData(prev => ({
           ...prev,
           banner_url: imageUrl
         }));
+        console.log('FormData after setting banner_url:', {...formData, banner_url: imageUrl});
         
         // Show appropriate success message
         if (imageUrl.startsWith('data:image')) {

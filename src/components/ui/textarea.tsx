@@ -13,6 +13,10 @@ const Textarea = React.forwardRef<
          // Mobile-specific styles
           'touch-manipulation caret-blue-500 selection:bg-blue-100 selection:text-blue-900',
           '[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none',
+          // Focus styles - remove persistent outline
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          // Active state styles
+          'active:outline-none',
         className
       )}
       ref={ref}

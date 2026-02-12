@@ -112,9 +112,12 @@ export function CategoriesDataProvider({ catalogId, children }: CategoriesDataPr
     
     deleteItem: async (id: string) => {
       try {
+        console.log('CategoriesDataProvider: Deleting item with ID:', id);
         await itemService.delete(id);
+        console.log('CategoriesDataProvider: Item deleted from service');
         // Revalidate items data
         await mutateItems();
+        console.log('CategoriesDataProvider: Items data mutated');
       } catch (error) {
         console.error('Failed to delete item:', error);
         throw error;

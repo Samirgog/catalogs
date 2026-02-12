@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Check, Upload, X } from 'lucide-react';
 import { useImagePreview } from '../hooks/useImages';
 import { itemService } from '../services/items';
+import { uploadImage } from '../services/images';
 import { FormValidator, ErrorHandler, ValidationError } from './CategoriesEditorPage/utils';
 import type { ItemFormData } from '@/types';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
@@ -262,10 +263,27 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
                   const file = e.target.files?.[0];
                   if (file) {
                     try {
-                      const url = await generatePreview(file);
-                      setPreviewUrl(url);
+                      // Generate preview first
+                      const previewUrl = await generatePreview(file);
+                      setPreviewUrl(previewUrl);
+                      
+                      // Upload to Supabase storage
+                      const timestamp = Date.now();
+                      const safeFileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+                      const uploadPath = `items/${categoryId}/${safeFileName}`;
+                      
+                      const imageUrl = await uploadImage(file, uploadPath);
+                      console.log('Uploaded item image URL:', imageUrl);
+                      
+                      // Update form data with the uploaded image URL
+                      setFormData(prev => ({
+                        ...prev,
+                        image_url: imageUrl
+                      }));
+                      
                     } catch (err) {
-                      console.error('Preview generation failed:', err);
+                      console.error('Image upload failed:', err);
+                      ErrorHandler.showError(err, 'Failed to upload image');
                     }
                   }
                 }}
