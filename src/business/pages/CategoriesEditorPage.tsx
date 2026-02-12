@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AddCategorySection } from '../components/AddCategorySection';
@@ -87,7 +87,12 @@ function CategoriesEditorView({
   itemHandlers
 }: CategoriesEditorViewProps) {
   const navigate = useNavigate();
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Refresh data when component mounts or comes back from editor
+  useEffect(() => {
+    onRefresh();
+  }, [onRefresh]);
+
 
   // State management
   const [newCategoryForm, setNewCategoryForm] = useState<CategoryFormData>({ 
@@ -159,55 +164,7 @@ function CategoriesEditorView({
     }
   };
 
-  // Long press state
-  const [isLongPress, setIsLongPress] = useState(false);
-  
-  // Long press handlers
-  const handleItemMouseDown = (_category: Category, _item: Item) => {
-    longPressTimer.current = setTimeout(() => {
-      setIsLongPress(true);
-      // Long press action - handled by popover now
-    }, 500);
-  };
 
-  const handleItemMouseUp = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    setIsLongPress(false);
-  };
-
-  const handleItemTouchStart = (_category: Category, _item: Item) => {
-    longPressTimer.current = setTimeout(() => {
-      setIsLongPress(true);
-      // Long press action - handled by popover now
-    }, 500);
-  };
-
-  const handleItemTouchEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    setIsLongPress(false);
-  };
-
-
-  const handleItemCardClick = (category: Category, item: Item) => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    
-    // Only navigate to editor if it wasn't a long press
-    if (!isLongPress) {
-      // Navigate to item editor page
-      navigate(`/categories/${catalogId}/item-editor/${category.id}/${item.id}`);
-    }
-    
-    setIsLongPress(false);
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -257,11 +214,6 @@ function CategoriesEditorView({
             // Navigate to item editor for new item
             navigate(`/categories/${catalogId}/item-editor/${cat.id}`);
           }}
-          onItemMouseDown={handleItemMouseDown}
-          onItemMouseUp={handleItemMouseUp}
-          onItemTouchStart={handleItemTouchStart}
-          onItemTouchEnd={handleItemTouchEnd}
-          onItemCardClick={handleItemCardClick}
           onEditItem={(category, item) => {
             // Navigate to item editor for existing item
             navigate(`/categories/${catalogId}/item-editor/${category.id}/${item.id}`);

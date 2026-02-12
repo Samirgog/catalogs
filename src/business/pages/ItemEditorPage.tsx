@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Check, Upload, X } from 'lucide-react';
+import { Check, Upload, X } from 'lucide-react';
 import { useImagePreview } from '../hooks/useImages';
 import { itemService } from '../services/items';
 import { FormValidator, ErrorHandler, ValidationError } from './CategoriesEditorPage/utils';
@@ -20,7 +20,7 @@ export function ItemEditorPage() {
   }>();
   const navigate = useNavigate();
   
-  useAutoBackButton();
+  useAutoBackButton(`/categories/editor/${catalogId}`);
 
   // Validate required params
   useEffect(() => {
@@ -137,10 +137,6 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
     }
   };
 
-  const handleCancel = () => {
-    navigate(`/categories/editor/${catalogId}`);
-  };
-
   if (isLoading && itemId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -154,14 +150,6 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background border-b">
         <div className="flex items-center p-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleCancel}
-            className="mr-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
           <h1 className="text-xl font-bold flex-1">
             {itemId ? 'Редактировать товар' : 'Создать товар'}
           </h1>
@@ -202,6 +190,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
               onChange={(e) => setFormData({...formData, description: e.target.value})}
               placeholder="Введите описание товара"
               className="w-full min-h-[100px]"
+              autoFocus
             />
           </div>
           
@@ -212,8 +201,8 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
             <Input
               id="item-price"
               type="number"
-              value={formData.price}
-              onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})}
+              value={formData.price || ''}
+              onChange={(e) => setFormData({...formData, price: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
               placeholder="Цена товара"
               className="w-full"
             />

@@ -5,13 +5,13 @@ import { useNavigate } from 'react-router-dom';
  * Hook for Telegram WebApp navigation integration
  * Handles back button and other Telegram-specific navigation
  */
-export const useTelegramNavigation = () => {
+export const useTelegramNavigation = (backPath?: string) => {
   const navigate = useNavigate();
 
   const handleBackButton = useCallback(() => {
     // Go back in history, or to home if no history
     if (window.history.length > 1) {
-      navigate(-1);
+      backPath ? navigate(backPath) : navigate(-1)
     } else {
       navigate('/');
     }
@@ -66,11 +66,11 @@ export const useTelegramNavigation = () => {
    */
   const goBack = useCallback(() => {
     if (window.history.length > 1) {
-      navigate(-1);
+      backPath ? navigate(backPath) : navigate(-1);
     } else {
       navigate('/');
     }
-  }, [navigate]);
+  }, [navigate, backPath]);
 
   return {
     setShowBackButton,
@@ -82,8 +82,8 @@ export const useTelegramNavigation = () => {
  * Hook for pages that need back button functionality
  * Automatically manages back button visibility based on route depth
  */
-export const useAutoBackButton = () => {
-  const { setShowBackButton } = useTelegramNavigation();
+export const useAutoBackButton = (backPath?: string) => {
+  const { setShowBackButton } = useTelegramNavigation(backPath);
   
   useEffect(() => {
     // Show back button when component mounts

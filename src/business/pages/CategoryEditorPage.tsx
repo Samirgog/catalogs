@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { categoryService } from '../services/categories';
 import { FormValidator, ErrorHandler, ValidationError } from './CategoriesEditorPage/utils';
 import type { CategoryFormData } from '@/types';
@@ -16,7 +16,7 @@ export function CategoryEditorPage() {
   }>();
   const navigate = useNavigate();
   
-  useAutoBackButton();
+  useAutoBackButton(`/categories/editor/${catalogId}`);
 
   // Validate required params
   useEffect(() => {
@@ -125,10 +125,6 @@ function CategoryEditorView({ catalogId, categoryId }: CategoryEditorViewProps) 
     }
   };
 
-  const handleCancel = () => {
-    navigate(`/categories/editor/${catalogId}`);
-  };
-
   if (isLoading && categoryId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -142,14 +138,6 @@ function CategoryEditorView({ catalogId, categoryId }: CategoryEditorViewProps) 
       {/* Header */}
       <div className="sticky top-0 z-20 bg-background border-b">
         <div className="flex items-center p-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleCancel}
-            className="mr-2"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
           <h1 className="text-xl font-bold flex-1">
             {categoryId ? 'Редактировать категорию' : 'Создать категорию'}
           </h1>
