@@ -14,7 +14,7 @@ export function CategoriesEditorPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
   const navigate = useNavigate();
 
-  useAutoBackButton();
+  useAutoBackButton(`/catalogs/${catalogId}/edit`);
 
   // Category operations hooks
   const { createCategory, updateCategory, deleteCategory } = useCategories(catalogId ?? '');

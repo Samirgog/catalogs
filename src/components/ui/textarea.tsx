@@ -10,6 +10,9 @@ const Textarea = React.forwardRef<
     <textarea
       className={cn(
         'flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+         // Mobile-specific styles
+          'touch-manipulation caret-blue-500 selection:bg-blue-100 selection:text-blue-900',
+          '[&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none',
         className
       )}
       ref={ref}

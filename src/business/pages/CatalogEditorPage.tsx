@@ -19,7 +19,7 @@ export function CatalogEditorPage() {
   const isEditing = catalogId && catalogId !== 'new';
 
   // Enable auto back button for this page
-  useAutoBackButton();
+  useAutoBackButton(`/catalogs`);
   
   // Use hooks for data management
   const { catalog: fetchedCatalog, loading: catalogLoading } = useCatalog(catalogId && catalogId !== 'new' ? catalogId : '');
