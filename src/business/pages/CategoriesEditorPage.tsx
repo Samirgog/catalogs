@@ -139,6 +139,8 @@ function CategoriesEditorView({
 
   // Item operations
   const handleDeleteItem = async (itemId: string, categoryId: string) => {
+    if (!window.confirm('Вы уверены, что хотите удалить этот товар?')) return;
+    
     try {
       await itemHandlers.delete(itemId, categoryId);
       ErrorHandler.showSuccess('Item deleted successfully');
