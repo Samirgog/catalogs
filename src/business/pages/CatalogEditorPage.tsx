@@ -186,23 +186,22 @@ export function CatalogEditorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="p-4 border-b bg-background">
-        <div className="flex items-center">
-          <h1 className="text-xl font-bold ml-2">
-            {isEditing ? 'Редактировать каталог' : 'Создать каталог'}
-          </h1>
-        </div>
+    <div className="min-h-screen bg-background pb-28">
+      {/* Header */}
+      <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
+        <h1 className="text-2xl font-bold">
+          {isEditing ? 'Редактировать каталог' : 'Создать каталог'}
+        </h1>
       </div>
 
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-4">
         <Card>
           <CardHeader>
             <CardTitle>Настройки каталога</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="title">Название каталога</Label>
+              <Label htmlFor="title" className="block mb-2 text-sm font-medium">Название каталога</Label>
               <Input
                 id="title"
                 name="title"
@@ -212,7 +211,7 @@ export function CatalogEditorPage() {
               />
             </div>
             
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between py-2">
               <div>
                 <Label htmlFor="is_active" className="text-base font-medium">
                   Активен
@@ -242,24 +241,17 @@ export function CatalogEditorPage() {
           <CardContent>
             <div className="space-y-4">
               {formData?.banner_url || previewUrl ? (
-                <div className="relative">
+                <div className="relative rounded-xl overflow-hidden">
                   <img 
                     src={formData?.banner_url || previewUrl || ''} 
                     alt="Предпросмотр баннера" 
-                    className="w-full h-48 object-cover rounded-lg border"
-                    onError={(e) => {
-                      console.error('Image failed to load:', e);
-                      console.log('Preview URL that failed:', formData?.banner_url || previewUrl);
-                    }}
-                    onLoad={() => {
-                      console.log('Image loaded successfully:', previewUrl);
-                    }}
+                    className="w-full h-48 object-cover"
                   />
                   <Button
                     type="button"
-                    variant="destructive"
+                    variant="secondary"
                     size="icon"
-                    className="absolute top-2 right-2"
+                    className="absolute top-3 right-3 h-9 w-9 backdrop-blur-sm"
                     onClick={handleRemoveImage}
                   >
                     <X className="h-4 w-4" />
@@ -267,14 +259,14 @@ export function CatalogEditorPage() {
                 </div>
               ) : (
                 <div 
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
+                  className="rounded-xl border-2 border-dashed border-border p-8 text-center cursor-pointer bg-secondary/30"
                   onClick={triggerFileInput}
                 >
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <p className="mt-2 text-sm text-gray-600">
+                  <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
+                  <p className="mt-2 text-sm text-foreground">
                     Нажмите для загрузки баннера
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     PNG, JPG, GIF до 5MB
                   </p>
                 </div>
@@ -305,24 +297,24 @@ export function CatalogEditorPage() {
         
         <div className="space-y-3">
           <Button
-            className="w-full"
             variant="outline"
+            className="w-full h-12"
             onClick={handleConfigureCategories}
           >
             <FolderOpen className="w-4 h-4 mr-2" />
             Настроить категории
           </Button>
           <Button
-            className="w-full"
             variant="outline"
+            className="w-full h-12"
             onClick={handleConfigureActions}
           >
             <Settings className="w-4 h-4 mr-2" />
             Настроить действия
           </Button>
           <Button
-            className="w-full"
             variant="outline"
+            className="w-full h-12"
             onClick={handleGenerateLink}
           >
             <Link className="w-4 h-4 mr-2" />
@@ -331,9 +323,10 @@ export function CatalogEditorPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-6 left-4 right-4 px-4">
+      {/* Fixed Save Button */}
+      <div className="fixed bottom-6 left-4 right-4">
         <Button 
-          className="w-full h-14 text-lg" 
+          className="w-full h-14 text-base shadow-xl shadow-primary/25" 
           onClick={handleSave}
         >
           <Save className="w-5 h-5 mr-2" />
