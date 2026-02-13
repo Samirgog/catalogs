@@ -26,7 +26,7 @@ export function CatalogsPage() {
             <h1 className="text-2xl font-bold">Каталоги</h1>
             <p className="text-sm text-muted-foreground">Управление каталогами</p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white shadow-lg">
+          <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white">
             <span className="text-xl font-bold">Б</span>
           </div>
         </div>
@@ -115,7 +115,7 @@ export function CatalogsPage() {
       {/* Floating Action Button */}
       <div className="fixed bottom-6 left-4 right-4">
         <Button 
-          className="w-full h-14 text-base shadow-xl shadow-primary/25" 
+          className="w-full h-14 text-base"
           onClick={handleCreateCatalog}
         >
           <Plus className="w-5 h-5 mr-2" />

@@ -225,7 +225,7 @@ export function ActionsEditorPage() {
       {/* Fixed Save Button */}
       <div className="fixed bottom-6 left-4 right-4">
         <Button 
-          className="w-full h-14 text-base shadow-xl shadow-primary/25" 
+          className="w-full h-14 text-base"
           onClick={handleSave}
         >
           <Save className="w-5 h-5 mr-2" />

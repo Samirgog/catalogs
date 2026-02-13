@@ -38,24 +38,24 @@ export function EditableItemCard({
       onTouchEnd={onItemTouchEnd}
       onClick={() => onItemCardClick(category, item)}
     >
-      <Card className="group cursor-pointer hover:shadow-md transition-shadow relative">
+      <Card className="group cursor-pointer relative">
         <CardContent className="flex gap-4 p-3">
           {item.image_url ? (
             <img
               src={item.image_url}
-              className="h-20 w-20 rounded-md object-cover"
+              className="h-20 w-20 rounded-xl object-cover"
               alt={item.title}
             />
           ) : (
-            <div className="h-20 w-20 rounded-md bg-gray-200 flex items-center justify-center">
-              <Image className="h-6 w-6 text-gray-400" />
+            <div className="h-20 w-20 rounded-xl bg-secondary flex items-center justify-center">
+              <Image className="h-6 w-6 text-muted-foreground" />
             </div>
           )}
           <div className="flex flex-1 flex-col">
             <div className="flex flex-col">
               <h3 className="font-medium">{item.title}</h3>
               {item.description && (
-                <h5 className="font-regular text-gray-500 text-xs">
+                <h5 className="font-normal text-muted-foreground text-xs">
                   {item.description}
                 </h5>
               )}

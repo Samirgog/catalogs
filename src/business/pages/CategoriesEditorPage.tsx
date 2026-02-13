@@ -228,7 +228,7 @@ function CategoriesEditorView({
       {/* Navigation Button */}
       <div className="fixed bottom-6 left-4 right-4">
         <Button 
-          className="w-full h-14 text-base shadow-xl shadow-primary/25" 
+          className="w-full h-14 text-base"
           onClick={() => navigate(`/catalogs/${catalogId}/edit`)}
         >
           Назад к редактированию каталога

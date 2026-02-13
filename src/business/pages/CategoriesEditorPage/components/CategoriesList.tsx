@@ -150,7 +150,7 @@ function EditableItemCard({
   }, [isOpen]);
   
   return (
-    <div key={item.id} className="relative bg-white border rounded-lg shadow-sm p-3">
+    <div key={item.id} className="relative glass-card border-0 p-3">
       <div className="flex gap-4">
         {item.image_url ? (
           <img

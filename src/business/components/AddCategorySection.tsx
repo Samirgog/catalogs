@@ -10,14 +10,14 @@ interface AddCategorySectionProps {
 
 export function AddCategorySection({ title, onTitleChange, onSubmit }: AddCategorySectionProps) {
   return (
-    <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+    <div className="mb-4 p-4 glass-card">
       <h2 className="text-lg font-semibold mb-3">Добавить новую категорию</h2>
       <div className="flex gap-2">
         <Input
           value={title}
           onChange={(e) => onTitleChange(e.target.value)}
           placeholder="Название категории"
-          className="flex-1"
+          className="flex-1 glass-input"
         />
         <Button onClick={onSubmit}>
           <Plus className="w-4 h-4 mr-2" />

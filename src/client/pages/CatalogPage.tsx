@@ -64,7 +64,6 @@ export const CatalogPage: React.FunctionComponent = () => {
                             text-white
                             flex items-center justify-between
                             px-5
-                            shadow-lg
                           "
                     >
                         <div className="flex items-center gap-3">
