@@ -58,12 +58,56 @@ export const itemService = {
 
   // Delete item
   async delete(id: string): Promise<void> {
+    console.log('itemService.delete called with ID:', id);
+    
+    // First, let's verify the item exists
+    const { data: existingItem, error: fetchError } = await businessSupabase
+      .from('items')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    console.log('Existing item check:', { existingItem, fetchError });
+    
+    if (fetchError) {
+      console.error('Failed to fetch item before deletion:', fetchError);
+      throw fetchError;
+    }
+    
+    if (!existingItem) {
+      console.warn('Item not found for deletion:', id);
+      return; // Item doesn't exist, nothing to delete
+    }
+    
+    console.log('Proceeding with deletion of item:', existingItem);
+    
     const { error } = await businessSupabase
       .from('items')
       .delete()
       .eq('id', id);
-
-    if (error) throw error;
+    
+    console.log('Delete operation result:', { error });
+    
+    if (error) {
+      console.error('Delete operation failed:', error);
+      throw error;
+    }
+    
+    console.log('Item deleted successfully from database');
+    
+    // Verify deletion
+    const { data: verifyItem, error: verifyError } = await businessSupabase
+      .from('items')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    console.log('Verification after deletion:', { verifyItem, verifyError });
+    
+    if (verifyItem) {
+      console.error('ITEM STILL EXISTS AFTER DELETION!', verifyItem);
+      throw new Error('Item was not actually deleted from database');
+    }
   },
 
   // Update item positions (for drag-and-drop reordering)

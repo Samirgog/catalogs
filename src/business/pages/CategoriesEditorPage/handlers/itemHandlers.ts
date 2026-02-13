@@ -103,13 +103,17 @@ export class ItemHandlers {
   }
 
   async delete(itemId: string, categoryId: string) {
+    console.log('ItemHandlers.delete called with:', { itemId, categoryId });
     try {
       const itemHook = this.props.getItemHook(categoryId);
       if (!itemHook) {
+        console.error('No item hook found for category:', categoryId);
         throw new Error(`No item hook found for category ${categoryId}`);
       }
 
+      console.log('Calling itemHook.deleteItem with ID:', itemId);
       await itemHook.deleteItem(itemId);
+      console.log('itemHook.deleteItem completed successfully');
     } catch (error) {
       console.error('Failed to delete item:', error);
       throw error;
