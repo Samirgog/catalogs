@@ -15,7 +15,7 @@ interface CategoriesListProps {
   onAddItem: (category: Category) => void;
   onEditItem: (category: Category, item: Item) => void;
   onDuplicateItem: (categoryId: string, item: Item) => void;
-  onDeleteItem: (categoryId: string, itemId: string) => void;
+  onDeleteItem: (itemId: string, categoryId: string) => void;
 }
 
 export function CategoriesList({
@@ -52,7 +52,7 @@ interface CategorySectionProps {
   onAddItem: (category: Category) => void;
   onEditItem: (category: Category, item: Item) => void;
   onDuplicateItem: (categoryId: string, item: Item) => void;
-  onDeleteItem: (categoryId: string, itemId: string) => void;
+  onDeleteItem: (itemId: string, categoryId: string) => void;
 }
 
 function CategorySection({
@@ -123,7 +123,7 @@ interface EditableItemCardProps {
   item: Item;
   onEditItem: (category: Category, item: Item) => void;
   onDuplicateItem: (categoryId: string, item: Item) => void;
-  onDeleteItem: (categoryId: string, itemId: string) => void;
+  onDeleteItem: (itemId: string, categoryId: string) => void;
 }
 
 function EditableItemCard({
@@ -238,7 +238,7 @@ function EditableItemCard({
               className="w-full justify-start py-2 text-left text-red-500 hover:text-red-700"
               onClick={(e) => {
                 e.stopPropagation();
-                onDeleteItem(category.id, item.id);
+                onDeleteItem(item.id, category.id);
                 setIsOpen(false);
               }}
             >
