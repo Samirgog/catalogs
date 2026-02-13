@@ -12,9 +12,9 @@ export const CartPage = ()=>  {
     }
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-background">
             {/* Header */}
-            <div className="h-14 flex items-center px-4 border-b">
+            <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center">
                 <button
                     onClick={handleGoBack}
                     className="text-sm text-muted-foreground"
@@ -26,9 +26,9 @@ export const CartPage = ()=>  {
             </div>
 
             {/* Content */}
-            <div className="flex-1 p-4 space-y-4 pb-24">
+            <div className="flex-1 p-4 space-y-3 pb-32">
                 {items.length === 0 && (
-                    <div className="text-center text-muted-foreground mt-12">
+                    <div className="text-center text-muted-foreground mt-12 glass-card p-6 rounded-xl">
                         Корзина пуста
                     </div>
                 )}

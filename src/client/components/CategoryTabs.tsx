@@ -52,13 +52,14 @@ export const CategoryTabs: React.FunctionComponent<Props> = ({ categories }) => 
   }, [categories]);
 
   return (
-    <div className="sticky top-0 z-10 bg-background px-4 py-3">
-      <div className="flex gap-2 overflow-x-auto">
+    <div className="Sticky top-0 z-10 bg-background/80 backdrop-blur-md px-4 py-3 border-b border-border/20">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {categories.map((c) => (
           <Button
             key={c.id}
             variant={activeCategory === c.id ? "default" : "secondary"}
             size="sm"
+            className="rounded-full px-4"
             onClick={() => scrollTo(c.id)}
           >
             {c.title}

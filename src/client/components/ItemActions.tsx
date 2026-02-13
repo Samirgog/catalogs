@@ -50,34 +50,34 @@ export function ItemActions({ item, businessType = 'goods' }: Props) {
       return (
         <>
           {isInCart ? (
-            <div className="mt-3 w-fit flex items-center border rounded-md overflow-hidden">
+            <div className="mt-2 w-fit flex items-center rounded-xl overflow-hidden glass-card border-0">
               <Button
                 size="sm"
-                variant="outline"
-                className="rounded-none border-0 h-full px-2 py-1 text-xs"
+                variant="ghost"
+                className="rounded-none h-8 px-3"
                 onClick={handleRemoveFromCart}
               >
-                <Minus size={12} />
+                <Minus size={14} />
               </Button>
-              <span className="px-2 py-1 font-medium min-w-[20px] text-center text-sm">
+              <span className="px-3 font-medium min-w-[24px] text-center text-sm">
                 {cartItem.quantity}
               </span>
               <Button
                 size="sm"
-                variant="outline"
-                className="rounded-none border-0 h-full px-2 py-1 text-xs"
+                variant="ghost"
+                className="rounded-none h-8 px-3"
                 onClick={handleIncreaseQuantity}
               >
-                <Plus size={12} />
+                <Plus size={14} />
               </Button>
-              <span className="px-2 py-1 font-semibold bg-gray-100 text-sm">
+              <span className="px-3 py-1 font-semibold bg-secondary text-sm rounded-r-xl">
                 {item.price} ₽
               </span>
             </div>
           ) : (
             <Button
               size="sm"
-              className="mt-3 w-fit gap-1"
+              className="mt-2 w-fit gap-1 h-9"
               onClick={handleAddToCart}
             >
               <Plus size={16} />
@@ -90,10 +90,12 @@ export function ItemActions({ item, businessType = 'goods' }: Props) {
       return (
         <Button
           size="sm"
-          className="mt-3 w-fit"
+          className="mt-2 w-fit h-9"
           onClick={handleSignUp}
         >
-          <span className="py-1 font-semibold text-sm">Выбрать</span> • <span className="py-1 font-semibold text-sm">
+          <span className="py-1 font-semibold text-sm">Выбрать</span> 
+          <span className="mx-1">•</span>
+          <span className="py-1 font-semibold text-sm">
                 {item.price} ₽
               </span>
         </Button>

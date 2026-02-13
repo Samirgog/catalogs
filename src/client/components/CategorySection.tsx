@@ -10,8 +10,8 @@ type Props = {
 
 export function CategorySection({ id, title, items, businessType = 'goods' }: Props) {
     return (
-        <section id={id} className="scroll-mt-24">
-          <h2 className="mb-3 text-lg font-semibold">{title}</h2>
+        <section id={id} className="scroll-mt-20">
+          <h2 className="mb-3 text-xl font-semibold">{title}</h2>
           <div className="grid gap-3">
             {items.map((item) => {
               return (

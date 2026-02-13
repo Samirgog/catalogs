@@ -27,18 +27,18 @@ export const CartItemRow: React.FunctionComponent<Props> = ({ item }) => {
     };
     
     return (
-        <div className="flex items-center justify-between p-3 bg-card rounded-lg border">
+        <div className="flex items-center justify-between p-3 glass-card rounded-xl">
             <div className="flex items-start gap-3">
                 {item.item.image_url && (
                     <img 
                         src={item.item.image_url} 
                         alt={item.item.title}
-                        className="w-12 h-12 rounded-md object-cover"
+                        className="w-14 h-14 rounded-xl object-cover"
                     />
                 )}
                 <div>
-                    <div className="font-medium">{item.item.title}</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="font-medium text-base">{item.item.title}</div>
+                    <div className="text-sm text-muted-foreground mt-0.5">
                         {item.item.price} ₽ × {item.quantity}
                     </div>
                     <div className="text-sm font-semibold mt-1">
@@ -49,26 +49,26 @@ export const CartItemRow: React.FunctionComponent<Props> = ({ item }) => {
 
             <div className="flex items-center gap-1">
                 <button
-                    className="w-7 h-7 rounded-full border flex items-center justify-center hover:bg-accent text-xs"
+                    className="w-8 h-8 rounded-full border flex items-center justify-center text-sm"
                     onClick={handleDecreaseQuantity}
                 >
                     −
                 </button>
 
-                <span className="w-6 text-center text-sm">{item.quantity}</span>
+                <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
 
                 <button
-                    className="w-7 h-7 rounded-full border flex items-center justify-center hover:bg-accent text-xs"
+                    className="w-8 h-8 rounded-full border flex items-center justify-center text-sm"
                     onClick={handleIncreaseQuantity}
                 >
                     +
                 </button>
                 
                 <button 
-                    className="ml-2 text-red-500 hover:text-red-700 p-1"
+                    className="ml-2 text-destructive p-2"
                     onClick={handleRemoveItem}
                 >
-                    <Trash size={16} />
+                    <Trash size={18} />
                 </button>
             </div>
         </div>

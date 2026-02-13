@@ -55,6 +55,20 @@ export const useTelegramTheme = () => {
             root.style.setProperty('--tg-theme-secondary-bg-color', themeParams.secondary_bg_color);
           }
         }
+
+        // Configure Telegram Mini App header to match theme
+        try {
+          // Set header color to match background
+          if (themeParams?.bg_color) {
+            tg.setHeaderColor(themeParams.bg_color);
+          }
+          // Set background color for the main content area
+          if (themeParams?.bg_color) {
+            tg.setBackgroundColor(themeParams.bg_color);
+          }
+        } catch (e) {
+          // Silently handle if these methods aren't available
+        }
       } else {
         // Fallback to system preference when not in Telegram
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
