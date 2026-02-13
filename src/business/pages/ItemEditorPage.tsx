@@ -141,33 +141,33 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
   if (isLoading && itemId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-lg">Загрузка...</div>
+        <div className="glass-card p-6 rounded-xl">
+          <div className="text-lg">Загрузка...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-28">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-background border-b">
-        <div className="flex items-center p-4">
-          <h1 className="text-xl font-bold flex-1">
-            {itemId ? 'Редактировать товар' : 'Создать товар'}
-          </h1>
-          <Button 
-            onClick={handleSubmit}
-            disabled={isLoading}
-            className="gap-2"
-          >
-            <Check className="w-4 h-4" />
-            {isLoading ? 'Сохранение...' : 'Сохранить'}
-          </Button>
-        </div>
+      <div className="Sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center justify-between">
+        <h1 className="text-xl font-bold">
+          {itemId ? 'Редактировать товар' : 'Создать товар'}
+        </h1>
+        <Button 
+          onClick={handleSubmit}
+          disabled={isLoading}
+          className="gap-2"
+        >
+          <Check className="w-4 h-4" />
+          {isLoading ? 'Сохранение...' : 'Сохранить'}
+        </Button>
       </div>
 
       {/* Content */}
       <div className="p-4 pb-8">
-        <div className="space-y-6 max-w-md mx-auto">
+        <div className="space-y-4 max-w-md mx-auto">
           <div>
             <Label htmlFor="item-title" className="block mb-2 text-sm font-medium">
               Название
@@ -177,7 +177,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
               value={formData.title}
               onChange={(e) => setFormData({...formData, title: e.target.value})}
               placeholder="Введите название товара"
-              className="w-full"
+              className="w-full glass-input"
             />
           </div>
           
@@ -190,7 +190,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
               placeholder="Введите описание товара"
-              className="w-full min-h-[100px]"
+              className="w-full min-h-[100px] glass-input"
               autoFocus
             />
           </div>
@@ -205,7 +205,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
               value={formData.price || ''}
               onChange={(e) => setFormData({...formData, price: e.target.value === '' ? 0 : parseFloat(e.target.value) || 0})}
               placeholder="Цена товара"
-              className="w-full"
+              className="w-full glass-input"
             />
           </div>
           
@@ -215,20 +215,17 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
             </Label>
             <div className="space-y-4">
               {formData.image_url || previewUrl ? (
-                <div className="relative">
+                <div className="relative rounded-xl overflow-hidden">
                   <img 
                     src={formData.image_url || previewUrl || ''} 
                     alt="Предпросмотр изображения" 
-                    className="w-full h-48 object-cover rounded-lg border"
-                    onError={(e) => {
-                      console.error('Image failed to load:', e);
-                    }}
+                    className="w-full h-48 object-cover"
                   />
                   <Button
                     type="button"
-                    variant="destructive"
+                    variant="secondary"
                     size="icon"
-                    className="absolute top-2 right-2"
+                    className="absolute top-3 right-3 h-9 w-9 backdrop-blur-sm"
                     onClick={() => {
                       clearPreview();
                       setPreviewUrl(null);
@@ -242,14 +239,14 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
                 </div>
               ) : (
                 <div 
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
+                  className="rounded-xl border-2 border-dashed border-border p-8 text-center cursor-pointer bg-secondary/30"
                   onClick={() => document.getElementById('item-image-file')?.click()}
                 >
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <p className="mt-2 text-sm text-gray-600">
+                  <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
+                  <p className="mt-2 text-sm text-foreground">
                     Нажмите для загрузки изображения
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     PNG, JPG, GIF до 5MB
                   </p>
                 </div>
@@ -263,11 +260,9 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
                   const file = e.target.files?.[0];
                   if (file) {
                     try {
-                      // Generate preview first
                       const previewUrl = await generatePreview(file);
                       setPreviewUrl(previewUrl);
                       
-                      // Upload to Supabase storage
                       const timestamp = Date.now();
                       const safeFileName = `${timestamp}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
                       const uploadPath = `items/${categoryId}/${safeFileName}`;
@@ -275,7 +270,6 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
                       const imageUrl = await uploadImage(file, uploadPath);
                       console.log('Uploaded item image URL:', imageUrl);
                       
-                      // Update form data with the uploaded image URL
                       setFormData(prev => ({
                         ...prev,
                         image_url: imageUrl
@@ -304,7 +298,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
             </div>
           </div>
           
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-between p-4 glass-card rounded-xl">
             <Label htmlFor="item-available" className="text-sm font-medium">
               Доступен
             </Label>
@@ -325,7 +319,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
               value={formData.position}
               onChange={(e) => setFormData({...formData, position: parseInt(e.target.value) || 0})}
               placeholder="Позиция в списке"
-              className="w-full"
+              className="w-full glass-input"
             />
           </div>
         </div>

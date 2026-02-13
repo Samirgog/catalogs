@@ -173,27 +173,26 @@ function CategoriesEditorView({
 
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="p-4 border-b bg-background sticky top-0 z-20">
-        <div className="flex items-center">
-          <h1 className="text-xl font-bold ml-2 flex-1">Редактор каталога</h1>
-        </div>
+    <div className="min-h-screen bg-background pb-28">
+      {/* Header */}
+      <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
+        <h1 className="text-2xl font-bold">Редактор каталога</h1>
       </div>
 
       {/* Loading/Error states */}
       {(loading || !catalogId) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded-lg">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="glass-card p-4 rounded-xl">
             <div className="text-lg">Загрузка...</div>
           </div>
         </div>
       )}
       
       {error && (
-        <div className="fixed top-20 left-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50">
+        <div className="fixed top-20 left-4 right-4 glass-card border-destructive/50 text-destructive p-4 rounded-xl z-50">
           <strong>Error:</strong> {error}
           <button 
-            className="ml-4 text-red-800 hover:text-red-900"
+            className="ml-4 text-sm underline"
             onClick={onRefresh}
           >
             Обновить
@@ -212,16 +211,13 @@ function CategoriesEditorView({
         <CategoriesList
           categories={categories}
           onEditCategory={(cat) => {
-            // Navigate to category editor
             navigate(`/categories/${catalogId}/category-editor/${cat.id}`);
           }}
           onDeleteCategory={handleDeleteCategory}
           onAddItem={(cat) => {
-            // Navigate to item editor for new item
             navigate(`/categories/${catalogId}/item-editor/${cat.id}`);
           }}
           onEditItem={(category, item) => {
-            // Navigate to item editor for existing item
             navigate(`/categories/${catalogId}/item-editor/${category.id}/${item.id}`);
           }}
           onDuplicateItem={(categoryId, item) => handleDuplicateItem(item, categoryId)}
@@ -229,13 +225,10 @@ function CategoriesEditorView({
         />
       </div>
 
-
-
-
       {/* Navigation Button */}
-      <div className="fixed bottom-6 left-4 right-4 px-4">
+      <div className="fixed bottom-6 left-4 right-4">
         <Button 
-          className="w-full h-14 text-lg" 
+          className="w-full h-14 text-base shadow-xl shadow-primary/25" 
           onClick={() => navigate(`/catalogs/${catalogId}/edit`)}
         >
           Назад к редактированию каталога

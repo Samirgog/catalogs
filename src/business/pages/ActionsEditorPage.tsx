@@ -139,28 +139,27 @@ export function ActionsEditorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="p-4 border-b bg-background">
-        <div className="flex items-center">
-          <h1 className="text-xl font-bold ml-2">Настройка действий</h1>
-        </div>
+    <div className="min-h-screen bg-background pb-28">
+      {/* Header */}
+      <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
+        <h1 className="text-2xl font-bold">Настройка действий</h1>
       </div>
 
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-4">
         <Card>
           <CardHeader>
             <CardTitle>Тип каталога</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <RadioGroup value={catalogType} onValueChange={(value: CatalogType) => setCatalogType(value)} className="space-y-4">
+          <CardContent className="space-y-4">
+            <RadioGroup value={catalogType} onValueChange={(value: CatalogType) => setCatalogType(value)} className="space-y-3">
               {catalogOptions.map((option) => (
-                <div key={option.value} className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                <div key={option.value} className="flex items-start gap-3 p-4 glass-card">
                   <RadioGroupItem value={option.value} id={option.value} className="mt-1" />
                   <div className="flex-1">
-                    <Label htmlFor={option.value} className="text-base font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    <Label htmlFor={option.value} className="text-base font-medium leading-none">
                       {option.title}
                     </Label>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {option.description}
                     </p>
                   </div>
@@ -169,8 +168,8 @@ export function ActionsEditorPage() {
             </RadioGroup>
 
             {catalogType === 'products' && (
-              <div className="space-y-4 pt-4 border-t">
-                <div className="flex items-center justify-between">
+              <div className="space-y-4 pt-4 border-t border-border">
+                <div className="flex items-center justify-between p-4 glass-card rounded-xl">
                   <Label htmlFor="sbp-toggle" className="text-base font-medium">
                     СБП (Система быстрых платежей)
                   </Label>
@@ -182,18 +181,19 @@ export function ActionsEditorPage() {
                 </div>
 
                 {sbpEnabled && (
-                  <div>
-                    <Label htmlFor="sbp-link">Ссылка для оплаты СБП</Label>
+                  <div className="p-4 glass-card rounded-xl space-y-3">
+                    <Label htmlFor="sbp-link" className="text-sm font-medium">Ссылка для оплаты СБП</Label>
                     <Input
                       id="sbp-link"
                       value={sbpLink}
                       onChange={(e) => setSbpLink(e.target.value)}
                       placeholder="Введите ссылку для оплаты"
+                      className="glass-input"
                     />
                   </div>
                 )}
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between p-4 glass-card rounded-xl">
                   <Label htmlFor="delivery-toggle" className="text-base font-medium">
                     При получении
                   </Label>
@@ -207,13 +207,14 @@ export function ActionsEditorPage() {
             )}
 
             {catalogType === 'services' && (
-              <div className="pt-4 border-t">
-                <Label htmlFor="contact-info">Ссылка на Telegram пользователя</Label>
+              <div className="pt-4 border-t border-border space-y-3">
+                <Label htmlFor="contact-info" className="text-sm font-medium">Ссылка на Telegram пользователя</Label>
                 <Input
                   id="contact-info"
                   value={contactInfo}
                   onChange={(e) => setContactInfo(e.target.value)}
                   placeholder="@username или https://t.me/username"
+                  className="glass-input"
                 />
               </div>
             )}
@@ -221,9 +222,10 @@ export function ActionsEditorPage() {
         </Card>
       </div>
 
-      <div className="fixed bottom-6 left-4 right-4 px-4">
+      {/* Fixed Save Button */}
+      <div className="fixed bottom-6 left-4 right-4">
         <Button 
-          className="w-full h-14 text-lg" 
+          className="w-full h-14 text-base shadow-xl shadow-primary/25" 
           onClick={handleSave}
         >
           <Save className="w-5 h-5 mr-2" />

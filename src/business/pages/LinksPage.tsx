@@ -158,7 +158,9 @@ export function LinksPage() {
   if (isGenerating || qrLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-lg">Генерация ссылки и QR-кода...</div>
+        <div className="glass-card p-6 rounded-xl">
+          <div className="text-lg">Генерация ссылки и QR-кода...</div>
+        </div>
       </div>
     );
   }
@@ -166,8 +168,8 @@ export function LinksPage() {
   if (catalogError || qrError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center max-w-md p-6">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <div className="glass-card p-6 rounded-xl text-center max-w-md">
+          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-bold mb-2">Ошибка</h2>
           <p className="text-muted-foreground mb-4">
             {catalogError || qrError}
@@ -181,34 +183,36 @@ export function LinksPage() {
   if (!catalog) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-lg">Загрузка каталога...</div>
+        <div className="glass-card p-6 rounded-xl">
+          <div className="text-lg">Загрузка каталога...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="p-4 border-b bg-background">
-        <div className="flex items-center">
-          <h1 className="text-xl font-bold ml-2">Ссылка и QR-код: {catalog.title}</h1>
-        </div>
+    <div className="min-h-screen bg-background pb-28">
+      {/* Header */}
+      <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
+        <h1 className="text-xl font-bold">Ссылка и QR-код</h1>
+        <p className="text-sm text-muted-foreground">{catalog.title}</p>
       </div>
 
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-4">
         {linkData && (
           <>
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <QrCode className="w-5 h-5 mr-2" />
-                  QR-код: {catalog.title}
+                <CardTitle className="flex items-center gap-2">
+                  <QrCode className="w-5 h-5" />
+                  QR-код
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col items-center space-y-4">
                 <img 
                   src={linkData.qrCodeDataUrl} 
                   alt="QR код каталога" 
-                  className="border rounded-lg p-2"
+                  className="rounded-xl border-2 border-border p-2"
                 />
                 <div className="text-center">
                   <h3 className="font-medium">{linkData.catalogTitle}</h3>
@@ -216,12 +220,12 @@ export function LinksPage() {
                     Отсканируйте QR-код для открытия каталога
                   </p>
                 </div>
-                <div className="flex space-x-2">
-                  <Button onClick={handleDownloadQR}>
+                <div className="flex gap-3 w-full">
+                  <Button onClick={handleDownloadQR} className="flex-1">
                     <Download className="w-4 h-4 mr-2" />
                     Скачать QR
                   </Button>
-                  <Button variant="outline" onClick={handleShare}>
+                  <Button variant="outline" onClick={handleShare} className="flex-1">
                     <Share2 className="w-4 h-4 mr-2" />
                     Поделиться
                   </Button>
@@ -235,13 +239,13 @@ export function LinksPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="catalog-link">Ссылка на каталог</Label>
-                  <div className="flex space-x-2 mt-2">
+                  <Label htmlFor="catalog-link" className="block mb-2 text-sm font-medium">Ссылка на каталог</Label>
+                  <div className="flex gap-2">
                     <Input
                       id="catalog-link"
                       value={linkData.url}
                       readOnly
-                      className="flex-1"
+                      className="flex-1 glass-input"
                     />
                     <Button 
                       onClick={handleCopyLink}
@@ -254,12 +258,12 @@ export function LinksPage() {
                   </div>
                 </div>
                 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-800 mb-2">Как использовать:</h4>
-                  <ul className="text-sm text-blue-700 space-y-1">
-                    <li>• Скопируйте ссылку и отправьте клиентам</li>
-                    <li>• Распечатайте QR-код и разместите в заведении</li>
-                    <li>• Используйте кнопку "Поделиться" для быстрого распространения</li>
+                <div className="glass-card p-4 rounded-xl border-primary/20">
+                  <h4 className="font-medium text-foreground mb-2">Как использовать:</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>Скопируйте ссылку и отправьте клиентам</li>
+                    <li>Распечатайте QR-код и разместите в заведении</li>
+                    <li>Используйте кнопку "Поделиться" для быстрого распространения</li>
                   </ul>
                 </div>
               </CardContent>

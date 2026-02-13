@@ -128,33 +128,33 @@ function CategoryEditorView({ catalogId, categoryId }: CategoryEditorViewProps) 
   if (isLoading && categoryId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-lg">Загрузка...</div>
+        <div className="glass-card p-6 rounded-xl">
+          <div className="text-lg">Загрузка...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-28">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-background border-b">
-        <div className="flex items-center p-4">
-          <h1 className="text-xl font-bold flex-1">
-            {categoryId ? 'Редактировать категорию' : 'Создать категорию'}
-          </h1>
-          <Button 
-            onClick={handleSubmit}
-            disabled={isLoading}
-            className="gap-2"
-          >
-            <Check className="w-4 h-4" />
-            {isLoading ? 'Сохранение...' : 'Сохранить'}
-          </Button>
-        </div>
+      <div className="Sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center justify-between">
+        <h1 className="text-xl font-bold">
+          {categoryId ? 'Редактировать категорию' : 'Создать категорию'}
+        </h1>
+        <Button 
+          onClick={handleSubmit}
+          disabled={isLoading}
+          className="gap-2"
+        >
+          <Check className="w-4 h-4" />
+          {isLoading ? 'Сохранение...' : 'Сохранить'}
+        </Button>
       </div>
 
       {/* Content */}
       <div className="p-4 pb-8">
-        <div className="space-y-6 max-w-md mx-auto">
+        <div className="space-y-4 max-w-md mx-auto">
           <div>
             <Label htmlFor="category-title" className="block mb-2 text-sm font-medium">
               Название
@@ -164,7 +164,7 @@ function CategoryEditorView({ catalogId, categoryId }: CategoryEditorViewProps) 
               value={formData.title}
               onChange={(e) => setFormData({...formData, title: e.target.value})}
               placeholder="Введите название категории"
-              className="w-full"
+              className="w-full glass-input"
             />
           </div>
           
@@ -178,7 +178,7 @@ function CategoryEditorView({ catalogId, categoryId }: CategoryEditorViewProps) 
               value={formData.position}
               onChange={(e) => setFormData({...formData, position: parseInt(e.target.value) || 0})}
               placeholder="Позиция в списке"
-              className="w-full"
+              className="w-full glass-input"
             />
           </div>
         </div>

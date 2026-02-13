@@ -21,7 +21,7 @@ import { CategoriesEditorPage } from '../business/pages/CategoriesEditorPage';
 import { ItemEditorPage } from '../business/pages/ItemEditorPage';
 import { CategoryEditorPage } from '../business/pages/CategoryEditorPage';
 import { useTelegramAuth } from '@/useTelegramAuth';
-
+import { useTelegramTheme } from '@/hooks/useTelegramTheme';
 
 export function App() {
   const { 
@@ -30,6 +30,9 @@ export function App() {
       error, 
       login, 
     } = useTelegramAuth();
+    
+  // Apply Telegram theme
+  useTelegramTheme();
     
   const [userMode] = useState<'business' | 'client' | null>('business');
 
