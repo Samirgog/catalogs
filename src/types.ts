@@ -10,6 +10,13 @@ export type User = {
     updated_at: string;
 }
 
+export type UserEntry = { type: 'admin' | 'catalog'; catalogId?: string } | null;
+
+export type AuthResponse = {
+    user: User; 
+    entry: UserEntry;
+};
+
 export type CatalogType = 'goods' | 'services';
 
 export type Catalog = {

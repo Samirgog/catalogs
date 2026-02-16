@@ -76,7 +76,7 @@ export function LinksPage() {
           qrLink = qrLinks[0];
         } else {
           // Generate new QR code
-          const slug = `catalog-${catalogId}-${Date.now()}`;
+          const slug = `catalog_${catalogId}-${Date.now()}`;
           qrLink = await generateQRForCatalog(slug);
         }
         

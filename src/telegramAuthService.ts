@@ -1,4 +1,4 @@
-import type { User } from './types';
+import type { AuthResponse, User } from './types';
 
 const AUTH_FUNCTION_URL = 'https://dqqyvnwqrfbfdleldbvq.supabase.co/functions/v1/catalogs-auth-function';
 
@@ -8,7 +8,7 @@ export const telegramAuthService = {
    * @param initData - Telegram WebApp initData string
    * @returns User object from successful authentication
    */
-  async authenticate(initData: string): Promise<User> {
+  async authenticate(initData: string): Promise<AuthResponse> {
     try {
       const response = await fetch(AUTH_FUNCTION_URL, {
         method: 'POST',
@@ -23,7 +23,8 @@ export const telegramAuthService = {
         throw new Error(`Authentication failed: ${response.status} - ${errorText}`);
       }
 
-      const userData: User = await response.json();
+      const userData = await response.json();
+
       return userData;
     } catch (error) {
       console.error('Telegram auth error:', error);

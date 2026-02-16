@@ -2,10 +2,10 @@ import { useEffect } from 'react';
 import useSWR from 'swr';
 import { useUserStore } from './userStore';
 import { telegramAuthService } from './telegramAuthService';
-import type { User } from './types';
+import type { AuthResponse } from './types';
 
 // SWR fetcher function for Telegram auth
-const authFetcher = async (initData: string): Promise<User> => {
+const authFetcher = async (initData: string): Promise<AuthResponse> => {
   return await telegramAuthService.authenticate(initData);
 };
 
@@ -15,7 +15,7 @@ const authFetcher = async (initData: string): Promise<User> => {
  * @returns Authentication state and methods
  */
 export const useTelegramAuth = (initData?: string) => {
-  const { user, isAuthenticated, isLoading, error, setUser, setLoading, setError, logout } = useUserStore();
+  const { user, userEntry, isAuthenticated, isLoading, error, setUser, setUserEntry, setLoading, setError, logout } = useUserStore();
   
   // Auto-detect Telegram WebApp initData if not provided
   const detectedInitData = initData || ((window as any).Telegram?.WebApp?.initData ?? '');
@@ -30,10 +30,11 @@ export const useTelegramAuth = (initData?: string) => {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
       dedupingInterval: 30000, // 30 seconds
-      onSuccess: (userData: User) => {
+      onSuccess: (userData: AuthResponse) => {
         // Store user in both store and localStorage
-        setUser(userData);
-        telegramAuthService.storeUser(userData);
+        setUser(userData.user);
+        setUserEntry(userData.entry);
+        telegramAuthService.storeUser(userData.user);
       },
       onError: (err: Error) => {
         setError(err.message);
@@ -77,8 +78,9 @@ export const useTelegramAuth = (initData?: string) => {
       const userData = await telegramAuthService.authenticate(dataToUse);
       
       // Update store and localStorage
-      setUser(userData);
-      telegramAuthService.storeUser(userData);
+      setUser(userData.user);
+      setUserEntry(userData.entry);
+      telegramAuthService.storeUser(userData.user);
       
       return userData;
     } catch (err) {
@@ -102,6 +104,7 @@ export const useTelegramAuth = (initData?: string) => {
     isAuthenticated: isAuthenticated || !!authUser,
     isLoading: isLoading || isValidating,
     error: error || (authError ? authError.message : null),
+    userEntry,
     
     // Methods
     login,
@@ -123,6 +126,6 @@ export const useCurrentUser = () => {
   return {
     user,
     isAuthenticated,
-    userId: user?.id || null
+    userId: user?.id || null,
   };
 };
