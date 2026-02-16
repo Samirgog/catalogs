@@ -81,8 +81,7 @@ export function LinksPage() {
         }
         
         // Generate QR code image
-        const baseUrl = window.location.origin;
-        const catalogUrl = `${baseUrl}/#/catalog/${catalogId}`;
+        const catalogUrl = `https://t.me/catalogs_test_1_bot?startapp=${qrLink.slug}`;
         
         const qrCodeDataUrl = await QRCode.toDataURL(catalogUrl, { width: 300 });
         
