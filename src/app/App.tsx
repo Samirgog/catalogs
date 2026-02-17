@@ -55,6 +55,14 @@ export function App() {
     );
   }
 
+  if (userEntry.type === 'catalog' && !userEntry.catalogId) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Ошибка: не найден идентификатор каталога.</div>
+      </div>
+    );
+  }
+
   return (
     <HashRouter>
       <div className="App">
@@ -65,7 +73,7 @@ export function App() {
               <Route path="/booking" element={<BookingPage />} />
               <Route path="/cart" element={<CartPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/catalog" element={<CatalogPage />} />
+              <Route path="/catalog" element={<CatalogPage catalogId={userEntry.catalogId!} />} />
             </>
           )}
 

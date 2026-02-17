@@ -1,23 +1,27 @@
 import React from "react";
 import { ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { mockCatalog } from "../../__mocks__/client/catalogs";
 import { useCartStore } from "../stores/cart";
 import { CatalogHeader, CategorySection, CategoryTabs } from "../components";
 import { type CatalogType } from "../../types";
+import { useCatalog } from "../hooks/useCatalogs";
 
-export const CatalogPage: React.FunctionComponent = () => {
+type Props = {
+    catalogId: string;
+}
+
+export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
     const navigate = useNavigate();
-    const {data, isLoading, error} = {data: mockCatalog, isLoading: false, error: false};
+    const { catalog, isLoading, isError } = useCatalog(catalogId);
     const { getTotalItems, getTotalPrice } = useCartStore();
     
-    const businessType: CatalogType = 'goods';
+    const businessType: CatalogType = catalog?.type ?? 'goods';
 
     if (isLoading) return <div className="p-4">Загрузка…</div>;
-    if (error) return <div className="p-4">Ошибка</div>;
-    if (!data) return null;
+    if (isError) return <div className="p-4">Ошибка</div>;
+    if (!catalog) return null;
 
-    const catalog = data.catalogs[0];
+    const categories = catalog.categories ?? [];
     const itemsCount = getTotalItems();
     const total = getTotalPrice();
 
@@ -28,24 +32,24 @@ export const CatalogPage: React.FunctionComponent = () => {
     return (
         <div className="min-h-screen bg-background">
             <CatalogHeader
-                title={data.title}
-                bannerUrl={data.banner_url}
+                title={catalog.title}
+                bannerUrl={catalog.banner_url}
             />
 
             <CategoryTabs
-                categories={catalog.categories.map((c) => ({
+                categories={categories.map((c) => ({
                     id: c.id,
                     title: c.title,
                 }))}
             />
 
             <div className="p-4 space-y-6 pb-28">
-                {catalog.categories.map((c) => (
+                {categories.map((c) => (
                     <CategorySection
                         key={c.id}
                         id={c.id}
                         title={c.title}
-                        items={c.items as any}
+                        items={c.items ?? []}
                         businessType={businessType}
                     />
                 ))}
