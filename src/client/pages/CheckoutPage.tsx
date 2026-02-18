@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
-import { useCreateOrder } from '../hooks/useOrders';
+import { useCreateOrder, useUpdateOrderStatus } from '../hooks/useOrders';
 import { useCartStore } from '../stores/cart';
 import { getClientActionOptions } from '../utils/actionOptions';
 
@@ -18,6 +18,7 @@ export function CheckoutPage({ catalogId }: Props) {
   const { userId } = useCurrentUser();
   const { catalog, isLoading } = useCatalog(catalogId);
   const { createOrder } = useCreateOrder();
+  const { updateStatus } = useUpdateOrderStatus();
   const { items, getTotalPrice, clearCart } = useCartStore();
 
   const [selectedActionId, setSelectedActionId] = useState<string>('');
@@ -40,31 +41,55 @@ export function CheckoutPage({ catalogId }: Props) {
     navigate(-1);
   };
 
-  const handleSubmit = async () => {
+  const createOrderAndOpenStatus = async (markAsPaid: boolean) => {
     if (!catalog || !selectedAction || items.length === 0) return;
+
+    const order = await createOrder({
+      catalog_id: catalog.id,
+      customer_id: userId || 'anonymous',
+      items: items.map(cartItem => ({
+        item_id: cartItem.item.id,
+        category_id: cartItem.item.category_id,
+        title: cartItem.item.title,
+        price: cartItem.item.price ?? 0,
+        quantity: cartItem.quantity,
+      })),
+      total_price: total,
+    });
+
+    if (markAsPaid) {
+      await updateStatus(order.id, 'paid');
+    }
+
+    clearCart();
+    navigate(`/order/${order.id}`, {
+      replace: true,
+      state: { action: selectedAction },
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedAction) return;
 
     try {
       setIsSubmitting(true);
       setError(null);
 
-      const order = await createOrder({
-        catalog_id: catalog.id,
-        customer_id: userId || 'anonymous',
-        items: items.map(cartItem => ({
-          item_id: cartItem.item.id,
-          category_id: cartItem.item.category_id,
-          title: cartItem.item.title,
-          price: cartItem.item.price ?? 0,
-          quantity: cartItem.quantity,
-        })),
-        total_price: total,
-      });
+      if (selectedAction.kind === 'payment_in_chat') {
+        if (!selectedAction.telegramUrl) {
+          setError('Ссылка на Telegram не настроена продавцом.');
+          return;
+        }
+        window.location.href = selectedAction.telegramUrl;
+        return;
+      }
 
-      clearCart();
-      navigate(`/order/${order.id}`, {
-        replace: true,
-        state: { action: selectedAction },
-      });
+      if (selectedAction.kind === 'light_sbp') {
+        await createOrderAndOpenStatus(true);
+        return;
+      }
+
+      await createOrderAndOpenStatus(false);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Не удалось оформить заказ'
@@ -113,6 +138,15 @@ export function CheckoutPage({ catalogId }: Props) {
       </div>
     );
   }
+
+  const isSbpSelected = selectedAction?.kind === 'light_sbp';
+  const actionButtonLabel = isSubmitting
+    ? 'Выполняем...'
+    : selectedAction?.kind === 'payment_in_chat'
+      ? 'Написать в Telegram'
+      : selectedAction?.kind === 'light_sbp'
+        ? 'Я оплатил'
+        : `Оформить заказ на ${total.toFixed(0)} ₽`;
 
   return (
     <div className="min-h-screen flex flex-col bg-background pb-28">
@@ -191,12 +225,38 @@ export function CheckoutPage({ catalogId }: Props) {
                     <p className="text-sm text-muted-foreground mt-1">
                       {option.description}
                     </p>
+                    {(selectedAction?.id ?? actionOptions[0].id) ===
+                      option.id &&
+                      option.kind === 'light_sbp' && (
+                        <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                          {option.details.bank && (
+                            <p>Банк: {option.details.bank}</p>
+                          )}
+                          {option.details.name && (
+                            <p>Имя: {option.details.name}</p>
+                          )}
+                          {option.details.phone && (
+                            <p>Телефон: {option.details.phone}</p>
+                          )}
+                          {option.details.sbp_link && (
+                            <p className="break-all">
+                              Ссылка СБП: {option.details.sbp_link}
+                            </p>
+                          )}
+                        </div>
+                      )}
                   </button>
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
+
+        {isSbpSelected && (
+          <p className="text-sm text-muted-foreground">
+            После перевода нажмите «Я оплатил» для подтверждения оплаты.
+          </p>
+        )}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 glass-card rounded-none border-x-0 border-b-0 p-4 pb-8">
@@ -205,9 +265,7 @@ export function CheckoutPage({ catalogId }: Props) {
           onClick={handleSubmit}
           disabled={isSubmitting || actionOptions.length === 0}
         >
-          {isSubmitting
-            ? 'Оформляем заказ...'
-            : `Оформить заказ на ${total.toFixed(0)} ₽`}
+          {actionButtonLabel}
         </Button>
       </div>
     </div>

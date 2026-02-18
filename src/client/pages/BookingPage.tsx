@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
-import { useCreateOrder } from '../hooks/useOrders';
+import { useCreateOrder, useUpdateOrderStatus } from '../hooks/useOrders';
 import { useBookingStore } from '../stores/booking';
 import { getClientActionOptions } from '../utils/actionOptions';
 
@@ -19,6 +19,7 @@ export function BookingPage({ catalogId }: Props) {
   const { selectedItem, clearSelectedItem } = useBookingStore();
   const { catalog, isLoading } = useCatalog(catalogId);
   const { createOrder } = useCreateOrder();
+  const { updateStatus } = useUpdateOrderStatus();
 
   const [selectedActionId, setSelectedActionId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,33 +40,57 @@ export function BookingPage({ catalogId }: Props) {
     navigate(-1);
   };
 
-  const handleSubmit = async () => {
+  const createOrderAndOpenStatus = async (markAsPaid: boolean) => {
     if (!catalog || !selectedItem || !selectedAction) return;
+
+    const order = await createOrder({
+      catalog_id: catalog.id,
+      customer_id: userId || 'anonymous',
+      items: [
+        {
+          item_id: selectedItem.id,
+          category_id: selectedItem.category_id,
+          title: selectedItem.title,
+          price: selectedItem.price ?? 0,
+          quantity: 1,
+        },
+      ],
+      total_price: selectedItem.price ?? 0,
+    });
+
+    if (markAsPaid) {
+      await updateStatus(order.id, 'paid');
+    }
+
+    clearSelectedItem();
+    navigate(`/order/${order.id}`, {
+      replace: true,
+      state: { action: selectedAction },
+    });
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedAction) return;
 
     try {
       setIsSubmitting(true);
       setError(null);
 
-      const order = await createOrder({
-        catalog_id: catalog.id,
-        customer_id: userId || 'anonymous',
-        items: [
-          {
-            item_id: selectedItem.id,
-            category_id: selectedItem.category_id,
-            title: selectedItem.title,
-            price: selectedItem.price ?? 0,
-            quantity: 1,
-          },
-        ],
-        total_price: selectedItem.price ?? 0,
-      });
+      if (selectedAction.kind === 'payment_in_chat') {
+        if (!selectedAction.telegramUrl) {
+          setError('Ссылка на Telegram не настроена продавцом.');
+          return;
+        }
+        window.location.href = selectedAction.telegramUrl;
+        return;
+      }
 
-      clearSelectedItem();
-      navigate(`/order/${order.id}`, {
-        replace: true,
-        state: { action: selectedAction },
-      });
+      if (selectedAction.kind === 'light_sbp') {
+        await createOrderAndOpenStatus(true);
+        return;
+      }
+
+      await createOrderAndOpenStatus(false);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Не удалось оформить запись'
@@ -109,6 +134,15 @@ export function BookingPage({ catalogId }: Props) {
       </div>
     );
   }
+
+  const isSbpSelected = selectedAction?.kind === 'light_sbp';
+  const actionButtonLabel = isSubmitting
+    ? 'Выполняем...'
+    : selectedAction?.kind === 'payment_in_chat'
+      ? 'Написать в Telegram'
+      : selectedAction?.kind === 'light_sbp'
+        ? 'Я оплатил'
+        : 'Подтвердить запись';
 
   return (
     <div className="min-h-screen flex flex-col pb-28 bg-background">
@@ -180,12 +214,38 @@ export function BookingPage({ catalogId }: Props) {
                     <p className="text-sm text-muted-foreground mt-1">
                       {option.description}
                     </p>
+                    {(selectedAction?.id ?? actionOptions[0].id) ===
+                      option.id &&
+                      option.kind === 'light_sbp' && (
+                        <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                          {option.details.bank && (
+                            <p>Банк: {option.details.bank}</p>
+                          )}
+                          {option.details.name && (
+                            <p>Имя: {option.details.name}</p>
+                          )}
+                          {option.details.phone && (
+                            <p>Телефон: {option.details.phone}</p>
+                          )}
+                          {option.details.sbp_link && (
+                            <p className="break-all">
+                              Ссылка СБП: {option.details.sbp_link}
+                            </p>
+                          )}
+                        </div>
+                      )}
                   </button>
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
+
+        {isSbpSelected && (
+          <p className="text-sm text-muted-foreground">
+            После перевода нажмите «Я оплатил» для подтверждения оплаты.
+          </p>
+        )}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 glass-card rounded-none border-x-0 border-b-0 p-4 pb-8">
@@ -194,7 +254,7 @@ export function BookingPage({ catalogId }: Props) {
           onClick={handleSubmit}
           disabled={isSubmitting || actionOptions.length === 0}
         >
-          {isSubmitting ? 'Оформляем...' : 'Подтвердить запись'}
+          {actionButtonLabel}
         </Button>
       </div>
     </div>
