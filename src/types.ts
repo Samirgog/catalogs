@@ -61,15 +61,7 @@ export type Item = {
   updated_at: string;
 };
 
-export type ActionType =
-  | 'payment_on_delivery'
-  | 'telegram_contact'
-  | 'sbp_payment'
-  | 'order'
-  | 'pay'
-  | 'book'
-  | 'chat'
-  | (string & {});
+export type ActionType = 'order' | 'pay' | 'book' | 'chat';
 
 export type Action = {
   id: string;

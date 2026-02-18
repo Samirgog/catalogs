@@ -21,9 +21,9 @@ type ActionsFormState = {
   sbpLink: string;
 };
 
-const DELIVERY_TYPES: ActionType[] = ['payment_on_delivery', 'order'];
-const TELEGRAM_TYPES: ActionType[] = ['telegram_contact', 'chat', 'book'];
-const SBP_TYPES: ActionType[] = ['sbp_payment', 'pay'];
+const DELIVERY_TYPES: ActionType[] = ['order'];
+const TELEGRAM_TYPES: ActionType[] = ['chat', 'book'];
+const SBP_TYPES: ActionType[] = ['pay'];
 
 const getString = (value: unknown): string =>
   typeof value === 'string' ? value : '';
@@ -33,6 +33,13 @@ const asConfig = (action?: Action): Record<string, unknown> => {
     return {};
   }
   return action.config;
+};
+
+const asObject = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+  return value as Record<string, unknown>;
 };
 
 const findByTypes = (
@@ -53,19 +60,33 @@ const mapActionsToFormState = (actions: Action[]): ActionsFormState => {
 
   const telegramConfig = asConfig(telegramAction);
   const sbpConfig = asConfig(sbpAction);
+  const sbpDetails = asObject(sbpConfig.details);
 
   return {
     paymentOnDeliveryEnabled: Boolean(deliveryAction?.is_enabled),
     telegramContactEnabled: Boolean(telegramAction?.is_enabled),
     telegramUrl:
+      getString(telegramConfig.telegramUrl) ||
       getString(telegramConfig.telegram_url) ||
       getString(telegramConfig.chat_link) ||
       getString(telegramConfig.contact_info),
     sbpEnabled: Boolean(sbpAction?.is_enabled),
-    sbpBank: getString(sbpConfig.bank) || getString(sbpConfig.sbp_bank),
-    sbpName: getString(sbpConfig.name) || getString(sbpConfig.full_name),
-    sbpPhone: getString(sbpConfig.phone) || getString(sbpConfig.phone_number),
-    sbpLink: getString(sbpConfig.sbp_link) || getString(sbpConfig.link),
+    sbpBank:
+      getString(sbpDetails.bank) ||
+      getString(sbpConfig.bank) ||
+      getString(sbpConfig.sbp_bank),
+    sbpName:
+      getString(sbpDetails.name) ||
+      getString(sbpConfig.name) ||
+      getString(sbpConfig.full_name),
+    sbpPhone:
+      getString(sbpDetails.phone) ||
+      getString(sbpConfig.phone) ||
+      getString(sbpConfig.phone_number),
+    sbpLink:
+      getString(sbpDetails.sbp_link) ||
+      getString(sbpConfig.sbp_link) ||
+      getString(sbpConfig.link),
   };
 };
 
@@ -126,23 +147,22 @@ export function ActionsEditorPage() {
       await Promise.all([
         upsertAction(
           DELIVERY_TYPES,
-          'payment_on_delivery',
+          'order',
           formState.paymentOnDeliveryEnabled,
-          {}
+          { paymentType: 'payment_on_delivery' }
         ),
-        upsertAction(
-          TELEGRAM_TYPES,
-          'telegram_contact',
-          formState.telegramContactEnabled,
-          {
-            telegram_url: formState.telegramUrl.trim(),
-          }
-        ),
-        upsertAction(SBP_TYPES, 'sbp_payment', formState.sbpEnabled, {
-          bank: formState.sbpBank.trim(),
-          name: formState.sbpName.trim(),
-          phone: formState.sbpPhone.trim(),
-          sbp_link: formState.sbpLink.trim(),
+        upsertAction(TELEGRAM_TYPES, 'chat', formState.telegramContactEnabled, {
+          paymentType: 'payment_in_chat',
+          telegramUrl: formState.telegramUrl.trim(),
+        }),
+        upsertAction(SBP_TYPES, 'pay', formState.sbpEnabled, {
+          paymentType: 'light_sbp',
+          details: {
+            bank: formState.sbpBank.trim(),
+            name: formState.sbpName.trim(),
+            phone: formState.sbpPhone.trim(),
+            sbp_link: formState.sbpLink.trim(),
+          },
         }),
       ]);
 
@@ -248,7 +268,7 @@ export function ActionsEditorPage() {
               <p className="text-sm text-muted-foreground">
                 Ваши клиенты смогут совершить оплату по введенным вами данным
                 СБП, вы можете указать номер телефона для перевода, либо указать
-                прямую ссылку СБП на вас счет.
+                прямую ссылку СБП на ваш счет.
               </p>
 
               <div>
