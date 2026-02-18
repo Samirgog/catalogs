@@ -1,9 +1,9 @@
-import { Button } from "@/components/ui/button";
-import { Plus, Minus } from "lucide-react";
-import { useCartStore } from "../stores/cart";
-import type { CatalogType, Item } from "../../types";
-import { useNavigate } from "react-router-dom";
-import { useBookingStore } from "../stores";
+import { Button } from '@/components/ui/button';
+import { Plus, Minus } from 'lucide-react';
+import { useCartStore } from '../stores/cart';
+import type { CatalogType, Item } from '../../types';
+import { useNavigate } from 'react-router-dom';
+import { useBookingStore } from '../stores';
 
 type Props = {
   item: Item;
@@ -88,16 +88,14 @@ export function ItemActions({ item, businessType = 'goods' }: Props) {
       );
     case 'services':
       return (
-        <Button
-          size="sm"
-          className="mt-2 w-fit h-9"
-          onClick={handleSignUp}
-        >
-          <span className="py-1 font-semibold text-sm">Выбрать</span> 
-          <span className="mx-1">•</span>
-          <span className="py-1 font-semibold text-sm">
-                {item.price} ₽
-              </span>
+        <Button size="sm" className="mt-2 w-fit h-9" onClick={handleSignUp}>
+          <span className="py-1 font-semibold text-sm">Записаться</span>
+          {typeof item.price === 'number' && (
+            <>
+              <span className="mx-1">•</span>
+              <span className="py-1 font-semibold text-sm">{item.price} ₽</span>
+            </>
+          )}
         </Button>
       );
     default:

@@ -1,58 +1,139 @@
+import { useMemo, useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useCurrentUser } from '@/useTelegramAuth';
+import { useCatalog } from '../hooks/useCatalogs';
+import { useCreateOrder } from '../hooks/useOrders';
 import { useBookingStore } from '../stores/booking';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { getClientActionOptions } from '../utils/actionOptions';
 
-export function BookingPage() {
-  const { selectedItem, clearSelectedItem } = useBookingStore();
+type Props = {
+  catalogId: string;
+};
+
+export function BookingPage({ catalogId }: Props) {
   const navigate = useNavigate();
+  const { userId } = useCurrentUser();
+  const { selectedItem, clearSelectedItem } = useBookingStore();
+  const { catalog, isLoading } = useCatalog(catalogId);
+  const { createOrder } = useCreateOrder();
+
+  const [selectedActionId, setSelectedActionId] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const actionOptions = useMemo(
+    () => getClientActionOptions(catalog?.actions),
+    [catalog?.actions]
+  );
+
+  const selectedAction =
+    actionOptions.find(option => option.id === selectedActionId) ??
+    actionOptions[0] ??
+    null;
 
   const handleBack = () => {
-    navigate(-1); // Go back to previous page
-  };
-
-  const handleCancel = () => {
-    clearSelectedItem();
-    navigate(-1); // Go back to previous page
-  };
-
-  const handleBook = () => {
-    // Here you would implement the actual booking logic
-    console.log('Booking item:', selectedItem);
-    // After booking, clear the selected item and navigate to confirmation
-    clearSelectedItem();
-    // For now, just navigate back
+    if (isSubmitting) return;
     navigate(-1);
   };
 
+  const handleSubmit = async () => {
+    if (!catalog || !selectedItem || !selectedAction) return;
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+
+      const order = await createOrder({
+        catalog_id: catalog.id,
+        customer_id: userId || 'anonymous',
+        items: [
+          {
+            item_id: selectedItem.id,
+            category_id: selectedItem.category_id,
+            title: selectedItem.title,
+            price: selectedItem.price ?? 0,
+            quantity: 1,
+          },
+        ],
+        total_price: selectedItem.price ?? 0,
+      });
+
+      clearSelectedItem();
+      navigate(`/order/${order.id}`, {
+        replace: true,
+        state: { action: selectedAction },
+      });
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Не удалось оформить запись'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) return <div className="p-4">Загрузка…</div>;
+  if (!catalog) return <div className="p-4">Каталог не найден</div>;
+
+  if (catalog.type !== 'services') {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="glass-card rounded-xl p-6 text-center space-y-4">
+          <h2 className="text-lg font-semibold">Страница недоступна</h2>
+          <p className="text-sm text-muted-foreground">
+            Запись доступна только для каталогов услуг.
+          </p>
+          <Button className="w-full" onClick={() => navigate('/catalog')}>
+            Вернуться в каталог
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   if (!selectedItem) {
     return (
-      <div className="p-4">
-        <h2 className="text-xl font-semibold mb-4">No service selected</h2>
-        <Button onClick={handleBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
+      <div className="min-h-screen bg-background p-4">
+        <div className="glass-card rounded-xl p-6 text-center space-y-4">
+          <h2 className="text-lg font-semibold">Услуга не выбрана</h2>
+          <p className="text-sm text-muted-foreground">
+            Перейдите в каталог и выберите услугу для оформления.
+          </p>
+          <Button className="w-full" onClick={() => navigate('/catalog')}>
+            Вернуться в каталог
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex flex-col pb-28 bg-background">
-      <div className="p-4">
-        <div className="flex items-center mb-4">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-lg font-semibold ml-2 flex-1">Booking</h1>
-        </div>
+      <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleBack}
+          disabled={isSubmitting}
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-lg font-semibold ml-2 flex-1">Запись на услугу</h1>
+      </div>
+
+      <div className="p-4 space-y-4">
+        {error && (
+          <div className="glass-card p-3 text-sm text-red-600">{error}</div>
+        )}
 
         <Card className="glass-card overflow-hidden">
           <CardHeader className="pb-0 gap-2">
             {selectedItem.image_url && (
-              <img 
-                src={selectedItem.image_url} 
+              <img
+                src={selectedItem.image_url}
                 alt={selectedItem.title}
                 className="w-full h-48 object-cover rounded-xl"
               />
@@ -61,32 +142,60 @@ export function BookingPage() {
           </CardHeader>
           <CardContent className="flex flex-col justify-between pt-3">
             {selectedItem.description && (
-              <p className="text-muted-foreground mt-1">{selectedItem.description}</p>
+              <p className="text-muted-foreground mt-1">
+                {selectedItem.description}
+              </p>
             )}
-            {selectedItem.price && (
-              <p className="text-xl font-semibold mt-3">{selectedItem.price} ₽</p>
+            {typeof selectedItem.price === 'number' && (
+              <p className="text-xl font-semibold mt-3">
+                {selectedItem.price} ₽
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Способ оформления</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {actionOptions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Владелец каталога пока не настроил способы оформления заказа.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {actionOptions.map(option => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className={`w-full text-left rounded-xl p-4 glass-card ${
+                      (selectedAction?.id ?? actionOptions[0].id) === option.id
+                        ? 'border-primary'
+                        : 'border-0'
+                    }`}
+                    onClick={() => setSelectedActionId(option.id)}
+                  >
+                    <p className="font-medium">{option.label}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {option.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 glass-card rounded-none border-x-0 border-b-0 p-4 pb-8">
-        <div className="space-y-3">
-          <Button 
-            variant="outline" 
-            className="w-full h-12" 
-            onClick={handleCancel}
-          >
-            Отмена
-          </Button>
-          <Button 
-            className="w-full h-12" 
-            onClick={handleBook}
-          >
-            <Calendar className="mr-2 h-5 w-5" />
-            Забронировать
-          </Button>
-        </div>
+        <Button
+          className="w-full h-12"
+          onClick={handleSubmit}
+          disabled={isSubmitting || actionOptions.length === 0}
+        >
+          {isSubmitting ? 'Оформляем...' : 'Подтвердить запись'}
+        </Button>
       </div>
     </div>
   );

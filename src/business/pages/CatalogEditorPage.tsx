@@ -364,7 +364,7 @@ export function CatalogEditorPage() {
             onClick={handleConfigureActions}
           >
             <Settings className="w-4 h-4 mr-2" />
-            Настроить действия
+            Настроить способы оплаты и действия
           </Button>
           <Button
             variant="outline"

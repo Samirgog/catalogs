@@ -189,7 +189,9 @@ export function ActionsEditorPage() {
   return (
     <div className="min-h-screen bg-background pb-28">
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
-        <h1 className="text-2xl font-bold">Настройка действий</h1>
+        <h1 className="text-2xl font-bold">
+          Настройка способов оплаты и действий
+        </h1>
       </div>
 
       <div className="p-4 space-y-4">

@@ -34,6 +34,7 @@ export type Catalog = {
   created_at: string;
   updated_at: string;
   categories?: Category[];
+  actions?: Action[];
 };
 
 export type Category = {
