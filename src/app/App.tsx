@@ -12,7 +12,12 @@ import {
 } from '../client/pages';
 
 // Business pages
-import { ActionsEditorPage, CatalogsPage, LinksPage } from '../business/pages';
+import {
+  ActionsEditorPage,
+  CatalogsPage,
+  LinksPage,
+  StaffPage,
+} from '../business/pages';
 import { CatalogEditorPage } from '../business/pages/CatalogEditorPage';
 import { CategoriesEditorPage } from '../business/pages/CategoriesEditorPage';
 import { ItemEditorPage } from '../business/pages/ItemEditorPage';
@@ -122,6 +127,7 @@ export function App() {
                 path="/actions/editor/:catalogId"
                 element={<ActionsEditorPage />}
               />
+              <Route path="/staff/:catalogId" element={<StaffPage />} />
             </>
           )}
 

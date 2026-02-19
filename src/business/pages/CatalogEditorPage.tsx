@@ -5,7 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Save, FolderOpen, Settings, Upload, X, Link } from 'lucide-react';
+import {
+  Save,
+  FolderOpen,
+  Settings,
+  Upload,
+  X,
+  Link,
+  Users,
+} from 'lucide-react';
 import { useCatalog, useCatalogs } from '../hooks/useCatalogs';
 import { useImagePreview } from '../hooks/useImages';
 import { uploadImage } from '../services/images'; // Direct import for upload
@@ -131,6 +139,16 @@ export function CatalogEditorPage() {
       navigate(`/catalogs/${catalogId}/links`);
     } else {
       alert('Пожалуйста, сначала сохраните каталог перед получением ссылки');
+    }
+  };
+
+  const handleConfigureStaff = () => {
+    if (isEditing && catalogId) {
+      navigate(`/staff/${catalogId}`);
+    } else {
+      alert(
+        'Пожалуйста, сначала сохраните каталог перед настройкой сотрудников'
+      );
     }
   };
 
@@ -373,6 +391,14 @@ export function CatalogEditorPage() {
           >
             <Link className="w-4 h-4 mr-2" />
             Получить ссылку и QR-код
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full h-12"
+            onClick={handleConfigureStaff}
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Сотрудники и уведомления
           </Button>
         </div>
       </div>

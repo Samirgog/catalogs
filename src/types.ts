@@ -78,6 +78,9 @@ export type OrderStatus =
   | 'created'
   | 'submitted'
   | 'payment_reported'
+  | 'accepted'
+  | 'rejected'
+  | 'ready'
   | 'paid'
   | 'completed'
   | 'cancelled'
@@ -94,6 +97,29 @@ export type Order = {
   status: OrderStatus;
   created_at: string;
   updated_at: string;
+};
+
+export type StaffAccessCode = {
+  id: string;
+  catalog_id: string;
+  access_code: string;
+  is_active: boolean;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type StaffMember = {
+  id: string;
+  catalog_id: string;
+  telegram_id: number;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+  is_active: boolean;
+  on_shift: boolean;
+  linked_at: string;
+  last_activity_at?: string;
 };
 
 export type PlaceType = 'single' | 'foodcourt';

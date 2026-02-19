@@ -30,6 +30,21 @@ const STATUS_META: Record<
     className: 'text-blue-700 bg-blue-100',
     description: 'Клиент сообщил об оплате, ожидается подтверждение продавца.',
   },
+  accepted: {
+    label: 'Принят',
+    className: 'text-green-700 bg-green-100',
+    description: 'Продавец принял заказ в работу.',
+  },
+  rejected: {
+    label: 'Отклонен',
+    className: 'text-red-700 bg-red-100',
+    description: 'Заказ отклонен продавцом.',
+  },
+  ready: {
+    label: 'Готов',
+    className: 'text-indigo-700 bg-indigo-100',
+    description: 'Заказ готов к выдаче.',
+  },
   new: {
     label: 'Новый',
     className: 'text-amber-700 bg-amber-100',
@@ -79,7 +94,12 @@ export function OrderStatusPage() {
 
   useEffect(() => {
     if (!order) return;
-    if (order.status === 'completed' || order.status === 'cancelled') {
+    if (
+      order.status === 'completed' ||
+      order.status === 'cancelled' ||
+      order.status === 'rejected' ||
+      order.status === 'ready'
+    ) {
       clearCurrentOrder();
       return;
     }

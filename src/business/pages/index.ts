@@ -3,3 +3,4 @@ export * from './CatalogEditorPage';
 export * from './CatalogsPage';
 export * from './CategoriesEditorPage';
 export * from './LinksPage';
+export * from './StaffPage';

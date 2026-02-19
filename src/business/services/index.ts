@@ -5,3 +5,4 @@ export * from './items';
 export * from './actions';
 export * from './images';
 export * from './qr';
+export * from './staff';
