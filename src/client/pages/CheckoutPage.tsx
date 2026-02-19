@@ -3,6 +3,8 @@ import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
 import { useCreateOrder, useUpdateOrderStatus } from '../hooks/useOrders';
@@ -35,6 +37,7 @@ export function CheckoutPage({ catalogId }: Props) {
     actionOptions.find(option => option.id === selectedActionId) ??
     actionOptions[0] ??
     null;
+  const selectedActionValue = selectedAction?.id ?? '';
 
   const handleBack = () => {
     if (isSubmitting) return;
@@ -209,45 +212,56 @@ export function CheckoutPage({ catalogId }: Props) {
                 Владелец каталога пока не настроил способы оформления заказа.
               </p>
             ) : (
-              <div className="space-y-3">
+              <RadioGroup
+                value={selectedActionValue}
+                onValueChange={setSelectedActionId}
+                className="space-y-3"
+              >
                 {actionOptions.map(option => (
-                  <button
+                  <Label
                     key={option.id}
-                    type="button"
-                    className={`w-full text-left rounded-xl p-4 glass-card ${
-                      (selectedAction?.id ?? actionOptions[0].id) === option.id
-                        ? 'border-primary'
-                        : 'border-0'
+                    htmlFor={`checkout-action-${option.id}`}
+                    className={`block w-full rounded-xl p-4 glass-card cursor-pointer ${
+                      selectedActionValue === option.id
+                        ? 'ring-2 ring-primary'
+                        : 'ring-0'
                     }`}
-                    onClick={() => setSelectedActionId(option.id)}
                   >
-                    <p className="font-medium">{option.label}</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {option.description}
-                    </p>
-                    {(selectedAction?.id ?? actionOptions[0].id) ===
-                      option.id &&
-                      option.kind === 'light_sbp' && (
-                        <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-                          {option.details.bank && (
-                            <p>Банк: {option.details.bank}</p>
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem
+                        id={`checkout-action-${option.id}`}
+                        value={option.id}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium">{option.label}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {option.description}
+                        </p>
+                        {selectedActionValue === option.id &&
+                          option.kind === 'light_sbp' && (
+                            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                              {option.details.bank && (
+                                <p>Банк: {option.details.bank}</p>
+                              )}
+                              {option.details.name && (
+                                <p>Имя: {option.details.name}</p>
+                              )}
+                              {option.details.phone && (
+                                <p>Телефон: {option.details.phone}</p>
+                              )}
+                              {option.details.sbp_link && (
+                                <p className="break-all">
+                                  Ссылка СБП: {option.details.sbp_link}
+                                </p>
+                              )}
+                            </div>
                           )}
-                          {option.details.name && (
-                            <p>Имя: {option.details.name}</p>
-                          )}
-                          {option.details.phone && (
-                            <p>Телефон: {option.details.phone}</p>
-                          )}
-                          {option.details.sbp_link && (
-                            <p className="break-all">
-                              Ссылка СБП: {option.details.sbp_link}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                  </button>
+                      </div>
+                    </div>
+                  </Label>
                 ))}
-              </div>
+              </RadioGroup>
             )}
           </CardContent>
         </Card>
