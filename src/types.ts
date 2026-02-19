@@ -74,7 +74,14 @@ export type Action = {
   updated_at: string;
 };
 
-export type OrderStatus = 'new' | 'paid' | 'completed';
+export type OrderStatus =
+  | 'created'
+  | 'submitted'
+  | 'payment_reported'
+  | 'paid'
+  | 'completed'
+  | 'cancelled'
+  | 'new';
 
 export type Order = {
   id: string;
@@ -83,6 +90,7 @@ export type Order = {
   items: Record<string, unknown>[];
   total_price: number;
   table_number?: string;
+  order_number?: number;
   status: OrderStatus;
   created_at: string;
   updated_at: string;

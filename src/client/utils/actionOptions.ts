@@ -37,6 +37,33 @@ const asRecord = (value: unknown): Record<string, unknown> => {
   return value as Record<string, unknown>;
 };
 
+const normalizeTelegramUrl = (raw: string): string => {
+  const value = raw.trim();
+  if (!value) return '';
+
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    return value;
+  }
+
+  if (value.startsWith('@')) {
+    return `https://t.me/${value.slice(1)}`;
+  }
+
+  if (value.startsWith('t.me/')) {
+    return `https://${value}`;
+  }
+
+  if (value.startsWith('telegram.me/')) {
+    return `https://${value}`;
+  }
+
+  if (/^[a-zA-Z0-9_]{5,}$/.test(value)) {
+    return `https://t.me/${value}`;
+  }
+
+  return value;
+};
+
 export const getClientActionOptions = (
   actions: Action[] | undefined
 ): ClientActionOption[] => {
@@ -71,7 +98,7 @@ export const getClientActionOptions = (
         kind: 'payment_in_chat',
         label: 'Связаться в Telegram',
         description: 'Менеджер отправит детали оплаты в чате.',
-        telegramUrl,
+        telegramUrl: normalizeTelegramUrl(telegramUrl),
       });
       continue;
     }

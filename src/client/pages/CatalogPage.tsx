@@ -1,10 +1,11 @@
-import React from 'react';
-import { ShoppingCart } from 'lucide-react';
+import React, { useState } from 'react';
+import { Receipt, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../stores/cart';
 import { CatalogHeader, CategorySection, CategoryTabs } from '../components';
 import { type CatalogType } from '../../types';
 import { useCatalog } from '../hooks/useCatalogs';
+import { getCurrentOrder } from '../utils/currentOrder';
 
 type Props = {
   catalogId: string;
@@ -14,6 +15,9 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
   const navigate = useNavigate();
   const { catalog, isLoading, isError } = useCatalog(catalogId);
   const { getTotalItems, getTotalPrice } = useCartStore();
+  const [currentOrderId] = useState<string | null>(
+    () => getCurrentOrder()?.id ?? null
+  );
 
   const businessType: CatalogType = catalog?.type ?? 'goods';
 
@@ -27,6 +31,11 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
 
   const handleGoToCart = () => {
     navigate('/cart');
+  };
+
+  const handleGoToCurrentOrder = () => {
+    if (!currentOrderId) return;
+    navigate(`/order/${currentOrderId}`);
   };
 
   return (
@@ -75,6 +84,20 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
             <span className="text-lg font-semibold">{total} ₽</span>
           </button>
         </div>
+      )}
+
+      {currentOrderId && (
+        <button
+          onClick={handleGoToCurrentOrder}
+          className={`fixed right-4 z-50 rounded-full h-14 w-14 bg-primary text-primary-foreground shadow-lg flex items-center justify-center ${
+            businessType === 'goods' && itemsCount > 0
+              ? 'bottom-24'
+              : 'bottom-4'
+          }`}
+          aria-label="Открыть текущий заказ"
+        >
+          <Receipt size={22} />
+        </button>
       )}
     </div>
   );

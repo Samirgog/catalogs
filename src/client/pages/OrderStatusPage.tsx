@@ -1,15 +1,35 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, Clock3, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useOrder } from '../hooks/useOrders';
 import type { ClientActionOption } from '../utils/actionOptions';
+import {
+  clearCurrentOrder,
+  getReadableOrderNumber,
+  setCurrentOrder,
+} from '../utils/currentOrder';
 
 const STATUS_META: Record<
   string,
   { label: string; className: string; description: string }
 > = {
+  created: {
+    label: 'Создан',
+    className: 'text-slate-700 bg-slate-200',
+    description: 'Черновик заказа создан. Выберите способ оплаты.',
+  },
+  submitted: {
+    label: 'Оформлен',
+    className: 'text-amber-700 bg-amber-100',
+    description: 'Заказ отправлен продавцу и ожидает обработки.',
+  },
+  payment_reported: {
+    label: 'Оплата отправлена',
+    className: 'text-blue-700 bg-blue-100',
+    description: 'Клиент сообщил об оплате, ожидается подтверждение продавца.',
+  },
   new: {
     label: 'Новый',
     className: 'text-amber-700 bg-amber-100',
@@ -50,12 +70,21 @@ export function OrderStatusPage() {
   );
 
   const parsedItems = useMemo(() => asItems(order?.items), [order?.items]);
-  const status = order?.status ?? 'new';
+  const status = order?.status ?? 'created';
   const statusMeta = STATUS_META[status] ?? {
     label: status,
     className: 'text-slate-700 bg-slate-200',
     description: 'Статус заказа обновляется автоматически.',
   };
+
+  useEffect(() => {
+    if (!order) return;
+    if (order.status === 'completed' || order.status === 'cancelled') {
+      clearCurrentOrder();
+      return;
+    }
+    setCurrentOrder(order);
+  }, [order]);
 
   if (!orderId) {
     return <div className="p-4">Некорректный номер заказа</div>;
@@ -123,7 +152,7 @@ export function OrderStatusPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-green-600" />
-              Заказ #{order.id}
+              Заказ №{getReadableOrderNumber(order)}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -180,63 +209,64 @@ export function OrderStatusPage() {
           </CardContent>
         </Card>
 
-        {status === 'new' && selectedAction && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock3 className="w-5 h-5" />
-                Дальнейшие действия
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm text-muted-foreground">
-              {selectedAction.kind === 'payment_on_delivery' && (
-                <p>Оплата производится при получении.</p>
-              )}
-              {selectedAction.kind === 'payment_in_chat' && (
-                <>
-                  <p>
-                    Свяжитесь с продавцом в Telegram для подтверждения оплаты.
-                  </p>
-                  {selectedAction.telegramUrl ? (
-                    <a
-                      href={selectedAction.telegramUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex h-10 items-center px-4 rounded-xl bg-primary text-primary-foreground"
-                    >
-                      Открыть Telegram
-                    </a>
-                  ) : (
-                    <p>Ссылка Telegram не указана.</p>
-                  )}
-                </>
-              )}
-              {selectedAction.kind === 'light_sbp' && (
-                <>
-                  {selectedAction.details.bank && (
-                    <p>Банк: {selectedAction.details.bank}</p>
-                  )}
-                  {selectedAction.details.name && (
-                    <p>Имя: {selectedAction.details.name}</p>
-                  )}
-                  {selectedAction.details.phone && (
-                    <p>Телефон: {selectedAction.details.phone}</p>
-                  )}
-                  {selectedAction.details.sbp_link && (
-                    <a
-                      href={selectedAction.details.sbp_link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex h-10 items-center px-4 rounded-xl bg-primary text-primary-foreground"
-                    >
-                      Перейти к оплате СБП
-                    </a>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        {['created', 'submitted', 'payment_reported', 'new'].includes(status) &&
+          selectedAction && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock3 className="w-5 h-5" />
+                  Дальнейшие действия
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-muted-foreground">
+                {selectedAction.kind === 'payment_on_delivery' && (
+                  <p>Оплата производится при получении.</p>
+                )}
+                {selectedAction.kind === 'payment_in_chat' && (
+                  <>
+                    <p>
+                      Свяжитесь с продавцом в Telegram для подтверждения оплаты.
+                    </p>
+                    {selectedAction.telegramUrl ? (
+                      <a
+                        href={selectedAction.telegramUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-10 items-center px-4 rounded-xl bg-primary text-primary-foreground"
+                      >
+                        Открыть Telegram
+                      </a>
+                    ) : (
+                      <p>Ссылка Telegram не указана.</p>
+                    )}
+                  </>
+                )}
+                {selectedAction.kind === 'light_sbp' && (
+                  <>
+                    {selectedAction.details.bank && (
+                      <p>Банк: {selectedAction.details.bank}</p>
+                    )}
+                    {selectedAction.details.name && (
+                      <p>Имя: {selectedAction.details.name}</p>
+                    )}
+                    {selectedAction.details.phone && (
+                      <p>Телефон: {selectedAction.details.phone}</p>
+                    )}
+                    {selectedAction.details.sbp_link && (
+                      <a
+                        href={selectedAction.details.sbp_link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-10 items-center px-4 rounded-xl bg-primary text-primary-foreground"
+                      >
+                        Перейти к оплате СБП
+                      </a>
+                    )}
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 glass-card rounded-none border-x-0 border-b-0 p-4 pb-8">

@@ -1,33 +1,42 @@
 import { useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
-import { useCreateOrder, useUpdateOrderStatus } from '../hooks/useOrders';
-import { useCartStore } from '../stores/cart';
+import { useOrder, useUpdateOrderStatus } from '../hooks/useOrders';
 import { getClientActionOptions } from '../utils/actionOptions';
+import { getReadableOrderNumber, setCurrentOrder } from '../utils/currentOrder';
 
 type Props = {
   catalogId: string;
 };
 
+const asRecord = (value: unknown): Record<string, unknown> => {
+  if (!value || typeof value !== 'object') return {};
+  return value as Record<string, unknown>;
+};
+
+const asItems = (value: unknown): Record<string, unknown>[] =>
+  Array.isArray(value) ? value.map(asRecord) : [];
+
 export function CheckoutPage({ catalogId }: Props) {
   const navigate = useNavigate();
-  const { userId } = useCurrentUser();
+  const { orderId } = useParams<{ orderId: string }>();
   const { catalog, isLoading } = useCatalog(catalogId);
-  const { createOrder } = useCreateOrder();
+  const {
+    order,
+    isLoading: isOrderLoading,
+    isError: isOrderError,
+  } = useOrder(orderId ?? null);
   const { updateStatus } = useUpdateOrderStatus();
-  const { items, getTotalPrice, clearCart } = useCartStore();
 
   const [selectedActionId, setSelectedActionId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const total = getTotalPrice();
   const actionOptions = useMemo(
     () => getClientActionOptions(catalog?.actions),
     [catalog?.actions]
@@ -38,41 +47,16 @@ export function CheckoutPage({ catalogId }: Props) {
     actionOptions[0] ??
     null;
   const selectedActionValue = selectedAction?.id ?? '';
+  const orderItems = useMemo(() => asItems(order?.items), [order?.items]);
+  const readableOrderNumber = order ? getReadableOrderNumber(order) : '';
 
   const handleBack = () => {
     if (isSubmitting) return;
     navigate(-1);
   };
 
-  const createOrderAndOpenStatus = async (markAsPaid: boolean) => {
-    if (!catalog || !selectedAction || items.length === 0) return;
-
-    const order = await createOrder({
-      catalog_id: catalog.id,
-      customer_id: userId || 'anonymous',
-      items: items.map(cartItem => ({
-        item_id: cartItem.item.id,
-        category_id: cartItem.item.category_id,
-        title: cartItem.item.title,
-        price: cartItem.item.price ?? 0,
-        quantity: cartItem.quantity,
-      })),
-      total_price: total,
-    });
-
-    if (markAsPaid) {
-      await updateStatus(order.id, 'paid');
-    }
-
-    clearCart();
-    navigate(`/order/${order.id}`, {
-      replace: true,
-      state: { action: selectedAction },
-    });
-  };
-
   const handleSubmit = async () => {
-    if (!selectedAction) return;
+    if (!order || !selectedAction) return;
 
     try {
       setIsSubmitting(true);
@@ -83,16 +67,23 @@ export function CheckoutPage({ catalogId }: Props) {
           setError('Ссылка на Telegram не настроена продавцом.');
           return;
         }
+        await updateStatus(order.id, 'submitted');
+        setCurrentOrder(order);
         window.location.href = selectedAction.telegramUrl;
         return;
       }
 
       if (selectedAction.kind === 'light_sbp') {
-        await createOrderAndOpenStatus(true);
-        return;
+        await updateStatus(order.id, 'payment_reported');
+      } else {
+        await updateStatus(order.id, 'submitted');
       }
 
-      await createOrderAndOpenStatus(false);
+      setCurrentOrder(order);
+      navigate(`/order/${order.id}`, {
+        replace: true,
+        state: { action: selectedAction },
+      });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Не удалось оформить заказ'
@@ -102,7 +93,7 @@ export function CheckoutPage({ catalogId }: Props) {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isOrderLoading) {
     return <div className="p-4">Загрузка…</div>;
   }
 
@@ -126,16 +117,16 @@ export function CheckoutPage({ catalogId }: Props) {
     );
   }
 
-  if (items.length === 0) {
+  if (!orderId || !order || isOrderError) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="glass-card rounded-xl p-6 text-center space-y-4">
-          <h2 className="text-lg font-semibold">Корзина пуста</h2>
+          <h2 className="text-lg font-semibold">Заказ не найден</h2>
           <p className="text-sm text-muted-foreground">
-            Добавьте товары в корзину, чтобы перейти к оформлению.
+            Вернитесь в корзину и начните оформление заново.
           </p>
-          <Button className="w-full" onClick={() => navigate('/catalog')}>
-            В каталог
+          <Button className="w-full" onClick={() => navigate('/cart')}>
+            Вернуться в корзину
           </Button>
         </div>
       </div>
@@ -149,7 +140,7 @@ export function CheckoutPage({ catalogId }: Props) {
       ? 'Написать в Telegram'
       : selectedAction?.kind === 'light_sbp'
         ? 'Я оплатил'
-        : `Оформить заказ на ${total.toFixed(0)} ₽`;
+        : 'Подтвердить заказ';
 
   return (
     <div className="min-h-screen flex flex-col bg-background pb-28">
@@ -172,30 +163,33 @@ export function CheckoutPage({ catalogId }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Состав заказа</CardTitle>
+            <CardTitle>Заказ №{readableOrderNumber}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {items.map(cartItem => (
-                <div
-                  key={cartItem.item.id}
-                  className="flex justify-between py-2 border-b border-border/20 last:border-0"
-                >
-                  <div>
-                    <span className="font-medium">{cartItem.item.title}</span>
-                    <span className="text-muted-foreground text-sm ml-2">
-                      × {cartItem.quantity}
-                    </span>
+              {orderItems.map((item, index) => {
+                const title = String(item.title ?? 'Позиция');
+                const quantity = Number(item.quantity ?? 1);
+                const price = Number(item.price ?? 0);
+                return (
+                  <div
+                    key={`${title}-${index}`}
+                    className="flex justify-between py-2 border-b border-border/20 last:border-0"
+                  >
+                    <div>
+                      <span className="font-medium">{title}</span>
+                      <span className="text-muted-foreground text-sm ml-2">
+                        × {quantity}
+                      </span>
+                    </div>
+                    <span className="font-semibold">{price * quantity} ₽</span>
                   </div>
-                  <span className="font-semibold">
-                    {(cartItem.item.price || 0) * cartItem.quantity} ₽
-                  </span>
-                </div>
-              ))}
+                );
+              })}
               <div className="pt-3 mt-3">
                 <div className="flex justify-between font-bold text-lg">
                   <span>Итого:</span>
-                  <span>{total.toFixed(0)} ₽</span>
+                  <span>{order.total_price.toFixed(0)} ₽</span>
                 </div>
               </div>
             </div>
@@ -255,6 +249,9 @@ export function CheckoutPage({ catalogId }: Props) {
                                   Ссылка СБП: {option.details.sbp_link}
                                 </p>
                               )}
+                              <p className="font-medium text-foreground">
+                                Назначение платежа: {readableOrderNumber}
+                              </p>
                             </div>
                           )}
                       </div>

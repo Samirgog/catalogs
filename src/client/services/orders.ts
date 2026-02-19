@@ -1,5 +1,5 @@
 import { clientSupabase } from '../../lib/supabase';
-import type { Order } from '../../types';
+import type { Order, OrderStatus } from '../../types';
 
 // Client Order Services
 export const clientOrderService = {
@@ -7,9 +7,10 @@ export const clientOrderService = {
   async create(orderData: {
     catalog_id: string;
     customer_id: string;
-    items: any[];
+    items: Record<string, unknown>[];
     total_price: number;
     table_number?: string;
+    status?: OrderStatus;
   }): Promise<Order> {
     const { data, error } = await clientSupabase
       .from('orders')
@@ -34,7 +35,7 @@ export const clientOrderService = {
   },
 
   // Update order status
-  async updateStatus(id: string, status: string): Promise<Order> {
+  async updateStatus(id: string, status: OrderStatus): Promise<Order> {
     const { data, error } = await clientSupabase
       .from('orders')
       .update({ status })
@@ -44,5 +45,5 @@ export const clientOrderService = {
 
     if (error) throw error;
     return data;
-  }
+  },
 };

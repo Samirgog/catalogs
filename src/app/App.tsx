@@ -78,6 +78,10 @@ export function App() {
                 element={<CheckoutPage catalogId={userEntry.catalogId!} />}
               />
               <Route
+                path="/checkout/:orderId"
+                element={<CheckoutPage catalogId={userEntry.catalogId!} />}
+              />
+              <Route
                 path="/catalog"
                 element={<CatalogPage catalogId={userEntry.catalogId!} />}
               />

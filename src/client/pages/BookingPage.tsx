@@ -10,6 +10,7 @@ import { useCatalog } from '../hooks/useCatalogs';
 import { useCreateOrder, useUpdateOrderStatus } from '../hooks/useOrders';
 import { useBookingStore } from '../stores/booking';
 import { getClientActionOptions } from '../utils/actionOptions';
+import { setCurrentOrder } from '../utils/currentOrder';
 
 type Props = {
   catalogId: string;
@@ -43,7 +44,7 @@ export function BookingPage({ catalogId }: Props) {
     navigate(-1);
   };
 
-  const createOrderAndOpenStatus = async (markAsPaid: boolean) => {
+  const createOrderAndOpenStatus = async (reportPayment: boolean) => {
     if (!catalog || !selectedItem || !selectedAction) return;
 
     const order = await createOrder({
@@ -61,10 +62,13 @@ export function BookingPage({ catalogId }: Props) {
       total_price: selectedItem.price ?? 0,
     });
 
-    if (markAsPaid) {
-      await updateStatus(order.id, 'paid');
+    if (reportPayment) {
+      await updateStatus(order.id, 'payment_reported');
+    } else {
+      await updateStatus(order.id, 'submitted');
     }
 
+    setCurrentOrder(order);
     clearSelectedItem();
     navigate(`/order/${order.id}`, {
       replace: true,
@@ -73,7 +77,7 @@ export function BookingPage({ catalogId }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!selectedAction) return;
+    if (!catalog || !selectedItem || !selectedAction) return;
 
     try {
       setIsSubmitting(true);
@@ -84,6 +88,24 @@ export function BookingPage({ catalogId }: Props) {
           setError('Ссылка на Telegram не настроена продавцом.');
           return;
         }
+        const order = await createOrder({
+          catalog_id: catalog.id,
+          customer_id: userId || 'anonymous',
+          items: [
+            {
+              item_id: selectedItem.id,
+              category_id: selectedItem.category_id,
+              title: selectedItem.title,
+              price: selectedItem.price ?? 0,
+              quantity: 1,
+            },
+          ],
+          total_price: selectedItem.price ?? 0,
+          status: 'created',
+        });
+        await updateStatus(order.id, 'submitted');
+        setCurrentOrder(order);
+        clearSelectedItem();
         window.location.href = selectedAction.telegramUrl;
         return;
       }
@@ -244,6 +266,9 @@ export function BookingPage({ catalogId }: Props) {
                                   Ссылка СБП: {option.details.sbp_link}
                                 </p>
                               )}
+                              <p className="font-medium text-foreground">
+                                Назначение платежа: номер заказа
+                              </p>
                             </div>
                           )}
                       </div>
