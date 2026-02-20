@@ -3,13 +3,15 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, Clock3, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useOrder } from '../hooks/useOrders';
+import { useOrder, useUpdateOrderStatus } from '../hooks/useOrders';
 import type { ClientActionOption } from '../utils/actionOptions';
 import {
   clearCurrentOrder,
   getReadableOrderNumber,
   setCurrentOrder,
 } from '../utils/currentOrder';
+import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
+import { toast } from 'sonner';
 
 const STATUS_META: Record<
   string,
@@ -83,6 +85,8 @@ export function OrderStatusPage() {
   const { order, isLoading, isError, error, mutate } = useOrder(
     orderId ?? null
   );
+  const { updateStatus } = useUpdateOrderStatus();
+  useAutoBackButton('/catalog');
 
   const parsedItems = useMemo(() => asItems(order?.items), [order?.items]);
   const status = order?.status ?? 'created';
@@ -106,6 +110,35 @@ export function OrderStatusPage() {
     setCurrentOrder(order);
   }, [order]);
 
+  useEffect(() => {
+    if (!isError) return;
+    toast.error(
+      error instanceof Error ? error.message : 'Не удалось загрузить заказ'
+    );
+  }, [error, isError]);
+
+  const handleRefresh = async () => {
+    try {
+      await mutate();
+      toast.success('Статус заказа обновлен');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка обновления');
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    if (!order) return;
+
+    try {
+      await updateStatus(order.id, 'cancelled');
+      await mutate();
+      clearCurrentOrder();
+      toast.success('Заказ отменен');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Не удалось отменить заказ');
+    }
+  };
+
   if (!orderId) {
     return <div className="p-4">Некорректный номер заказа</div>;
   }
@@ -125,7 +158,7 @@ export function OrderStatusPage() {
             <p className="text-sm text-muted-foreground">
               {error instanceof Error ? error.message : 'Произошла ошибка.'}
             </p>
-            <Button className="w-full" onClick={() => mutate()}>
+            <Button className="w-full" onClick={handleRefresh}>
               Повторить
             </Button>
           </CardContent>
@@ -162,7 +195,7 @@ export function OrderStatusPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <h1 className="text-lg font-semibold ml-2 flex-1">Статус заказа</h1>
-        <Button variant="ghost" size="icon" onClick={() => mutate()}>
+        <Button variant="ghost" size="icon" onClick={handleRefresh}>
           <RefreshCw className="h-5 w-5" />
         </Button>
       </div>
@@ -228,6 +261,25 @@ export function OrderStatusPage() {
             )}
           </CardContent>
         </Card>
+
+        {['created', 'submitted', 'payment_reported', 'new', 'accepted'].includes(
+          status
+        ) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Управление заказом</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={handleCancelOrder}
+              >
+                Отменить заказ
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {['created', 'submitted', 'payment_reported', 'new'].includes(status) &&
           selectedAction && (

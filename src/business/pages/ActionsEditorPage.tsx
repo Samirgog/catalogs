@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Save } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { useActions } from '../hooks/useActions';
 import type { Action, ActionType } from '../../types';
+import { toast } from 'sonner';
 
 type ActionsFormState = {
   paymentOnDeliveryEnabled: boolean;
@@ -105,6 +106,11 @@ export function ActionsEditorPage() {
   const initialState = useMemo(() => mapActionsToFormState(actions), [actions]);
   const formState = draft ?? initialState;
 
+  useEffect(() => {
+    if (!error) return;
+    toast.error(error);
+  }, [error]);
+
   const patchFormState = (patch: Partial<ActionsFormState>) => {
     setDraft(prev => ({
       ...(prev ?? initialState),
@@ -167,10 +173,12 @@ export function ActionsEditorPage() {
       ]);
 
       setSaveSuccess('Изменения сохранены');
+      toast.success('Изменения сохранены');
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Не удалось сохранить действия';
       setSaveError(message);
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }

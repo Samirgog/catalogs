@@ -90,6 +90,9 @@ export type Order = {
   id: string;
   catalog_id: string;
   customer_id: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_comment?: string;
   items: Record<string, unknown>[];
   total_price: number;
   table_number?: string;

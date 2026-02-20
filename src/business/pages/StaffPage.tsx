@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { useStaff } from '../hooks/useStaff';
+import { toast } from 'sonner';
 
 export function StaffPage() {
   const navigate = useNavigate();
@@ -34,8 +35,12 @@ export function StaffPage() {
       setLocalMessage(null);
       await generateAccessCode();
       setLocalMessage('Код доступа обновлен.');
+      toast.success('Код доступа обновлен');
     } catch (err) {
       setLocalMessage(
+        err instanceof Error ? err.message : 'Не удалось сгенерировать код.'
+      );
+      toast.error(
         err instanceof Error ? err.message : 'Не удалось сгенерировать код.'
       );
     } finally {
@@ -49,8 +54,10 @@ export function StaffPage() {
       setIsCopying(true);
       await navigator.clipboard.writeText(accessCode.access_code);
       setLocalMessage('Код скопирован.');
+      toast.success('Код скопирован');
     } catch {
       setLocalMessage('Не удалось скопировать код.');
+      toast.error('Не удалось скопировать код');
     } finally {
       setIsCopying(false);
     }
@@ -59,8 +66,12 @@ export function StaffPage() {
   const handleToggleMember = async (id: string, isActive: boolean) => {
     try {
       await setMemberActive(id, !isActive);
+      toast.success(!isActive ? 'Сотрудник включен' : 'Сотрудник отключен');
     } catch (err) {
       setLocalMessage(
+        err instanceof Error ? err.message : 'Не удалось обновить сотрудника.'
+      );
+      toast.error(
         err instanceof Error ? err.message : 'Не удалось обновить сотрудника.'
       );
     }
@@ -104,12 +115,11 @@ export function StaffPage() {
                 {isGenerating ? 'Генерируем...' : 'Сгенерировать новый код'}
               </Button>
               <Button
-                className="flex-1"
+                size="icon"
                 onClick={handleCopy}
                 disabled={!accessCode?.access_code || isCopying}
               >
-                <Copy className="w-4 h-4 mr-2" />
-                {isCopying ? 'Копируем...' : 'Скопировать'}
+                <Copy className="w-4 h-4" />
               </Button>
             </div>
           </CardContent>

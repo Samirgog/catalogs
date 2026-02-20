@@ -21,6 +21,7 @@ import type { CatalogFormData, CatalogType } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group.tsx';
+import { toast } from 'sonner';
 
 const catalogOptions = [
   {
@@ -91,8 +92,13 @@ export function CatalogEditorPage() {
 
   const handleSave = async () => {
     try {
+      if (!formData.title.trim()) {
+        toast.error('Заполните название каталога');
+        return;
+      }
+
       const catalogData: CatalogFormData = {
-        title: formData.title,
+        title: formData.title.trim(),
         // description: formData.description,
         type: formData.type, // Default type
         is_active: formData.is_active,
@@ -112,9 +118,10 @@ export function CatalogEditorPage() {
 
       // Navigate to categories editor with the catalog ID
       navigate(`/categories/editor/${savedCatalogId}`);
+      toast.success('Каталог успешно сохранен');
     } catch (err) {
       console.error('Error saving catalog:', err);
-      console.error('Ошибка сохранения каталога. Попробуйте еще раз.');
+      toast.error('Ошибка сохранения каталога. Попробуйте еще раз.');
     }
   };
 
@@ -138,7 +145,7 @@ export function CatalogEditorPage() {
     if (isEditing && catalogId) {
       navigate(`/catalogs/${catalogId}/links`);
     } else {
-      alert('Пожалуйста, сначала сохраните каталог перед получением ссылки');
+      toast.error('Сначала сохраните каталог перед получением ссылки');
     }
   };
 
@@ -146,9 +153,7 @@ export function CatalogEditorPage() {
     if (isEditing && catalogId) {
       navigate(`/staff/${catalogId}`);
     } else {
-      alert(
-        'Пожалуйста, сначала сохраните каталог перед настройкой сотрудников'
-      );
+      toast.error('Сначала сохраните каталог перед настройкой сотрудников');
     }
   };
 
@@ -189,7 +194,7 @@ export function CatalogEditorPage() {
             ? err.message
             : 'Image processing failed. Please try again.';
 
-        console.error(errorMessage);
+        toast.error(errorMessage);
       }
     }
   };
@@ -382,7 +387,7 @@ export function CatalogEditorPage() {
             onClick={handleConfigureActions}
           >
             <Settings className="w-4 h-4 mr-2" />
-            Настроить способы оплаты и действия
+            Способы оплаты и действия
           </Button>
           <Button
             variant="outline"

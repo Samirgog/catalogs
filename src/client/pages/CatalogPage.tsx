@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Receipt, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore } from '../stores/cart';
@@ -6,6 +6,7 @@ import { CatalogHeader, CategorySection, CategoryTabs } from '../components';
 import { type CatalogType } from '../../types';
 import { useCatalog } from '../hooks/useCatalogs';
 import { getCurrentOrder } from '../utils/currentOrder';
+import { toast } from 'sonner';
 
 type Props = {
   catalogId: string;
@@ -20,6 +21,11 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
   );
 
   const businessType: CatalogType = catalog?.type ?? 'goods';
+
+  useEffect(() => {
+    if (!isError) return;
+    toast.error('Не удалось загрузить каталог');
+  }, [isError]);
 
   if (isLoading) return <div className="p-4">Загрузка…</div>;
   if (isError) return <div className="p-4">Ошибка</div>;

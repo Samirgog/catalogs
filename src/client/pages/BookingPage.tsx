@@ -1,16 +1,20 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
 import { useCreateOrder, useUpdateOrderStatus } from '../hooks/useOrders';
 import { useBookingStore } from '../stores/booking';
 import { getClientActionOptions } from '../utils/actionOptions';
 import { setCurrentOrder } from '../utils/currentOrder';
+import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
+import { toast } from 'sonner';
 
 type Props = {
   catalogId: string;
@@ -18,15 +22,29 @@ type Props = {
 
 export function BookingPage({ catalogId }: Props) {
   const navigate = useNavigate();
-  const { userId } = useCurrentUser();
+  const { userId, user } = useCurrentUser();
   const { selectedItem, clearSelectedItem } = useBookingStore();
   const { catalog, isLoading } = useCatalog(catalogId);
   const { createOrder } = useCreateOrder();
   const { updateStatus } = useUpdateOrderStatus();
+  useAutoBackButton('/catalog');
 
   const [selectedActionId, setSelectedActionId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState(
+    user?.first_name || user?.username || ''
+  );
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerComment, setCustomerComment] = useState('');
+
+  useEffect(() => {
+    if (customerName) return;
+    const fallbackName = user?.first_name || user?.username || '';
+    if (fallbackName) {
+      setCustomerName(fallbackName);
+    }
+  }, [customerName, user?.first_name, user?.username]);
 
   const actionOptions = useMemo(
     () => getClientActionOptions(catalog?.actions),
@@ -50,6 +68,9 @@ export function BookingPage({ catalogId }: Props) {
     const order = await createOrder({
       catalog_id: catalog.id,
       customer_id: userId || 'anonymous',
+      customer_name: customerName.trim(),
+      customer_phone: customerPhone.trim(),
+      customer_comment: customerComment.trim(),
       items: [
         {
           item_id: selectedItem.id,
@@ -74,6 +95,7 @@ export function BookingPage({ catalogId }: Props) {
       replace: true,
       state: { action: selectedAction },
     });
+    toast.success('Заказ оформлен');
   };
 
   const handleSubmit = async () => {
@@ -86,11 +108,15 @@ export function BookingPage({ catalogId }: Props) {
       if (selectedAction.kind === 'payment_in_chat') {
         if (!selectedAction.telegramUrl) {
           setError('Ссылка на Telegram не настроена продавцом.');
+          toast.error('Ссылка на Telegram не настроена продавцом');
           return;
         }
         const order = await createOrder({
           catalog_id: catalog.id,
           customer_id: userId || 'anonymous',
+          customer_name: customerName.trim(),
+          customer_phone: customerPhone.trim(),
+          customer_comment: customerComment.trim(),
           items: [
             {
               item_id: selectedItem.id,
@@ -106,6 +132,7 @@ export function BookingPage({ catalogId }: Props) {
         await updateStatus(order.id, 'submitted');
         setCurrentOrder(order);
         clearSelectedItem();
+        toast.success('Переход в Telegram');
         window.location.href = selectedAction.telegramUrl;
         return;
       }
@@ -120,6 +147,7 @@ export function BookingPage({ catalogId }: Props) {
       setError(
         err instanceof Error ? err.message : 'Не удалось оформить запись'
       );
+      toast.error('Не удалось оформить запись');
     } finally {
       setIsSubmitting(false);
     }
@@ -215,6 +243,47 @@ export function BookingPage({ catalogId }: Props) {
 
         <Card>
           <CardHeader>
+            <CardTitle>Контактные данные</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <Label htmlFor="booking-name" className="block mb-2">
+                Имя
+              </Label>
+              <Input
+                id="booking-name"
+                value={customerName}
+                onChange={e => setCustomerName(e.target.value)}
+                placeholder="Ваше имя"
+              />
+            </div>
+            <div>
+              <Label htmlFor="booking-phone" className="block mb-2">
+                Телефон
+              </Label>
+              <Input
+                id="booking-phone"
+                value={customerPhone}
+                onChange={e => setCustomerPhone(e.target.value)}
+                placeholder="+7 900 000-00-00"
+              />
+            </div>
+            <div>
+              <Label htmlFor="booking-comment" className="block mb-2">
+                Комментарий
+              </Label>
+              <Textarea
+                id="booking-comment"
+                value={customerComment}
+                onChange={e => setCustomerComment(e.target.value)}
+                placeholder="Комментарий к записи"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Способ оформления</CardTitle>
           </CardHeader>
           <CardContent>
@@ -267,7 +336,7 @@ export function BookingPage({ catalogId }: Props) {
                                 </p>
                               )}
                               <p className="font-medium text-foreground">
-                                Назначение платежа: номер заказа
+                                Назначение платежа: номер заказа (после создания)
                               </p>
                             </div>
                           )}

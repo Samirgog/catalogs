@@ -12,6 +12,7 @@ import { uploadImage } from '../services/images';
 import { FormValidator, ErrorHandler, ValidationError } from './CategoriesEditorPage/utils';
 import type { ItemFormData } from '@/types';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
+import { toast } from 'sonner';
 
 export function ItemEditorPage() {
   const { catalogId, categoryId, itemId } = useParams<{ 
@@ -119,10 +120,12 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
         // Update existing item
         await itemService.update(itemId, formData);
         ErrorHandler.showSuccess('Item updated successfully');
+        toast.success('Товар успешно обновлен');
       } else {
         // Create new item
         await itemService.create(formData, categoryId);
         ErrorHandler.showSuccess('Item created successfully');
+        toast.success('Товар успешно создан');
       }
       
       // Navigate back to categories editor
@@ -130,8 +133,10 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
     } catch (error) {
       if (error instanceof ValidationError) {
         ErrorHandler.showError(error, 'Invalid item data');
+        toast.error('Проверьте корректность заполнения полей');
       } else {
         ErrorHandler.showError(error, itemId ? 'Failed to update item' : 'Failed to create item');
+        toast.error('Не удалось сохранить товар');
       }
     } finally {
       setIsLoading(false);
@@ -149,20 +154,12 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
   }
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="min-h-screen bg-background pb-36">
       {/* Header */}
-      <div className="Sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center justify-between">
+      <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
         <h1 className="text-xl font-bold">
           {itemId ? 'Редактировать товар' : 'Создать товар'}
         </h1>
-        <Button 
-          onClick={handleSubmit}
-          disabled={isLoading}
-          className="gap-2"
-        >
-          <Check className="w-4 h-4" />
-          {isLoading ? 'Сохранение...' : 'Сохранить'}
-        </Button>
       </div>
 
       {/* Content */}
@@ -323,6 +320,13 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
             />
           </div>
         </div>
+      </div>
+
+      <div className="fixed bottom-6 left-4 right-4 z-50">
+        <Button onClick={handleSubmit} disabled={isLoading} className="w-full h-12 gap-2">
+          <Check className="w-4 h-4" />
+          {isLoading ? 'Сохранение...' : 'Сохранить'}
+        </Button>
       </div>
     </div>
   );

@@ -82,10 +82,11 @@ export class ErrorHandler {
 
   static showError(error: unknown, defaultMessage: string = 'Operation failed'): void {
     const message = this.handle(error, defaultMessage);
-    NotificationManager.error(message);
+    toast.error(message);
   }
 
   static showSuccess(message: string): void {
-    NotificationManager.success(message);
+    toast.success(message);
   }
 }
+import { toast } from 'sonner';

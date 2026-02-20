@@ -1,6 +1,6 @@
 import useSWR, { useSWRConfig } from 'swr';
 import { clientOrderService } from '../services/orders';
-import type { OrderStatus } from '../../types';
+import type { Order, OrderStatus } from '../../types';
 
 // SWR fetcher for orders
 const orderFetcher = async (key: string, id: string) => {
@@ -20,6 +20,7 @@ export const useOrder = (id: string | null) => {
     {
       revalidateOnFocus: false,
       dedupingInterval: 10000, // 10 seconds
+      refreshInterval: 10000,
     }
   );
 
@@ -40,6 +41,9 @@ export const useCreateOrder = () => {
   const createOrder = async (orderData: {
     catalog_id: string;
     customer_id: string;
+    customer_name?: string;
+    customer_phone?: string;
+    customer_comment?: string;
     items: Record<string, unknown>[];
     total_price: number;
     table_number?: string;
@@ -81,4 +85,21 @@ export const useUpdateOrderStatus = () => {
   };
 
   return { updateStatus };
+};
+
+export const useUpdateOrder = () => {
+  const { mutate } = useSWRConfig();
+
+  const updateOrder = async (orderId: string, orderData: Partial<Order>) => {
+    const updatedOrder = await clientOrderService.update(orderId, orderData);
+    mutate(['order', orderId], updatedOrder, false);
+    mutate(
+      (key: unknown) => Array.isArray(key) && key[0] === 'orders',
+      undefined,
+      { revalidate: true }
+    );
+    return updatedOrder;
+  };
+
+  return { updateOrder };
 };

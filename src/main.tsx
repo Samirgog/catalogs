@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import { App } from './app';
+import { Toaster } from '@/components/ui/toaster';
 
 // Initialize Telegram WebApp
 const initTelegramWebApp = () => {
@@ -41,5 +42,6 @@ if (document.readyState === 'loading') {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
+    <Toaster richColors position="top-center" />
   </StrictMode>
 );

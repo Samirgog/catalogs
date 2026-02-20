@@ -7,6 +7,8 @@ import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
 import { useCreateOrder } from '../hooks/useOrders';
 import { setCurrentOrder } from '../utils/currentOrder';
+import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
+import { toast } from 'sonner';
 
 type Props = {
   catalogId: string;
@@ -20,6 +22,7 @@ export const CartPage = ({ catalogId }: Props) => {
   const { createOrder } = useCreateOrder();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useAutoBackButton('/catalog');
 
   const handleGoBack = () => {
     navigate(-1);
@@ -53,8 +56,10 @@ export const CartPage = ({ catalogId }: Props) => {
       setCurrentOrder(order);
       clearCart();
       navigate(`/checkout/${order.id}`);
+      toast.success('Заказ создан, выберите способ оплаты');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось создать заказ');
+      toast.error('Не удалось создать заказ');
     } finally {
       setIsSubmitting(false);
     }

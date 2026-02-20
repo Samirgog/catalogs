@@ -1,14 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useCatalog } from '../hooks/useCatalogs';
-import { useOrder, useUpdateOrderStatus } from '../hooks/useOrders';
+import { useOrder, useUpdateOrder, useUpdateOrderStatus } from '../hooks/useOrders';
 import { getClientActionOptions } from '../utils/actionOptions';
 import { getReadableOrderNumber, setCurrentOrder } from '../utils/currentOrder';
+import { useCurrentUser } from '@/useTelegramAuth';
+import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
+import { toast } from 'sonner';
 
 type Props = {
   catalogId: string;
@@ -24,6 +29,7 @@ const asItems = (value: unknown): Record<string, unknown>[] =>
 
 export function CheckoutPage({ catalogId }: Props) {
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
   const { orderId } = useParams<{ orderId: string }>();
   const { catalog, isLoading } = useCatalog(catalogId);
   const {
@@ -32,10 +38,25 @@ export function CheckoutPage({ catalogId }: Props) {
     isError: isOrderError,
   } = useOrder(orderId ?? null);
   const { updateStatus } = useUpdateOrderStatus();
+  const { updateOrder } = useUpdateOrder();
+  useAutoBackButton('/cart');
 
   const [selectedActionId, setSelectedActionId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState(
+    user?.first_name || user?.username || ''
+  );
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerComment, setCustomerComment] = useState('');
+
+  useEffect(() => {
+    if (customerName) return;
+    const fallbackName = user?.first_name || user?.username || '';
+    if (fallbackName) {
+      setCustomerName(fallbackName);
+    }
+  }, [customerName, user?.first_name, user?.username]);
 
   const actionOptions = useMemo(
     () => getClientActionOptions(catalog?.actions),
@@ -65,13 +86,26 @@ export function CheckoutPage({ catalogId }: Props) {
       if (selectedAction.kind === 'payment_in_chat') {
         if (!selectedAction.telegramUrl) {
           setError('Ссылка на Telegram не настроена продавцом.');
+          toast.error('Ссылка на Telegram не настроена продавцом');
           return;
         }
+        await updateOrder(order.id, {
+          customer_name: customerName.trim(),
+          customer_phone: customerPhone.trim(),
+          customer_comment: customerComment.trim(),
+        });
         await updateStatus(order.id, 'submitted');
         setCurrentOrder(order);
+        toast.success('Переход в Telegram');
         window.location.href = selectedAction.telegramUrl;
         return;
       }
+
+      await updateOrder(order.id, {
+        customer_name: customerName.trim(),
+        customer_phone: customerPhone.trim(),
+        customer_comment: customerComment.trim(),
+      });
 
       if (selectedAction.kind === 'light_sbp') {
         await updateStatus(order.id, 'payment_reported');
@@ -84,10 +118,12 @@ export function CheckoutPage({ catalogId }: Props) {
         replace: true,
         state: { action: selectedAction },
       });
+      toast.success('Статус заказа обновлен');
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Не удалось оформить заказ'
       );
+      toast.error('Не удалось оформить заказ');
     } finally {
       setIsSubmitting(false);
     }
@@ -160,6 +196,47 @@ export function CheckoutPage({ catalogId }: Props) {
         {error && (
           <div className="glass-card p-3 text-sm text-red-600">{error}</div>
         )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Контактные данные</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div>
+              <Label htmlFor="checkout-name" className="block mb-2">
+                Имя
+              </Label>
+              <Input
+                id="checkout-name"
+                value={customerName}
+                onChange={e => setCustomerName(e.target.value)}
+                placeholder="Ваше имя"
+              />
+            </div>
+            <div>
+              <Label htmlFor="checkout-phone" className="block mb-2">
+                Телефон
+              </Label>
+              <Input
+                id="checkout-phone"
+                value={customerPhone}
+                onChange={e => setCustomerPhone(e.target.value)}
+                placeholder="+7 900 000-00-00"
+              />
+            </div>
+            <div>
+              <Label htmlFor="checkout-comment" className="block mb-2">
+                Комментарий
+              </Label>
+              <Textarea
+                id="checkout-comment"
+                value={customerComment}
+                onChange={e => setCustomerComment(e.target.value)}
+                placeholder="Комментарий к заказу"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

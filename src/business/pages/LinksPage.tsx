@@ -10,6 +10,7 @@ import { useQRLinks } from '../hooks/useQR';
 import { catalogService } from '../services/catalogs';
 import type { QRLink, Catalog } from '@/types';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
+import { toast } from 'sonner';
 
 interface LinkData {
   url: string;
@@ -31,6 +32,14 @@ export function LinksPage() {
   const [isGenerating, setIsGenerating] = useState(true);
   const [copySuccess, setCopySuccess] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (catalogError) toast.error(catalogError);
+  }, [catalogError]);
+
+  useEffect(() => {
+    if (qrError) toast.error(qrError);
+  }, [qrError]);
 
   // Fetch catalog data
   useEffect(() => {
@@ -118,9 +127,11 @@ export function LinksPage() {
       try {
         await navigator.clipboard.writeText(linkData.url);
         setCopySuccess(true);
+        toast.success('Ссылка скопирована');
         setTimeout(() => setCopySuccess(false), 2000);
       } catch (err) {
         console.error('Failed to copy:', err);
+        toast.error('Не удалось скопировать ссылку');
       }
     }
   };
@@ -133,6 +144,7 @@ export function LinksPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      toast.success('QR-код скачан');
     }
   };
 
@@ -144,8 +156,10 @@ export function LinksPage() {
             title: `Каталог: ${linkData.catalogTitle}`,
             url: linkData.url
           });
+          toast.success('Ссылка отправлена');
         } catch (err) {
           console.log('Error sharing:', err);
+          toast.error('Не удалось поделиться ссылкой');
         }
       } else {
         // Fallback to copy if Web Share API is not supported

@@ -7,6 +7,9 @@ export const clientOrderService = {
   async create(orderData: {
     catalog_id: string;
     customer_id: string;
+    customer_name?: string;
+    customer_phone?: string;
+    customer_comment?: string;
     items: Record<string, unknown>[];
     total_price: number;
     table_number?: string;
@@ -39,6 +42,18 @@ export const clientOrderService = {
     const { data, error } = await clientSupabase
       .from('orders')
       .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async update(id: string, orderData: Partial<Order>): Promise<Order> {
+    const { data, error } = await clientSupabase
+      .from('orders')
+      .update(orderData)
       .eq('id', id)
       .select()
       .single();
