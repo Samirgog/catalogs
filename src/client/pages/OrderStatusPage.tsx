@@ -349,6 +349,22 @@ export function OrderStatusPage() {
           </Card>
         )}
 
+        {status === 'created' && catalog?.type === 'goods' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Продолжить оформление</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button
+                className="w-full"
+                onClick={() => navigate(`/checkout/${order.id}`)}
+              >
+                Перейти к оплате
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {['created', 'submitted', 'payment_reported', 'new'].includes(status) &&
           selectedAction && (
             <Card>

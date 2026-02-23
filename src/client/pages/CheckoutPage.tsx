@@ -21,6 +21,7 @@ import {
 } from '../utils/presentation';
 import type { FulfillmentMethodType } from '@/types';
 import { Spinner } from '@/components/ui/spinner';
+import { useCartStore } from '../stores/cart';
 
 type Props = {
   catalogId: string;
@@ -37,6 +38,7 @@ const asItems = (value: unknown): Record<string, unknown>[] =>
 export function CheckoutPage({ catalogId }: Props) {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
+  const { clearCart } = useCartStore();
   const { orderId } = useParams<{ orderId: string }>();
   const { catalog, isLoading } = useCatalog(catalogId);
   const {
@@ -134,6 +136,7 @@ export function CheckoutPage({ catalogId }: Props) {
           order: { ...order, fulfillment_method: selectedFulfillment },
         });
         const link = appendTelegramTextParam(selectedAction.telegramUrl, message);
+        clearCart();
         toast.success('Переход в Telegram');
         window.location.href = link;
         return;
@@ -153,6 +156,7 @@ export function CheckoutPage({ catalogId }: Props) {
       }
 
       setCurrentOrder(order);
+      clearCart();
       navigate(`/order/${order.id}`, {
         replace: true,
         state: { action: selectedAction },
@@ -290,12 +294,15 @@ export function CheckoutPage({ catalogId }: Props) {
               {catalog.emergency_phone && (
                 <p>
                   Телефон:{' '}
-                  <a
-                    href={`tel:${catalog.emergency_phone}`}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      (window.location.href = `tel:${catalog.emergency_phone?.replace(/\s+/g, '')}`)
+                    }
                     className="underline"
                   >
                     {catalog.emergency_phone}
-                  </a>
+                  </button>
                 </p>
               )}
               {catalog.emergency_telegram && (

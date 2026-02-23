@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
 import { useCreateOrder } from '../hooks/useOrders';
-import { setCurrentOrder } from '../utils/currentOrder';
+import { getCurrentOrder, setCurrentOrder } from '../utils/currentOrder';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
@@ -18,7 +18,7 @@ type Props = {
 export const CartPage = ({ catalogId }: Props) => {
   const navigate = useNavigate();
   const { userId } = useCurrentUser();
-  const { items, getTotalItems, clearCart } = useCartStore();
+  const { items, getTotalItems } = useCartStore();
   const { catalog, isLoading } = useCatalog(catalogId);
   const { createOrder } = useCreateOrder();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,6 +35,13 @@ export const CartPage = ({ catalogId }: Props) => {
     try {
       setIsSubmitting(true);
       setError(null);
+      const currentOrder = getCurrentOrder();
+
+      if (currentOrder?.id && currentOrder.catalogId === catalog.id) {
+        navigate(`/checkout/${currentOrder.id}`);
+        toast.success('Продолжите оформление текущего заказа');
+        return;
+      }
 
       const order = await createOrder({
         catalog_id: catalog.id,
@@ -55,7 +62,6 @@ export const CartPage = ({ catalogId }: Props) => {
       });
 
       setCurrentOrder(order);
-      clearCart();
       navigate(`/checkout/${order.id}`);
       toast.success('Заказ создан, выберите способ оплаты');
     } catch (err) {

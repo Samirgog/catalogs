@@ -420,8 +420,8 @@ export function CatalogEditorPage() {
               </div>
 
               {!formData.is_open_24_7 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+                  <div className="min-w-0 w-full">
                     <Label htmlFor="work_start" className="block mb-2 text-sm font-medium">
                       С
                     </Label>
@@ -429,12 +429,12 @@ export function CatalogEditorPage() {
                       id="work_start"
                       name="work_start"
                       type="time"
-                      className="w-full"
+                      className="w-full min-w-0"
                       value={formData.work_start}
                       onChange={handleInputChange}
                     />
                   </div>
-                  <div>
+                  <div className="min-w-0 w-full">
                     <Label htmlFor="work_end" className="block mb-2 text-sm font-medium">
                       До
                     </Label>
@@ -442,7 +442,7 @@ export function CatalogEditorPage() {
                       id="work_end"
                       name="work_end"
                       type="time"
-                      className="w-full"
+                      className="w-full min-w-0"
                       value={formData.work_end}
                       onChange={handleInputChange}
                     />

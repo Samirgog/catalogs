@@ -142,10 +142,30 @@ export function LinksPage() {
     try {
       const response = await fetch(linkData.qrCodeDataUrl);
       const blob = await response.blob();
+      const file = new File([blob], `qr-code-${catalogId}.png`, {
+        type: 'image/png',
+      });
+
+      if (
+        navigator.share &&
+        (navigator as Navigator & { canShare?: (data: ShareData) => boolean })
+          .canShare?.({ files: [file] })
+      ) {
+        await navigator.share({
+          files: [file],
+          title: 'QR-код каталога',
+          text: 'Сохраните QR-код',
+        });
+        toast.success('QR-код открыт в системном меню');
+        return;
+      }
+
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = objectUrl;
       link.download = `qr-code-${catalogId}.png`;
+      link.rel = 'noopener';
+      link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

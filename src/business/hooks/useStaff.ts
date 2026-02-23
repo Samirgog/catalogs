@@ -37,6 +37,7 @@ export const useStaff = (catalogId: string) => {
   const generateAccessCode = async () => {
     const code = await staffService.upsertAccessCode(catalogId, user?.id);
     await mutateAccessCode(code, { revalidate: false });
+    await mutateAccessCode();
     return code;
   };
 
