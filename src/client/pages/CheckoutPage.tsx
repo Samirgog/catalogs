@@ -20,6 +20,7 @@ import {
   getFlowLabels,
 } from '../utils/presentation';
 import type { FulfillmentMethodType } from '@/types';
+import { Spinner } from '@/components/ui/spinner';
 
 type Props = {
   catalogId: string;
@@ -92,6 +93,15 @@ export function CheckoutPage({ catalogId }: Props) {
   const selectedActionValue = selectedAction?.id ?? '';
   const orderItems = useMemo(() => asItems(order?.items), [order?.items]);
   const readableOrderNumber = order ? getReadableOrderNumber(order) : '';
+  const sellerTelegramLink = useMemo(() => {
+    const raw = catalog?.emergency_telegram?.trim();
+    if (!raw) return '';
+    if (raw.startsWith('https://') || raw.startsWith('http://')) return raw;
+    if (raw.startsWith('@')) return `https://t.me/${raw.slice(1)}`;
+    if (raw.startsWith('t.me/')) return `https://${raw}`;
+    if (/^[a-zA-Z0-9_]{5,}$/.test(raw)) return `https://t.me/${raw}`;
+    return raw;
+  }, [catalog?.emergency_telegram]);
 
   const handleBack = () => {
     if (isSubmitting) return;
@@ -159,7 +169,11 @@ export function CheckoutPage({ catalogId }: Props) {
   };
 
   if (isLoading || isOrderLoading) {
-    return <div className="p-4">Загрузка…</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner className="h-7 w-7" />
+      </div>
+    );
   }
 
   if (!catalog) {
@@ -266,6 +280,44 @@ export function CheckoutPage({ catalogId }: Props) {
             </div>
           </CardContent>
         </Card>
+
+        {(catalog.emergency_phone || catalog.emergency_telegram) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Контакты продавца</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {catalog.emergency_phone && (
+                <p>
+                  Телефон:{' '}
+                  <a
+                    href={`tel:${catalog.emergency_phone}`}
+                    className="underline"
+                  >
+                    {catalog.emergency_phone}
+                  </a>
+                </p>
+              )}
+              {catalog.emergency_telegram && (
+                <p>
+                  Telegram:{' '}
+                  {sellerTelegramLink ? (
+                    <a
+                      href={sellerTelegramLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline"
+                    >
+                      {catalog.emergency_telegram}
+                    </a>
+                  ) : (
+                    <span>{catalog.emergency_telegram}</span>
+                  )}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

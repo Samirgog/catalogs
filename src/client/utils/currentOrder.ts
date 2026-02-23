@@ -5,6 +5,7 @@ const CURRENT_ORDER_KEY = 'client-current-order';
 export type CurrentOrderRef = {
   id: string;
   orderNumber?: string;
+  catalogId?: string;
 };
 
 const safeParse = (value: string): CurrentOrderRef | null => {
@@ -23,13 +24,16 @@ export const getCurrentOrder = (): CurrentOrderRef | null => {
   return safeParse(raw);
 };
 
-export const setCurrentOrder = (order: Pick<Order, 'id' | 'order_number'>) => {
+export const setCurrentOrder = (
+  order: Pick<Order, 'id' | 'order_number' | 'catalog_id'>
+) => {
   const orderNumber = order.order_number
     ? String(order.order_number)
     : undefined;
   const payload: CurrentOrderRef = {
     id: order.id,
     orderNumber,
+    catalogId: order.catalog_id,
   };
   localStorage.setItem(CURRENT_ORDER_KEY, JSON.stringify(payload));
 };

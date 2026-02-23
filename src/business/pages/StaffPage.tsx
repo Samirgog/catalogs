@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Copy, RefreshCcw, Share2, UserCheck, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { useStaff } from '../hooks/useStaff';
 import { toast } from 'sonner';
+import { Spinner } from '@/components/ui/spinner';
 
 export function StaffPage() {
   const navigate = useNavigate();
@@ -16,11 +17,13 @@ export function StaffPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [localMessage, setLocalMessage] = useState<string | null>(null);
+  const [accessCodeValue, setAccessCodeValue] = useState('');
   const staffBotUrl = import.meta.env.VITE_STAFF_BOT_URL || '';
 
   const {
     accessCode,
     members,
+    isLoading,
     error,
     generateAccessCode,
     setMemberActive,
@@ -31,11 +34,20 @@ export function StaffPage() {
     return <div className="p-4">Отсутствует идентификатор каталога.</div>;
   }
 
-  const handleGenerate = async () => {
+  useEffect(() => {
+    if (accessCode?.access_code) {
+      setAccessCodeValue(accessCode.access_code);
+    } else {
+      setAccessCodeValue('');
+    }
+  }, [accessCode?.access_code]);
+
+  async function handleGenerate() {
     try {
       setIsGenerating(true);
       setLocalMessage(null);
-      await generateAccessCode();
+      const generated = await generateAccessCode();
+      setAccessCodeValue(generated.access_code);
       setLocalMessage('Код доступа обновлен.');
       toast.success('Код доступа обновлен');
     } catch (err) {
@@ -48,13 +60,19 @@ export function StaffPage() {
     } finally {
       setIsGenerating(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (accessCodeValue) return;
+    void handleGenerate();
+  }, [isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCopy = async () => {
-    if (!accessCode?.access_code) return;
+    if (!accessCodeValue) return;
     try {
       setIsCopying(true);
-      await navigator.clipboard.writeText(accessCode.access_code);
+      await navigator.clipboard.writeText(accessCodeValue);
       setLocalMessage('Код скопирован.');
       toast.success('Код скопирован');
     } catch {
@@ -107,6 +125,11 @@ export function StaffPage() {
       </div>
 
       <div className="p-4 space-y-4">
+        {isLoading && (
+          <div className="glass-card p-3 flex items-center justify-center">
+            <Spinner />
+          </div>
+        )}
         {(error || localMessage) && (
           <div className="glass-card p-3 text-sm">{error || localMessage}</div>
         )}
@@ -123,7 +146,7 @@ export function StaffPage() {
             <div className="glass-card rounded-xl p-4">
               <p className="text-xs text-muted-foreground">Текущий код</p>
               <p className="text-2xl font-semibold tracking-widest mt-1">
-                {accessCode?.access_code || 'Код не создан'}
+                {accessCodeValue || 'Код не создан'}
               </p>
             </div>
 
@@ -158,7 +181,7 @@ export function StaffPage() {
               <Button
                 size="icon"
                 onClick={handleCopy}
-                disabled={!accessCode?.access_code || isCopying}
+                disabled={!accessCodeValue || isCopying}
               >
                 <Copy className="w-4 h-4" />
               </Button>

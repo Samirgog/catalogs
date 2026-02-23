@@ -23,6 +23,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group.tsx';
 import { toast } from 'sonner';
+import { Spinner } from '@/components/ui/spinner';
 
 const catalogOptions = [
   {
@@ -33,7 +34,7 @@ const catalogOptions = [
   {
     value: 'services',
     title: 'Услуги',
-    description: 'Предоставление услуг с возможностью записатьсяы',
+    description: 'Предоставление услуг с возможностью записаться',
   },
 ];
 
@@ -58,6 +59,7 @@ export function CatalogEditorPage() {
   const isLoading = isEditing && catalogLoading;
 
   // Form state
+  const draftKey = `catalog-editor-draft:${catalogId || 'new'}`;
   const [formData, setFormData] = useState({
     title: '',
     banner_url: '',
@@ -72,10 +74,24 @@ export function CatalogEditorPage() {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hydratedFromDraftRef = useRef(false);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(draftKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
+      setFormData(prev => ({ ...prev, ...parsed }));
+      hydratedFromDraftRef.current = true;
+    } catch {
+      // ignore broken draft
+    }
+  }, [draftKey]);
 
   // Initialize form with fetched data
   useEffect(() => {
-    if (fetchedCatalog) {
+    if (fetchedCatalog && !hydratedFromDraftRef.current) {
       setFormData({
         title: fetchedCatalog.title,
         is_active: fetchedCatalog.is_active,
@@ -91,6 +107,10 @@ export function CatalogEditorPage() {
     }
   }, [fetchedCatalog]);
 
+  useEffect(() => {
+    sessionStorage.setItem(draftKey, JSON.stringify(formData));
+  }, [draftKey, formData]);
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -102,6 +122,10 @@ export function CatalogEditorPage() {
   };
 
   const handleSave = async () => {
+    await saveCatalog(false);
+  };
+
+  const saveCatalog = async (keepOnEditor: boolean) => {
     try {
       if (!formData.title.trim()) {
         toast.error('Заполните название каталога');
@@ -147,12 +171,16 @@ export function CatalogEditorPage() {
         savedCatalogId = newCatalog.id;
       }
 
-      // Navigate to categories editor with the catalog ID
-      navigate(`/categories/editor/${savedCatalogId}`);
       toast.success('Каталог успешно сохранен');
+      sessionStorage.removeItem(draftKey);
+      if (!isEditing && savedCatalogId && keepOnEditor) {
+        navigate(`/catalogs/${savedCatalogId}/edit`, { replace: true });
+      }
+      return savedCatalogId || '';
     } catch (err) {
       console.error('Error saving catalog:', err);
       toast.error('Ошибка сохранения каталога. Попробуйте еще раз.');
+      return '';
     }
   };
 
@@ -161,14 +189,21 @@ export function CatalogEditorPage() {
     if (isEditing && catalogId) {
       navigate(`/categories/editor/${catalogId}`);
     } else {
-      // For new catalogs, save first then navigate
-      handleSave();
+      void (async () => {
+        const savedCatalogId = await saveCatalog(true);
+        if (savedCatalogId) {
+          navigate(`/categories/editor/${savedCatalogId}`);
+        }
+      })();
     }
   };
 
   const handleConfigureActions = () => {
-    // Navigate to actions configuration page
-    navigate(`/actions/editor/${catalogId}`);
+    if (isEditing && catalogId) {
+      navigate(`/actions/editor/${catalogId}`);
+    } else {
+      toast.error('Сначала сохраните каталог перед настройкой способов оплаты');
+    }
   };
 
   const handleGenerateLink = () => {
@@ -252,7 +287,7 @@ export function CatalogEditorPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-lg">Загрузка...</div>
+        <Spinner className="h-7 w-7" />
       </div>
     );
   }
@@ -385,7 +420,7 @@ export function CatalogEditorPage() {
               </div>
 
               {!formData.is_open_24_7 && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label htmlFor="work_start" className="block mb-2 text-sm font-medium">
                       С
@@ -394,6 +429,7 @@ export function CatalogEditorPage() {
                       id="work_start"
                       name="work_start"
                       type="time"
+                      className="w-full"
                       value={formData.work_start}
                       onChange={handleInputChange}
                     />
@@ -406,6 +442,7 @@ export function CatalogEditorPage() {
                       id="work_end"
                       name="work_end"
                       type="time"
+                      className="w-full"
                       value={formData.work_end}
                       onChange={handleInputChange}
                     />
@@ -419,7 +456,7 @@ export function CatalogEditorPage() {
                 htmlFor="emergency_phone"
                 className="block mb-2 text-sm font-medium"
               >
-                Экстренный телефон
+                Телефон для связи
               </Label>
               <Input
                 id="emergency_phone"
@@ -435,7 +472,7 @@ export function CatalogEditorPage() {
                 htmlFor="emergency_telegram"
                 className="block mb-2 text-sm font-medium"
               >
-                Экстренный Telegram контакт
+                Telegram контакт для связи
               </Label>
               <Input
                 id="emergency_telegram"

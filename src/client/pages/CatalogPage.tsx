@@ -7,6 +7,7 @@ import { type CatalogType } from '../../types';
 import { useCatalog } from '../hooks/useCatalogs';
 import { getCurrentOrder } from '../utils/currentOrder';
 import { toast } from 'sonner';
+import { Spinner } from '@/components/ui/spinner';
 
 type Props = {
   catalogId: string;
@@ -17,7 +18,12 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
   const { catalog, isLoading, isError } = useCatalog(catalogId);
   const { getTotalItems, getTotalPrice } = useCartStore();
   const [currentOrderId] = useState<string | null>(
-    () => getCurrentOrder()?.id ?? null
+    () => {
+      const current = getCurrentOrder();
+      if (!current) return null;
+      if (current.catalogId !== catalogId) return null;
+      return current.id;
+    }
   );
 
   const businessType: CatalogType = catalog?.type ?? 'goods';
@@ -27,7 +33,13 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
     toast.error('Не удалось загрузить каталог');
   }, [isError]);
 
-  if (isLoading) return <div className="p-4">Загрузка…</div>;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner className="h-7 w-7" />
+      </div>
+    );
+  }
   if (isError) return <div className="p-4">Ошибка</div>;
   if (!catalog) return null;
 

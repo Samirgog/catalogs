@@ -51,6 +51,17 @@ function formatOrderText(order: Record<string, unknown>) {
     return `• ${title} x${qty} — ${price * qty} ₽`;
   });
 
+  const paymentLabel =
+    String(order.status) === 'payment_reported'
+      ? 'СБП (клиент отметил оплату)'
+      : 'При получении / через чат';
+  const fulfillmentLabel =
+    String(order.fulfillment_method) === 'delivery'
+      ? 'Доставка'
+      : String(order.fulfillment_method) === 'pickup'
+        ? 'Самовывоз'
+        : 'Не указан';
+
   return [
     `🧾 <b>Заказ №${orderNo}</b>`,
     `Статус: <b>${statusLabel(String(order.status || 'created'))}</b>`,
@@ -58,6 +69,8 @@ function formatOrderText(order: Record<string, unknown>) {
     `Имя: <b>${String(order.customer_name || 'Не указано')}</b>`,
     `Телефон: <b>${String(order.customer_phone || 'Не указан')}</b>`,
     `Комментарий: <b>${String(order.customer_comment || 'Нет')}</b>`,
+    `Способ оплаты: <b>${paymentLabel}</b>`,
+    `Способ получения: <b>${fulfillmentLabel}</b>`,
     '',
     ...lines,
   ].join('\n');

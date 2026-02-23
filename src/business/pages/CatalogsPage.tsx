@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCatalogs } from '../hooks/useCatalogs';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/useTelegramAuth';
+import { Spinner } from '@/components/ui/spinner';
 
 export function CatalogsPage() {
   const { catalogs, loading, error } = useCatalogs();
@@ -58,7 +59,10 @@ export function CatalogsPage() {
       <div className="p-4">
         {loading && (
           <div className="text-center py-8">
-            <div className="text-lg">Загрузка каталогов...</div>
+            <div className="text-lg flex items-center justify-center gap-2">
+              <Spinner />
+              <span>Загрузка каталогов...</span>
+            </div>
           </div>
         )}
         

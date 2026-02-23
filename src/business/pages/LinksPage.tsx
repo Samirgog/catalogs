@@ -11,6 +11,7 @@ import { catalogService } from '../services/catalogs';
 import type { QRLink, Catalog } from '@/types';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
+import { Spinner } from '@/components/ui/spinner';
 
 interface LinkData {
   url: string;
@@ -136,15 +137,22 @@ export function LinksPage() {
     }
   };
 
-  const handleDownloadQR = () => {
-    if (linkData?.qrCodeDataUrl) {
+  const handleDownloadQR = async () => {
+    if (!linkData?.qrCodeDataUrl) return;
+    try {
+      const response = await fetch(linkData.qrCodeDataUrl);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = linkData.qrCodeDataUrl;
+      link.href = objectUrl;
       link.download = `qr-code-${catalogId}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
       toast.success('QR-код скачан');
+    } catch {
+      toast.error('Не удалось скачать QR-код');
     }
   };
 
@@ -171,8 +179,11 @@ export function LinksPage() {
   if (isGenerating || qrLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="glass-card p-6 rounded-xl">
-          <div className="text-lg">Генерация ссылки и QR-кода...</div>
+          <div className="glass-card p-6 rounded-xl">
+          <div className="flex items-center gap-2 text-lg">
+            <Spinner />
+            <span>Генерация ссылки и QR-кода...</span>
+          </div>
         </div>
       </div>
     );
@@ -197,7 +208,10 @@ export function LinksPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="glass-card p-6 rounded-xl">
-          <div className="text-lg">Загрузка каталога...</div>
+          <div className="flex items-center gap-2 text-lg">
+            <Spinner />
+            <span>Загрузка каталога...</span>
+          </div>
         </div>
       </div>
     );

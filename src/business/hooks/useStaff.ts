@@ -9,6 +9,7 @@ export const useStaff = (catalogId: string) => {
   const {
     data: accessCode,
     error: accessCodeError,
+    isLoading: accessCodeLoading,
     mutate: mutateAccessCode,
   } = useSWR(
     catalogId ? ['staff-access-code', catalogId] : null,
@@ -22,6 +23,7 @@ export const useStaff = (catalogId: string) => {
   const {
     data: members = [],
     error: membersError,
+    isLoading: membersLoading,
     mutate: mutateMembers,
   } = useSWR(
     catalogId ? ['staff-members', catalogId] : null,
@@ -51,7 +53,7 @@ export const useStaff = (catalogId: string) => {
   return {
     accessCode,
     members,
-    isLoading: !accessCode && !accessCodeError && !membersError,
+    isLoading: accessCodeLoading || membersLoading,
     error: accessCodeError?.message || membersError?.message || null,
     refetch: async () => {
       await Promise.all([mutateAccessCode(), mutateMembers()]);

@@ -21,6 +21,7 @@ import {
   getFlowLabels,
 } from '../utils/presentation';
 import type { FulfillmentMethodType } from '@/types';
+import { Spinner } from '@/components/ui/spinner';
 
 type Props = {
   catalogId: string;
@@ -184,7 +185,13 @@ export function BookingPage({ catalogId }: Props) {
     }
   };
 
-  if (isLoading) return <div className="p-4">Загрузка…</div>;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner className="h-7 w-7" />
+      </div>
+    );
+  }
   if (!catalog) return <div className="p-4">Каталог не найден</div>;
 
   if (catalog.type !== 'services') {

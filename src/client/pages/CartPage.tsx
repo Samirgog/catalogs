@@ -9,6 +9,7 @@ import { useCreateOrder } from '../hooks/useOrders';
 import { setCurrentOrder } from '../utils/currentOrder';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
+import { Spinner } from '@/components/ui/spinner';
 
 type Props = {
   catalogId: string;
@@ -66,7 +67,11 @@ export const CartPage = ({ catalogId }: Props) => {
   };
 
   if (isLoading) {
-    return <div className="p-4">Загрузка…</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner className="h-7 w-7" />
+      </div>
+    );
   }
 
   if (!catalog) {

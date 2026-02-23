@@ -14,6 +14,7 @@ import {
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
 import { getFlowLabels } from '../utils/presentation';
+import { Spinner } from '@/components/ui/spinner';
 
 const STATUS_META: Record<
   string,
@@ -164,7 +165,11 @@ export function OrderStatusPage() {
   }
 
   if (isLoading) {
-    return <div className="p-4">Загрузка…</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner className="h-7 w-7" />
+      </div>
+    );
   }
 
   if (isError) {

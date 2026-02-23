@@ -95,6 +95,17 @@ function formatOrderText(order: Record<string, unknown>) {
     return `• ${title} x${qty} — ${price * qty} ₽`;
   });
 
+  const paymentLabel =
+    String(order.status) === 'payment_reported'
+      ? 'СБП (клиент отметил оплату)'
+      : 'При получении / через чат';
+  const fulfillmentLabel =
+    String(order.fulfillment_method) === 'delivery'
+      ? 'Доставка'
+      : String(order.fulfillment_method) === 'pickup'
+        ? 'Самовывоз'
+        : 'Не указан';
+
   return [
     `🧾 <b>Заказ №${orderNo}</b>`,
     `Статус: <b>${statusLabel(String(order.status || 'created'))}</b>`,
@@ -102,6 +113,8 @@ function formatOrderText(order: Record<string, unknown>) {
     `Имя: <b>${String(order.customer_name || 'Не указано')}</b>`,
     `Телефон: <b>${String(order.customer_phone || 'Не указан')}</b>`,
     `Комментарий: <b>${String(order.customer_comment || 'Нет')}</b>`,
+    `Способ оплаты: <b>${paymentLabel}</b>`,
+    `Способ получения: <b>${fulfillmentLabel}</b>`,
     '',
     ...lines,
   ].join('\n');
@@ -160,6 +173,16 @@ async function bindStaffByCode(tgUser: Record<string, unknown>, rawCode: string)
 
   if (!codeRow) return null;
 
+  await supabase
+    .from('catalog_staff_members')
+    .update({
+      is_active: false,
+      on_shift: false,
+      last_activity_at: new Date().toISOString(),
+    })
+    .eq('telegram_id', tgUser.id)
+    .eq('is_active', true);
+
   const payload = {
     catalog_id: codeRow.catalog_id,
     telegram_id: tgUser.id,
@@ -193,14 +216,43 @@ async function unbindStaff(telegramId: number) {
 }
 
 async function setShift(telegramId: number, onShift: boolean) {
+  if (!onShift) {
+    await supabase
+      .from('catalog_staff_members')
+      .update({
+        on_shift: false,
+        last_activity_at: new Date().toISOString(),
+      })
+      .eq('telegram_id', telegramId)
+      .eq('is_active', true);
+    return;
+  }
+
+  const activeBindings = await getActiveBindings(telegramId);
+  if (!activeBindings.length) return;
+
+  const binding = activeBindings.sort((a, b) => {
+    const aTime = new Date(a.last_activity_at || a.linked_at).getTime();
+    const bTime = new Date(b.last_activity_at || b.linked_at).getTime();
+    return bTime - aTime;
+  })[0];
+
   await supabase
     .from('catalog_staff_members')
     .update({
-      on_shift: onShift,
+      on_shift: false,
       last_activity_at: new Date().toISOString(),
     })
     .eq('telegram_id', telegramId)
     .eq('is_active', true);
+
+  await supabase
+    .from('catalog_staff_members')
+    .update({
+      on_shift: true,
+      last_activity_at: new Date().toISOString(),
+    })
+    .eq('id', binding.id);
 }
 
 async function getOrder(orderId: string) {
@@ -227,7 +279,11 @@ async function sendOrderToChat(chatId: number, order: Record<string, unknown>) {
   });
 }
 
-async function showActiveOrders(chatId: number, telegramId: number) {
+async function showActiveOrders(
+  chatId: number,
+  telegramId: number,
+  excludedOrderIds: Set<string> = new Set()
+) {
   const bindings = await getActiveBindings(telegramId, true);
   if (!bindings.length) {
     await sendMessage(
@@ -255,13 +311,14 @@ async function showActiveOrders(chatId: number, telegramId: number) {
   }
 
   for (const order of orders) {
+    if (excludedOrderIds.has(String(order.id))) continue;
     await sendOrderToChat(chatId, order);
   }
 }
 
 async function processPendingNotificationsForTelegram(telegramId: number, chatId: number) {
   const bindings = await getActiveBindings(telegramId, true);
-  if (!bindings.length) return;
+  if (!bindings.length) return new Set<string>();
 
   const catalogIds = bindings.map(row => row.catalog_id);
   const { data: notifications } = await supabase
@@ -272,13 +329,15 @@ async function processPendingNotificationsForTelegram(telegramId: number, chatId
     .order('created_at', { ascending: true })
     .limit(20);
 
-  if (!notifications?.length) return;
+  if (!notifications?.length) return new Set<string>();
+  const sentOrderIds = new Set<string>();
 
   for (const notification of notifications) {
     const order = await getOrder(String(notification.order_id));
     if (!order) continue;
 
     await sendOrderToChat(chatId, order);
+    sentOrderIds.add(String(order.id));
 
     const binding = bindings.find(item => item.catalog_id === notification.catalog_id);
     await supabase
@@ -289,6 +348,7 @@ async function processPendingNotificationsForTelegram(telegramId: number, chatId
       })
       .eq('id', notification.id);
   }
+  return sentOrderIds;
 }
 
 async function handleTextMessage(message: Record<string, unknown>) {
@@ -348,8 +408,8 @@ async function handleTextMessage(message: Record<string, unknown>) {
   if (text === 'Начать работу') {
     await setShift(telegramId, true);
     await sendMessage(chatId, 'Смена начата.', { reply_markup: staffMenuKeyboard });
-    await processPendingNotificationsForTelegram(telegramId, chatId);
-    await showActiveOrders(chatId, telegramId);
+    const sentOrderIds = await processPendingNotificationsForTelegram(telegramId, chatId);
+    await showActiveOrders(chatId, telegramId, sentOrderIds);
     return;
   }
 

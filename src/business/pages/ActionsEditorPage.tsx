@@ -10,6 +10,7 @@ import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { useActions } from '../hooks/useActions';
 import type { Action, ActionType } from '../../types';
 import { toast } from 'sonner';
+import { Spinner } from '@/components/ui/spinner';
 
 type ActionsFormState = {
   paymentOnDeliveryEnabled: boolean;
@@ -100,8 +101,6 @@ export function ActionsEditorPage() {
   );
   const [draft, setDraft] = useState<ActionsFormState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const initialState = useMemo(() => mapActionsToFormState(actions), [actions]);
   const formState = draft ?? initialState;
@@ -147,8 +146,6 @@ export function ActionsEditorPage() {
 
     try {
       setIsSaving(true);
-      setSaveError(null);
-      setSaveSuccess(null);
 
       await Promise.all([
         upsertAction(
@@ -172,12 +169,10 @@ export function ActionsEditorPage() {
         }),
       ]);
 
-      setSaveSuccess('Изменения сохранены');
       toast.success('Изменения сохранены');
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Не удалось сохранить действия';
-      setSaveError(message);
       toast.error(message);
     } finally {
       setIsSaving(false);
@@ -203,18 +198,11 @@ export function ActionsEditorPage() {
       </div>
 
       <div className="p-4 space-y-4">
-        {error && (
-          <div className="glass-card p-3 text-sm text-red-600">{error}</div>
-        )}
-        {saveError && (
-          <div className="glass-card p-3 text-sm text-red-600">{saveError}</div>
-        )}
-        {saveSuccess && (
-          <div className="glass-card p-3 text-sm text-green-600">
-            {saveSuccess}
+        {loading && actions.length === 0 && (
+          <div className="glass-card p-4 flex items-center justify-center">
+            <Spinner />
           </div>
         )}
-
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between gap-4">
@@ -255,7 +243,7 @@ export function ActionsEditorPage() {
                 id="telegram-url"
                 value={formState.telegramUrl}
                 onChange={e => patchFormState({ telegramUrl: e.target.value })}
-                placeholder="https://t.me/username"
+                placeholder="@username или https://t.me/username"
               />
             </CardContent>
           )}
