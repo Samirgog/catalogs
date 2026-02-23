@@ -6,10 +6,15 @@ import { useState } from 'react';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
 import { useCreateOrder } from '../hooks/useOrders';
-import { getCurrentOrder, setCurrentOrder } from '../utils/currentOrder';
+import {
+  clearCurrentOrder,
+  getCurrentOrder,
+  setCurrentOrder,
+} from '../utils/currentOrder';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
+import { clientOrderService } from '../services/orders';
 
 type Props = {
   catalogId: string;
@@ -25,10 +30,6 @@ export const CartPage = ({ catalogId }: Props) => {
   const [error, setError] = useState<string | null>(null);
   useAutoBackButton('/catalog');
 
-  const handleGoBack = () => {
-    navigate(-1);
-  };
-
   const handleGoToCheckout = async () => {
     if (!catalog || items.length === 0 || isSubmitting) return;
 
@@ -38,9 +39,28 @@ export const CartPage = ({ catalogId }: Props) => {
       const currentOrder = getCurrentOrder();
 
       if (currentOrder?.id && currentOrder.catalogId === catalog.id) {
-        navigate(`/checkout/${currentOrder.id}`);
-        toast.success('Продолжите оформление текущего заказа');
-        return;
+        const existingOrder = await clientOrderService.getById(currentOrder.id);
+        if (existingOrder) {
+          const terminalStatuses = new Set([
+            'cancelled',
+            'rejected',
+            'completed',
+            'ready',
+          ]);
+          if (!terminalStatuses.has(existingOrder.status)) {
+            if (existingOrder.status === 'created') {
+              navigate(`/checkout/${existingOrder.id}`);
+              toast.success('Можно оформить только один текущий заказ');
+            } else {
+              navigate(`/order/${existingOrder.id}`);
+              toast.success('У вас уже есть активный заказ');
+            }
+            return;
+          }
+          clearCurrentOrder();
+        } else {
+          clearCurrentOrder();
+        }
       }
 
       const order = await createOrder({
@@ -107,12 +127,6 @@ export const CartPage = ({ catalogId }: Props) => {
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center">
-        <button
-          onClick={handleGoBack}
-          className="text-sm text-muted-foreground"
-        >
-          ← Назад
-        </button>
         <h1 className="ml-4 text-lg font-semibold">Корзина</h1>
         <span className="ml-2 text-sm text-muted-foreground">
           ({getTotalItems()} шт.)

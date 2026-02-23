@@ -15,6 +15,9 @@ export const CatalogHeader: React.FunctionComponent<Props> = ({
 }) => {
   return (
     <div className="relative h-52">
+      {!bannerUrl && (
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/65 to-primary" />
+      )}
       {bannerUrl && (
         <img
           src={bannerUrl}
@@ -22,14 +25,16 @@ export const CatalogHeader: React.FunctionComponent<Props> = ({
         />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-      <div className="absolute bottom-4 left-4 text-white">
-        <h1 className="text-3xl font-bold">{title}</h1>
-        {(address || workTimeText) && (
-          <div className="mt-2 text-sm opacity-95">
-            {address && <p>{address}</p>}
-            {workTimeText && <p>{workTimeText}</p>}
-          </div>
-        )}
+      <div className="absolute bottom-4 left-4 right-4">
+        <div className="rounded-2xl border border-white/30 bg-white/15 backdrop-blur-md p-4 text-white shadow-lg">
+          <h1 className="text-2xl font-bold leading-tight">{title}</h1>
+          {(address || workTimeText) && (
+            <div className="mt-2 text-sm opacity-95 space-y-1">
+              {address && <p>{address}</p>}
+              {workTimeText && <p>{workTimeText}</p>}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

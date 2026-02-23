@@ -27,6 +27,12 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
   );
 
   const businessType: CatalogType = catalog?.type ?? 'goods';
+  const formatTime = (value?: string) => {
+    if (!value) return '';
+    const parts = value.split(':');
+    if (parts.length < 2) return value;
+    return `${parts[0]}:${parts[1]}`;
+  };
 
   useEffect(() => {
     if (!isError) return;
@@ -47,9 +53,9 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
   const itemsCount = getTotalItems();
   const total = getTotalPrice();
   const workTimeText = catalog.is_open_24_7
-    ? 'Режим работы: круглосуточно'
+    ? '24/7'
     : catalog.work_start && catalog.work_end
-      ? `Режим работы: ${catalog.work_start} - ${catalog.work_end}`
+      ? `${formatTime(catalog.work_start)} - ${formatTime(catalog.work_end)}`
       : '';
 
   const handleGoToCart = () => {

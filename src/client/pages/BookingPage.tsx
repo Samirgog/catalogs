@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +11,7 @@ import { useCatalog } from '../hooks/useCatalogs';
 import { useCreateOrder, useUpdateOrderStatus } from '../hooks/useOrders';
 import { useBookingStore } from '../stores/booking';
 import { getClientActionOptions } from '../utils/actionOptions';
-import { setCurrentOrder } from '../utils/currentOrder';
+import { clearCurrentOrder, getCurrentOrder, setCurrentOrder } from '../utils/currentOrder';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
 import {
@@ -22,6 +21,7 @@ import {
 } from '../utils/presentation';
 import type { FulfillmentMethodType } from '@/types';
 import { Spinner } from '@/components/ui/spinner';
+import { clientOrderService } from '../services/orders';
 
 type Props = {
   catalogId: string;
@@ -80,11 +80,6 @@ export function BookingPage({ catalogId }: Props) {
     null;
   const selectedActionValue = selectedAction?.id ?? '';
 
-  const handleBack = () => {
-    if (isSubmitting) return;
-    navigate(-1);
-  };
-
   const createOrderAndOpenStatus = async (reportPayment: boolean) => {
     if (!catalog || !selectedItem || !selectedAction) return;
 
@@ -128,6 +123,26 @@ export function BookingPage({ catalogId }: Props) {
     try {
       setIsSubmitting(true);
       setError(null);
+      const currentOrder = getCurrentOrder();
+      if (currentOrder?.id && currentOrder.catalogId === catalog.id) {
+        const existingOrder = await clientOrderService.getById(currentOrder.id);
+        if (existingOrder) {
+          const terminalStatuses = new Set([
+            'cancelled',
+            'rejected',
+            'completed',
+            'ready',
+          ]);
+          if (!terminalStatuses.has(existingOrder.status)) {
+            toast.success('У вас уже есть активный заказ');
+            navigate(`/order/${existingOrder.id}`);
+            return;
+          }
+          clearCurrentOrder();
+        } else {
+          clearCurrentOrder();
+        }
+      }
 
       if (selectedAction.kind === 'payment_in_chat') {
         if (!selectedAction.telegramUrl) {
@@ -238,14 +253,6 @@ export function BookingPage({ catalogId }: Props) {
   return (
     <div className="min-h-screen flex flex-col pb-28 bg-background">
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleBack}
-          disabled={isSubmitting}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
         <h1 className="text-lg font-semibold ml-2 flex-1">{labels.checkoutTitle}</h1>
       </div>
 

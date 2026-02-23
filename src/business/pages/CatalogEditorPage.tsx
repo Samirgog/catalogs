@@ -143,7 +143,9 @@ export function CatalogEditorPage() {
         !formData.is_open_24_7 &&
         (!formData.work_start.trim() || !formData.work_end.trim())
       ) {
-        toast.error('Укажите время работы "с" и "до" или включите "Круглосуточно"');
+        toast.error(
+          'Укажите время работы "с" и "до" или включите "Круглосуточно"'
+        );
         return;
       }
 
@@ -227,7 +229,9 @@ export function CatalogEditorPage() {
     if (isEditing && catalogId) {
       navigate(`/catalogs/${catalogId}/fulfillment`);
     } else {
-      toast.error('Сначала сохраните каталог перед настройкой способов получения');
+      toast.error(
+        'Сначала сохраните каталог перед настройкой способов получения'
+      );
     }
   };
 
@@ -400,7 +404,10 @@ export function CatalogEditorPage() {
             <div className="space-y-3 py-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <Label htmlFor="is_open_24_7" className="text-base font-medium">
+                  <Label
+                    htmlFor="is_open_24_7"
+                    className="text-base font-medium"
+                  >
                     Круглосуточно
                   </Label>
                   <p className="text-sm text-muted-foreground">
@@ -422,27 +429,33 @@ export function CatalogEditorPage() {
               {!formData.is_open_24_7 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
                   <div className="min-w-0 w-full">
-                    <Label htmlFor="work_start" className="block mb-2 text-sm font-medium">
+                    <Label
+                      htmlFor="work_start"
+                      className="block mb-2 text-sm font-medium"
+                    >
                       С
                     </Label>
                     <Input
                       id="work_start"
                       name="work_start"
                       type="time"
-                      className="w-full min-w-0"
+                      className="w-9/12 min-w-0"
                       value={formData.work_start}
                       onChange={handleInputChange}
                     />
                   </div>
                   <div className="min-w-0 w-full">
-                    <Label htmlFor="work_end" className="block mb-2 text-sm font-medium">
+                    <Label
+                      htmlFor="work_end"
+                      className="block mb-2 text-sm font-medium"
+                    >
                       До
                     </Label>
                     <Input
                       id="work_end"
                       name="work_end"
                       type="time"
-                      className="w-full min-w-0"
+                      className="w-9/12 min-w-0"
                       value={formData.work_end}
                       onChange={handleInputChange}
                     />

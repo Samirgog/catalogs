@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Clock3, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Clock3, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useOrder, useUpdateOrderStatus } from '../hooks/useOrders';
@@ -161,7 +161,11 @@ export function OrderStatusPage() {
   };
 
   if (!orderId) {
-    return <div className="p-4">Некорректный номер {labels.orderWord.toLowerCase()}</div>;
+    return (
+      <div className="p-4">
+        Некорректный номер {labels.orderWord.toLowerCase()}
+      </div>
+    );
   }
 
   if (isLoading) {
@@ -214,13 +218,6 @@ export function OrderStatusPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background pb-28">
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/catalog')}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
         <h1 className="text-lg font-semibold ml-2 flex-1">
           Статус {labels.orderWord.toLowerCase()}
         </h1>
@@ -314,7 +311,10 @@ export function OrderStatusPage() {
               {catalog.emergency_phone && (
                 <p>
                   Телефон:{' '}
-                  <a href={`tel:${catalog.emergency_phone}`} className="underline">
+                  <a
+                    href={`tel:${catalog.emergency_phone}`}
+                    className="underline"
+                  >
                     {catalog.emergency_phone}
                   </a>
                 </p>
@@ -328,14 +328,16 @@ export function OrderStatusPage() {
           </Card>
         )}
 
-        {['created', 'submitted', 'payment_reported', 'new', 'accepted'].includes(
-          status
-        ) && (
+        {[
+          'created',
+          'submitted',
+          'payment_reported',
+          'new',
+          'accepted',
+        ].includes(status) && (
           <Card>
             <CardHeader>
-              <CardTitle>
-                Управление {labels.orderWord.toLowerCase()}
-              </CardTitle>
+              <CardTitle>Управление {labels.orderWord.toLowerCase()}</CardTitle>
             </CardHeader>
             <CardContent>
               <Button

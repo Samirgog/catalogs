@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +7,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useCatalog } from '../hooks/useCatalogs';
-import { useOrder, useUpdateOrder, useUpdateOrderStatus } from '../hooks/useOrders';
+import {
+  useOrder,
+  useUpdateOrder,
+  useUpdateOrderStatus,
+} from '../hooks/useOrders';
 import { getClientActionOptions } from '../utils/actionOptions';
 import { getReadableOrderNumber, setCurrentOrder } from '../utils/currentOrder';
 import { useCurrentUser } from '@/useTelegramAuth';
@@ -105,11 +108,6 @@ export function CheckoutPage({ catalogId }: Props) {
     return raw;
   }, [catalog?.emergency_telegram]);
 
-  const handleBack = () => {
-    if (isSubmitting) return;
-    navigate(-1);
-  };
-
   const handleSubmit = async () => {
     if (!order || !selectedAction || !catalog) return;
 
@@ -135,7 +133,10 @@ export function CheckoutPage({ catalogId }: Props) {
           catalogType: catalog.type,
           order: { ...order, fulfillment_method: selectedFulfillment },
         });
-        const link = appendTelegramTextParam(selectedAction.telegramUrl, message);
+        const link = appendTelegramTextParam(
+          selectedAction.telegramUrl,
+          message
+        );
         clearCart();
         toast.success('Переход в Telegram');
         window.location.href = link;
@@ -164,7 +165,9 @@ export function CheckoutPage({ catalogId }: Props) {
       toast.success('Статус заказа обновлен');
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : `Не удалось оформить ${labels.orderWord.toLowerCase()}`
+        err instanceof Error
+          ? err.message
+          : `Не удалось оформить ${labels.orderWord.toLowerCase()}`
       );
       toast.error(`Не удалось оформить ${labels.orderWord.toLowerCase()}`);
     } finally {
@@ -204,7 +207,9 @@ export function CheckoutPage({ catalogId }: Props) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="glass-card rounded-xl p-6 text-center space-y-4">
-          <h2 className="text-lg font-semibold">{labels.orderWord} не найден</h2>
+          <h2 className="text-lg font-semibold">
+            {labels.orderWord} не найден
+          </h2>
           <p className="text-sm text-muted-foreground">
             Вернитесь в корзину и начните оформление заново.
           </p>
@@ -228,15 +233,9 @@ export function CheckoutPage({ catalogId }: Props) {
   return (
     <div className="min-h-screen flex flex-col bg-background pb-28">
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleBack}
-          disabled={isSubmitting}
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <h1 className="text-lg font-semibold ml-2 flex-1">{labels.checkoutTitle}</h1>
+        <h1 className="text-lg font-semibold ml-2 flex-1">
+          {labels.checkoutTitle}
+        </h1>
       </div>
 
       <div className="flex-1 p-4 space-y-4">
