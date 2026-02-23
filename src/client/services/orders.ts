@@ -1,5 +1,5 @@
 import { clientSupabase } from '../../lib/supabase';
-import type { Order, OrderStatus } from '../../types';
+import type { FulfillmentMethodType, Order, OrderStatus } from '../../types';
 
 // Client Order Services
 export const clientOrderService = {
@@ -10,6 +10,7 @@ export const clientOrderService = {
     customer_name?: string;
     customer_phone?: string;
     customer_comment?: string;
+    fulfillment_method?: FulfillmentMethodType;
     items: Record<string, unknown>[];
     total_price: number;
     table_number?: string;

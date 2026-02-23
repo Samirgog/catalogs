@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Copy, RefreshCcw, UserCheck, UserX } from 'lucide-react';
+import { Copy, RefreshCcw, Share2, UserCheck, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { useStaff } from '../hooks/useStaff';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ export function StaffPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
   const [localMessage, setLocalMessage] = useState<string | null>(null);
+  const staffBotUrl = import.meta.env.VITE_STAFF_BOT_URL || '';
 
   const {
     accessCode,
@@ -77,6 +79,27 @@ export function StaffPage() {
     }
   };
 
+  const handleShareBotLink = async () => {
+    if (!staffBotUrl) {
+      toast.error('Ссылка на бота не настроена');
+      return;
+    }
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Бот для сотрудников',
+          text: 'Откройте бота и введите код доступа',
+          url: staffBotUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(staffBotUrl);
+      }
+      toast.success('Ссылка на бота отправлена');
+    } catch {
+      toast.error('Не удалось поделиться ссылкой');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-28">
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
@@ -102,6 +125,24 @@ export function StaffPage() {
               <p className="text-2xl font-semibold tracking-widest mt-1">
                 {accessCode?.access_code || 'Код не создан'}
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Ссылка на бот</p>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={staffBotUrl || 'Укажите VITE_STAFF_BOT_URL'}
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleShareBotLink}
+                  disabled={!staffBotUrl}
+                >
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="flex gap-2">

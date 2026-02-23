@@ -1,6 +1,10 @@
 import useSWR, { useSWRConfig } from 'swr';
 import { clientOrderService } from '../services/orders';
-import type { Order, OrderStatus } from '../../types';
+import type {
+  FulfillmentMethodType,
+  Order,
+  OrderStatus,
+} from '../../types';
 
 // SWR fetcher for orders
 const orderFetcher = async (key: string, id: string) => {
@@ -44,6 +48,7 @@ export const useCreateOrder = () => {
     customer_name?: string;
     customer_phone?: string;
     customer_comment?: string;
+    fulfillment_method?: FulfillmentMethodType;
     items: Record<string, unknown>[];
     total_price: number;
     table_number?: string;

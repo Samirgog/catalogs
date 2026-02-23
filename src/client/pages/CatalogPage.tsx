@@ -34,6 +34,11 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
   const categories = catalog.categories ?? [];
   const itemsCount = getTotalItems();
   const total = getTotalPrice();
+  const workTimeText = catalog.is_open_24_7
+    ? 'Режим работы: круглосуточно'
+    : catalog.work_start && catalog.work_end
+      ? `Режим работы: ${catalog.work_start} - ${catalog.work_end}`
+      : '';
 
   const handleGoToCart = () => {
     navigate('/cart');
@@ -46,7 +51,12 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
 
   return (
     <div className="min-h-screen bg-background">
-      <CatalogHeader title={catalog.title} bannerUrl={catalog.banner_url} />
+      <CatalogHeader
+        title={catalog.title}
+        bannerUrl={catalog.banner_url}
+        address={catalog.address}
+        workTimeText={workTimeText}
+      />
 
       <CategoryTabs
         categories={categories.map(c => ({

@@ -15,6 +15,12 @@ import { getClientActionOptions } from '../utils/actionOptions';
 import { setCurrentOrder } from '../utils/currentOrder';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
+import {
+  appendTelegramTextParam,
+  buildTelegramOrderMessage,
+  getFlowLabels,
+} from '../utils/presentation';
+import type { FulfillmentMethodType } from '@/types';
 
 type Props = {
   catalogId: string;
@@ -30,6 +36,8 @@ export function BookingPage({ catalogId }: Props) {
   useAutoBackButton('/catalog');
 
   const [selectedActionId, setSelectedActionId] = useState<string>('');
+  const [selectedFulfillment, setSelectedFulfillment] =
+    useState<FulfillmentMethodType>('pickup');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState(
@@ -50,6 +58,20 @@ export function BookingPage({ catalogId }: Props) {
     () => getClientActionOptions(catalog?.actions),
     [catalog?.actions]
   );
+  const labels = getFlowLabels(catalog?.type ?? 'services');
+  const fulfillmentOptions = useMemo(
+    () =>
+      (catalog?.fulfillment_methods ?? [])
+        .filter(method => method.is_enabled)
+        .map(method => method.method),
+    [catalog?.fulfillment_methods]
+  );
+
+  useEffect(() => {
+    if (fulfillmentOptions.length === 0) return;
+    if (fulfillmentOptions.includes(selectedFulfillment)) return;
+    setSelectedFulfillment(fulfillmentOptions[0]);
+  }, [fulfillmentOptions, selectedFulfillment]);
 
   const selectedAction =
     actionOptions.find(option => option.id === selectedActionId) ??
@@ -71,6 +93,7 @@ export function BookingPage({ catalogId }: Props) {
       customer_name: customerName.trim(),
       customer_phone: customerPhone.trim(),
       customer_comment: customerComment.trim(),
+      fulfillment_method: selectedFulfillment,
       items: [
         {
           item_id: selectedItem.id,
@@ -95,7 +118,7 @@ export function BookingPage({ catalogId }: Props) {
       replace: true,
       state: { action: selectedAction },
     });
-    toast.success('Заказ оформлен');
+    toast.success(`${labels.orderWord} оформлена`);
   };
 
   const handleSubmit = async () => {
@@ -117,6 +140,7 @@ export function BookingPage({ catalogId }: Props) {
           customer_name: customerName.trim(),
           customer_phone: customerPhone.trim(),
           customer_comment: customerComment.trim(),
+          fulfillment_method: selectedFulfillment,
           items: [
             {
               item_id: selectedItem.id,
@@ -132,8 +156,13 @@ export function BookingPage({ catalogId }: Props) {
         await updateStatus(order.id, 'submitted');
         setCurrentOrder(order);
         clearSelectedItem();
+        const message = buildTelegramOrderMessage({
+          catalogType: catalog.type,
+          order: { ...order, fulfillment_method: selectedFulfillment },
+        });
+        const link = appendTelegramTextParam(selectedAction.telegramUrl, message);
         toast.success('Переход в Telegram');
-        window.location.href = selectedAction.telegramUrl;
+        window.location.href = link;
         return;
       }
 
@@ -145,9 +174,11 @@ export function BookingPage({ catalogId }: Props) {
       await createOrderAndOpenStatus(false);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Не удалось оформить запись'
+        err instanceof Error
+          ? err.message
+          : `Не удалось оформить ${labels.orderWord.toLowerCase()}`
       );
-      toast.error('Не удалось оформить запись');
+      toast.error(`Не удалось оформить ${labels.orderWord.toLowerCase()}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -176,9 +207,9 @@ export function BookingPage({ catalogId }: Props) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="glass-card rounded-xl p-6 text-center space-y-4">
-          <h2 className="text-lg font-semibold">Услуга не выбрана</h2>
+          <h2 className="text-lg font-semibold">{labels.itemWord} не выбрана</h2>
           <p className="text-sm text-muted-foreground">
-            Перейдите в каталог и выберите услугу для оформления.
+            Перейдите в каталог и выберите {labels.itemWord.toLowerCase()} для оформления.
           </p>
           <Button className="w-full" onClick={() => navigate('/catalog')}>
             Вернуться в каталог
@@ -195,7 +226,7 @@ export function BookingPage({ catalogId }: Props) {
       ? 'Написать в Telegram'
       : selectedAction?.kind === 'light_sbp'
         ? 'Я оплатил'
-        : 'Подтвердить запись';
+        : labels.submitLabel;
 
   return (
     <div className="min-h-screen flex flex-col pb-28 bg-background">
@@ -208,7 +239,7 @@ export function BookingPage({ catalogId }: Props) {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-lg font-semibold ml-2 flex-1">Запись на услугу</h1>
+        <h1 className="text-lg font-semibold ml-2 flex-1">{labels.checkoutTitle}</h1>
       </div>
 
       <div className="p-4 space-y-4">
@@ -289,7 +320,7 @@ export function BookingPage({ catalogId }: Props) {
           <CardContent>
             {actionOptions.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Владелец каталога пока не настроил способы оформления заказа.
+                Владелец каталога пока не настроил способы оформления.
               </p>
             ) : (
               <RadioGroup
@@ -348,6 +379,50 @@ export function BookingPage({ catalogId }: Props) {
             )}
           </CardContent>
         </Card>
+
+        {fulfillmentOptions.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Способ получения</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RadioGroup
+                value={selectedFulfillment}
+                onValueChange={value =>
+                  setSelectedFulfillment(value as FulfillmentMethodType)
+                }
+                className="space-y-3"
+              >
+                {fulfillmentOptions.includes('pickup') && (
+                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value="pickup" className="mt-1" />
+                      <div className="flex-1">
+                        <p className="font-medium">Самовывоз</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Получу {labels.orderWord.toLowerCase()} в точке
+                        </p>
+                      </div>
+                    </div>
+                  </Label>
+                )}
+                {fulfillmentOptions.includes('delivery') && (
+                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value="delivery" className="mt-1" />
+                      <div className="flex-1">
+                        <p className="font-medium">Доставка</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Нужна доставка {labels.orderWord.toLowerCase()}
+                        </p>
+                      </div>
+                    </div>
+                  </Label>
+                )}
+              </RadioGroup>
+            </CardContent>
+          </Card>
+        )}
 
         {isSbpSelected && (
           <p className="text-sm text-muted-foreground">

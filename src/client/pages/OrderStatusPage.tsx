@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle2, Clock3, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useOrder, useUpdateOrderStatus } from '../hooks/useOrders';
+import { useCatalog } from '../hooks/useCatalogs';
 import type { ClientActionOption } from '../utils/actionOptions';
 import {
   clearCurrentOrder,
@@ -12,6 +13,7 @@ import {
 } from '../utils/currentOrder';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
+import { getFlowLabels } from '../utils/presentation';
 
 const STATUS_META: Record<
   string,
@@ -86,14 +88,26 @@ export function OrderStatusPage() {
     orderId ?? null
   );
   const { updateStatus } = useUpdateOrderStatus();
+  const { catalog } = useCatalog(order?.catalog_id ?? null);
   useAutoBackButton('/catalog');
 
   const parsedItems = useMemo(() => asItems(order?.items), [order?.items]);
+  const labels = getFlowLabels(catalog?.type ?? 'goods');
   const status = order?.status ?? 'created';
-  const statusMeta = STATUS_META[status] ?? {
+  const baseStatusMeta = STATUS_META[status] ?? {
     label: status,
     className: 'text-slate-700 bg-slate-200',
     description: 'Статус заказа обновляется автоматически.',
+  };
+  const statusMeta = {
+    ...baseStatusMeta,
+    description:
+      labels.orderWord === 'Запись'
+        ? baseStatusMeta.description
+            .replaceAll('Заказ', 'Запись')
+            .replaceAll('заказ', 'запись')
+            .replaceAll('заказа', 'записи')
+        : baseStatusMeta.description,
   };
 
   useEffect(() => {
@@ -113,14 +127,16 @@ export function OrderStatusPage() {
   useEffect(() => {
     if (!isError) return;
     toast.error(
-      error instanceof Error ? error.message : 'Не удалось загрузить заказ'
+      error instanceof Error
+        ? error.message
+        : `Не удалось загрузить ${labels.orderWord.toLowerCase()}`
     );
-  }, [error, isError]);
+  }, [error, isError, labels.orderWord]);
 
   const handleRefresh = async () => {
     try {
       await mutate();
-      toast.success('Статус заказа обновлен');
+      toast.success(`Статус ${labels.orderWord.toLowerCase()} обновлен`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Ошибка обновления');
     }
@@ -133,14 +149,18 @@ export function OrderStatusPage() {
       await updateStatus(order.id, 'cancelled');
       await mutate();
       clearCurrentOrder();
-      toast.success('Заказ отменен');
+      toast.success(`${labels.orderWord} отменена`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Не удалось отменить заказ');
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : `Не удалось отменить ${labels.orderWord.toLowerCase()}`
+      );
     }
   };
 
   if (!orderId) {
-    return <div className="p-4">Некорректный номер заказа</div>;
+    return <div className="p-4">Некорректный номер {labels.orderWord.toLowerCase()}</div>;
   }
 
   if (isLoading) {
@@ -152,7 +172,9 @@ export function OrderStatusPage() {
       <div className="min-h-screen bg-background p-4">
         <Card>
           <CardHeader>
-            <CardTitle>Не удалось загрузить заказ</CardTitle>
+            <CardTitle>
+              Не удалось загрузить {labels.orderWord.toLowerCase()}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
@@ -172,7 +194,7 @@ export function OrderStatusPage() {
       <div className="min-h-screen bg-background p-4">
         <Card>
           <CardHeader>
-            <CardTitle>Заказ не найден</CardTitle>
+            <CardTitle>{labels.orderWord} не найдена</CardTitle>
           </CardHeader>
           <CardContent>
             <Button className="w-full" onClick={() => navigate('/catalog')}>
@@ -194,7 +216,9 @@ export function OrderStatusPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-lg font-semibold ml-2 flex-1">Статус заказа</h1>
+        <h1 className="text-lg font-semibold ml-2 flex-1">
+          Статус {labels.orderWord.toLowerCase()}
+        </h1>
         <Button variant="ghost" size="icon" onClick={handleRefresh}>
           <RefreshCw className="h-5 w-5" />
         </Button>
@@ -205,7 +229,7 @@ export function OrderStatusPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-green-600" />
-              Заказ №{getReadableOrderNumber(order)}
+              {labels.orderWord} №{getReadableOrderNumber(order)}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -224,6 +248,18 @@ export function OrderStatusPage() {
               <span className="text-sm text-muted-foreground">Сумма</span>
               <span className="font-semibold">{order.total_price} ₽</span>
             </div>
+            {order.fulfillment_method && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Способ получения
+                </span>
+                <span className="font-medium">
+                  {order.fulfillment_method === 'delivery'
+                    ? 'Доставка'
+                    : 'Самовывоз'}
+                </span>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -234,7 +270,9 @@ export function OrderStatusPage() {
           <CardContent>
             {parsedItems.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Состав заказа отсутствует.
+                {labels.orderWord === 'Запись'
+                  ? 'Состав записи отсутствует.'
+                  : 'Состав заказа отсутствует.'}
               </p>
             ) : (
               <div className="space-y-3">
@@ -262,12 +300,37 @@ export function OrderStatusPage() {
           </CardContent>
         </Card>
 
+        {(catalog?.emergency_phone || catalog?.emergency_telegram) && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Связь с продавцом</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              {catalog.emergency_phone && (
+                <p>
+                  Телефон:{' '}
+                  <a href={`tel:${catalog.emergency_phone}`} className="underline">
+                    {catalog.emergency_phone}
+                  </a>
+                </p>
+              )}
+              {catalog.emergency_telegram && (
+                <p>
+                  Telegram: <span>{catalog.emergency_telegram}</span>
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {['created', 'submitted', 'payment_reported', 'new', 'accepted'].includes(
           status
         ) && (
           <Card>
             <CardHeader>
-              <CardTitle>Управление заказом</CardTitle>
+              <CardTitle>
+                Управление {labels.orderWord.toLowerCase()}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <Button
@@ -275,7 +338,7 @@ export function OrderStatusPage() {
                 className="w-full"
                 onClick={handleCancelOrder}
               >
-                Отменить заказ
+                Отменить {labels.orderWord.toLowerCase()}
               </Button>
             </CardContent>
           </Card>

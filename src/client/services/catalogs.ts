@@ -1,6 +1,14 @@
 import { clientSupabase } from '../../lib/supabase';
 import type { Catalog } from '../../types';
 
+const normalizeCatalog = (catalog: any): Catalog => {
+  if (!catalog) return catalog;
+  return {
+    ...catalog,
+    fulfillment_methods: catalog.catalog_fulfillment_methods ?? [],
+  };
+};
+
 // Client Catalog Services
 export const clientCatalogService = {
   // Get public catalog by ID
@@ -13,14 +21,15 @@ export const clientCatalogService = {
           *,
           items (*)
         ),
-        actions (*)
+        actions (*),
+        catalog_fulfillment_methods (*)
       `)
       .eq('id', id)
       .eq('is_active', true)
       .single();
 
     if (error) throw error;
-    return data;
+    return normalizeCatalog(data);
   },
 
   // Get catalog by QR link slug
@@ -45,14 +54,15 @@ export const clientCatalogService = {
           *,
           items (*)
         ),
-        actions (*)
+        actions (*),
+        catalog_fulfillment_methods (*)
       `)
       .eq('id', qrLink.target_id)
       .eq('is_active', true)
       .single();
 
     if (catalogError) throw catalogError;
-    return catalog;
+    return normalizeCatalog(catalog);
   },
 
   // Get all active catalogs for a place
@@ -66,7 +76,8 @@ export const clientCatalogService = {
             *,
             items (*)
           ),
-          actions (*)
+          actions (*),
+          catalog_fulfillment_methods (*)
         )
       `)
       .eq('place_id', placeId)
@@ -80,7 +91,9 @@ export const clientCatalogService = {
     const catalogs: Catalog[] = [];
     for (const placeCatalog of data) {
       if (placeCatalog.catalogs) {
-        catalogs.push(placeCatalog.catalogs as unknown as Catalog);
+        catalogs.push(
+          normalizeCatalog(placeCatalog.catalogs as unknown as Catalog)
+        );
       }
     }
     

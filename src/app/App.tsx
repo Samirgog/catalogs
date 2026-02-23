@@ -17,6 +17,7 @@ import {
   CatalogsPage,
   LinksPage,
   StaffPage,
+  FulfillmentMethodsPage,
 } from '../business/pages';
 import { CatalogEditorPage } from '../business/pages/CatalogEditorPage';
 import { CategoriesEditorPage } from '../business/pages/CategoriesEditorPage';
@@ -128,6 +129,10 @@ export function App() {
                 element={<ActionsEditorPage />}
               />
               <Route path="/staff/:catalogId" element={<StaffPage />} />
+              <Route
+                path="/catalogs/:catalogId/fulfillment"
+                element={<FulfillmentMethodsPage />}
+              />
             </>
           )}
 

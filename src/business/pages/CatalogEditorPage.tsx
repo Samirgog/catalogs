@@ -13,6 +13,7 @@ import {
   X,
   Link,
   Users,
+  Truck,
 } from 'lucide-react';
 import { useCatalog, useCatalogs } from '../hooks/useCatalogs';
 import { useImagePreview } from '../hooks/useImages';
@@ -59,8 +60,13 @@ export function CatalogEditorPage() {
   // Form state
   const [formData, setFormData] = useState({
     title: '',
-    // description: '',
     banner_url: '',
+    address: '',
+    is_open_24_7: false,
+    work_start: '',
+    work_end: '',
+    emergency_phone: '',
+    emergency_telegram: '',
     is_active: true,
     type: 'goods' as CatalogType,
   });
@@ -72,9 +78,14 @@ export function CatalogEditorPage() {
     if (fetchedCatalog) {
       setFormData({
         title: fetchedCatalog.title,
-        // description: fetchedCatalog.description || '',
         is_active: fetchedCatalog.is_active,
         banner_url: fetchedCatalog.banner_url || '',
+        address: fetchedCatalog.address || '',
+        is_open_24_7: Boolean(fetchedCatalog.is_open_24_7),
+        work_start: fetchedCatalog.work_start || '',
+        work_end: fetchedCatalog.work_end || '',
+        emergency_phone: fetchedCatalog.emergency_phone || '',
+        emergency_telegram: fetchedCatalog.emergency_telegram || '',
         type: fetchedCatalog.type || 'goods',
       });
     }
@@ -96,13 +107,33 @@ export function CatalogEditorPage() {
         toast.error('Заполните название каталога');
         return;
       }
+      if (!formData.emergency_phone.trim()) {
+        toast.error('Укажите номер телефона для связи');
+        return;
+      }
+      if (!formData.emergency_telegram.trim()) {
+        toast.error('Укажите Telegram контакт для связи');
+        return;
+      }
+      if (
+        !formData.is_open_24_7 &&
+        (!formData.work_start.trim() || !formData.work_end.trim())
+      ) {
+        toast.error('Укажите время работы "с" и "до" или включите "Круглосуточно"');
+        return;
+      }
 
       const catalogData: CatalogFormData = {
         title: formData.title.trim(),
-        // description: formData.description,
-        type: formData.type, // Default type
+        type: formData.type,
         is_active: formData.is_active,
         banner_url: formData.banner_url,
+        address: formData.address.trim(),
+        is_open_24_7: formData.is_open_24_7,
+        work_start: formData.is_open_24_7 ? undefined : formData.work_start,
+        work_end: formData.is_open_24_7 ? undefined : formData.work_end,
+        emergency_phone: formData.emergency_phone.trim(),
+        emergency_telegram: formData.emergency_telegram.trim(),
       };
 
       let savedCatalogId = catalogId;
@@ -154,6 +185,14 @@ export function CatalogEditorPage() {
       navigate(`/staff/${catalogId}`);
     } else {
       toast.error('Сначала сохраните каталог перед настройкой сотрудников');
+    }
+  };
+
+  const handleConfigureFulfillment = () => {
+    if (isEditing && catalogId) {
+      navigate(`/catalogs/${catalogId}/fulfillment`);
+    } else {
+      toast.error('Сначала сохраните каталог перед настройкой способов получения');
     }
   };
 
@@ -307,6 +346,106 @@ export function CatalogEditorPage() {
               />
             </div>
 
+            <div>
+              <Label
+                htmlFor="address"
+                className="block mb-2 text-sm font-medium"
+              >
+                Адрес
+              </Label>
+              <Input
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+                placeholder="Укажите адрес точки"
+              />
+            </div>
+
+            <div className="space-y-3 py-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="is_open_24_7" className="text-base font-medium">
+                    Круглосуточно
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Если выключено — нужно указать время работы
+                  </p>
+                </div>
+                <Switch
+                  id="is_open_24_7"
+                  checked={formData.is_open_24_7}
+                  onCheckedChange={(checked: boolean) =>
+                    setFormData(prev => ({
+                      ...prev,
+                      is_open_24_7: checked,
+                    }))
+                  }
+                />
+              </div>
+
+              {!formData.is_open_24_7 && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="work_start" className="block mb-2 text-sm font-medium">
+                      С
+                    </Label>
+                    <Input
+                      id="work_start"
+                      name="work_start"
+                      type="time"
+                      value={formData.work_start}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="work_end" className="block mb-2 text-sm font-medium">
+                      До
+                    </Label>
+                    <Input
+                      id="work_end"
+                      name="work_end"
+                      type="time"
+                      value={formData.work_end}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label
+                htmlFor="emergency_phone"
+                className="block mb-2 text-sm font-medium"
+              >
+                Экстренный телефон
+              </Label>
+              <Input
+                id="emergency_phone"
+                name="emergency_phone"
+                value={formData.emergency_phone}
+                onChange={handleInputChange}
+                placeholder="+7 900 000-00-00"
+              />
+            </div>
+
+            <div>
+              <Label
+                htmlFor="emergency_telegram"
+                className="block mb-2 text-sm font-medium"
+              >
+                Экстренный Telegram контакт
+              </Label>
+              <Input
+                id="emergency_telegram"
+                name="emergency_telegram"
+                value={formData.emergency_telegram}
+                onChange={handleInputChange}
+                placeholder="@username или https://t.me/username"
+              />
+            </div>
+
             <div className="flex items-center justify-between py-2">
               <div>
                 <Label htmlFor="is_active" className="text-base font-medium">
@@ -388,6 +527,14 @@ export function CatalogEditorPage() {
           >
             <Settings className="w-4 h-4 mr-2" />
             Способы оплаты и действия
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full h-12"
+            onClick={handleConfigureFulfillment}
+          >
+            <Truck className="w-4 h-4 mr-2" />
+            Способы получения
           </Button>
           <Button
             variant="outline"

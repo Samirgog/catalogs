@@ -14,6 +14,12 @@ import { getReadableOrderNumber, setCurrentOrder } from '../utils/currentOrder';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
+import {
+  appendTelegramTextParam,
+  buildTelegramOrderMessage,
+  getFlowLabels,
+} from '../utils/presentation';
+import type { FulfillmentMethodType } from '@/types';
 
 type Props = {
   catalogId: string;
@@ -44,6 +50,8 @@ export function CheckoutPage({ catalogId }: Props) {
   const [selectedActionId, setSelectedActionId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFulfillment, setSelectedFulfillment] =
+    useState<FulfillmentMethodType>('pickup');
   const [customerName, setCustomerName] = useState(
     user?.first_name || user?.username || ''
   );
@@ -62,6 +70,20 @@ export function CheckoutPage({ catalogId }: Props) {
     () => getClientActionOptions(catalog?.actions),
     [catalog?.actions]
   );
+  const labels = getFlowLabels(catalog?.type ?? 'goods');
+  const fulfillmentOptions = useMemo(
+    () =>
+      (catalog?.fulfillment_methods ?? [])
+        .filter(method => method.is_enabled)
+        .map(method => method.method),
+    [catalog?.fulfillment_methods]
+  );
+
+  useEffect(() => {
+    if (fulfillmentOptions.length === 0) return;
+    if (fulfillmentOptions.includes(selectedFulfillment)) return;
+    setSelectedFulfillment(fulfillmentOptions[0]);
+  }, [fulfillmentOptions, selectedFulfillment]);
 
   const selectedAction =
     actionOptions.find(option => option.id === selectedActionId) ??
@@ -77,7 +99,7 @@ export function CheckoutPage({ catalogId }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!order || !selectedAction) return;
+    if (!order || !selectedAction || !catalog) return;
 
     try {
       setIsSubmitting(true);
@@ -93,11 +115,17 @@ export function CheckoutPage({ catalogId }: Props) {
           customer_name: customerName.trim(),
           customer_phone: customerPhone.trim(),
           customer_comment: customerComment.trim(),
+          fulfillment_method: selectedFulfillment,
         });
         await updateStatus(order.id, 'submitted');
         setCurrentOrder(order);
+        const message = buildTelegramOrderMessage({
+          catalogType: catalog.type,
+          order: { ...order, fulfillment_method: selectedFulfillment },
+        });
+        const link = appendTelegramTextParam(selectedAction.telegramUrl, message);
         toast.success('Переход в Telegram');
-        window.location.href = selectedAction.telegramUrl;
+        window.location.href = link;
         return;
       }
 
@@ -105,6 +133,7 @@ export function CheckoutPage({ catalogId }: Props) {
         customer_name: customerName.trim(),
         customer_phone: customerPhone.trim(),
         customer_comment: customerComment.trim(),
+        fulfillment_method: selectedFulfillment,
       });
 
       if (selectedAction.kind === 'light_sbp') {
@@ -121,9 +150,9 @@ export function CheckoutPage({ catalogId }: Props) {
       toast.success('Статус заказа обновлен');
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Не удалось оформить заказ'
+        err instanceof Error ? err.message : `Не удалось оформить ${labels.orderWord.toLowerCase()}`
       );
-      toast.error('Не удалось оформить заказ');
+      toast.error(`Не удалось оформить ${labels.orderWord.toLowerCase()}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -157,7 +186,7 @@ export function CheckoutPage({ catalogId }: Props) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="glass-card rounded-xl p-6 text-center space-y-4">
-          <h2 className="text-lg font-semibold">Заказ не найден</h2>
+          <h2 className="text-lg font-semibold">{labels.orderWord} не найден</h2>
           <p className="text-sm text-muted-foreground">
             Вернитесь в корзину и начните оформление заново.
           </p>
@@ -176,7 +205,7 @@ export function CheckoutPage({ catalogId }: Props) {
       ? 'Написать в Telegram'
       : selectedAction?.kind === 'light_sbp'
         ? 'Я оплатил'
-        : 'Подтвердить заказ';
+        : labels.submitLabel;
 
   return (
     <div className="min-h-screen flex flex-col bg-background pb-28">
@@ -189,7 +218,7 @@ export function CheckoutPage({ catalogId }: Props) {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-lg font-semibold ml-2 flex-1">Оформление заказа</h1>
+        <h1 className="text-lg font-semibold ml-2 flex-1">{labels.checkoutTitle}</h1>
       </div>
 
       <div className="flex-1 p-4 space-y-4">
@@ -240,7 +269,9 @@ export function CheckoutPage({ catalogId }: Props) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Заказ №{readableOrderNumber}</CardTitle>
+            <CardTitle>
+              {labels.orderWord} №{readableOrderNumber}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -273,6 +304,50 @@ export function CheckoutPage({ catalogId }: Props) {
           </CardContent>
         </Card>
 
+        {fulfillmentOptions.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Способ получения</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RadioGroup
+                value={selectedFulfillment}
+                onValueChange={value =>
+                  setSelectedFulfillment(value as FulfillmentMethodType)
+                }
+                className="space-y-3"
+              >
+                {fulfillmentOptions.includes('pickup') && (
+                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value="pickup" className="mt-1" />
+                      <div className="flex-1">
+                        <p className="font-medium">Самовывоз</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Заберу {labels.orderWord.toLowerCase()} самостоятельно
+                        </p>
+                      </div>
+                    </div>
+                  </Label>
+                )}
+                {fulfillmentOptions.includes('delivery') && (
+                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value="delivery" className="mt-1" />
+                      <div className="flex-1">
+                        <p className="font-medium">Доставка</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Привезите {labels.orderWord.toLowerCase()} по адресу
+                        </p>
+                      </div>
+                    </div>
+                  </Label>
+                )}
+              </RadioGroup>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Способ оформления</CardTitle>
@@ -280,7 +355,7 @@ export function CheckoutPage({ catalogId }: Props) {
           <CardContent>
             {actionOptions.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                Владелец каталога пока не настроил способы оформления заказа.
+                Владелец каталога пока не настроил способы оформления.
               </p>
             ) : (
               <RadioGroup

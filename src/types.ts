@@ -29,12 +29,19 @@ export type Catalog = {
   description?: string;
   type: CatalogType;
   banner_url?: string;
+  address?: string;
+  is_open_24_7?: boolean;
+  work_start?: string;
+  work_end?: string;
+  emergency_phone?: string;
+  emergency_telegram?: string;
   settings: Record<string, unknown>;
   is_active: boolean;
   created_at: string;
   updated_at: string;
   categories?: Category[];
   actions?: Action[];
+  fulfillment_methods?: FulfillmentMethod[];
 };
 
 export type Category = {
@@ -93,6 +100,7 @@ export type Order = {
   customer_name?: string;
   customer_phone?: string;
   customer_comment?: string;
+  fulfillment_method?: FulfillmentMethodType;
   items: Record<string, unknown>[];
   total_price: number;
   table_number?: string;
@@ -173,7 +181,24 @@ export type CatalogFormData = {
   description?: string;
   type: CatalogType;
   banner_url?: string;
+  address?: string;
+  is_open_24_7?: boolean;
+  work_start?: string;
+  work_end?: string;
+  emergency_phone?: string;
+  emergency_telegram?: string;
   is_active?: boolean;
+};
+
+export type FulfillmentMethodType = 'pickup' | 'delivery';
+
+export type FulfillmentMethod = {
+  id: string;
+  catalog_id: string;
+  method: FulfillmentMethodType;
+  is_enabled: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ActionFormData = {

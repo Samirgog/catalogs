@@ -6,10 +6,18 @@ import { Plus, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCatalogs } from '../hooks/useCatalogs';
 import { toast } from 'sonner';
+import { useCurrentUser } from '@/useTelegramAuth';
 
 export function CatalogsPage() {
   const { catalogs, loading, error } = useCatalogs();
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
+  const telegramPhoto =
+    (window as any)?.Telegram?.WebApp?.initDataUnsafe?.user?.photo_url || '';
+  const avatarText =
+    user?.first_name?.[0] ||
+    user?.username?.[0] ||
+    'U';
 
   useEffect(() => {
     if (!error) return;
@@ -33,9 +41,17 @@ export function CatalogsPage() {
             <h1 className="text-2xl font-bold">Каталоги</h1>
             <p className="text-sm text-muted-foreground">Управление каталогами</p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white">
-            <span className="text-xl font-bold">Б</span>
-          </div>
+          {telegramPhoto ? (
+            <img
+              src={telegramPhoto}
+              alt="User avatar"
+              className="w-12 h-12 rounded-full object-cover border border-border/40"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white">
+              <span className="text-xl font-bold uppercase">{avatarText}</span>
+            </div>
+          )}
         </div>
       </div>
       
