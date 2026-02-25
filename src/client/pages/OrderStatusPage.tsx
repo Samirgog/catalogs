@@ -13,7 +13,7 @@ import {
 } from '../utils/currentOrder';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
-import { getFlowLabels } from '../utils/presentation';
+import { getFlowLabels, getFulfillmentLabel } from '../utils/presentation';
 import { Spinner } from '@/components/ui/spinner';
 
 const STATUS_META: Record<
@@ -110,6 +110,15 @@ export function OrderStatusPage() {
             .replaceAll('заказа', 'записи')
         : baseStatusMeta.description,
   };
+  const sellerTelegramLink = useMemo(() => {
+    const raw = catalog?.emergency_telegram?.trim();
+    if (!raw) return '';
+    if (raw.startsWith('https://') || raw.startsWith('http://')) return raw;
+    if (raw.startsWith('@')) return `https://t.me/${raw.slice(1)}`;
+    if (raw.startsWith('t.me/')) return `https://${raw}`;
+    if (/^[a-zA-Z0-9_]{5,}$/.test(raw)) return `https://t.me/${raw}`;
+    return raw;
+  }, [catalog?.emergency_telegram]);
 
   useEffect(() => {
     if (!order) return;
@@ -255,10 +264,14 @@ export function OrderStatusPage() {
                 <span className="text-sm text-muted-foreground">
                   Способ получения
                 </span>
-                <span className="font-medium">
-                  {order.fulfillment_method === 'delivery'
-                    ? 'Доставка'
-                    : 'Самовывоз'}
+                <span className="font-medium">{getFulfillmentLabel(order.fulfillment_method)}</span>
+              </div>
+            )}
+            {order.delivery_address && (
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-sm text-muted-foreground">Адрес</span>
+                <span className="font-medium text-right break-words">
+                  {order.delivery_address}
                 </span>
               </div>
             )}
@@ -321,7 +334,19 @@ export function OrderStatusPage() {
               )}
               {catalog.emergency_telegram && (
                 <p>
-                  Telegram: <span>{catalog.emergency_telegram}</span>
+                  Telegram:{' '}
+                  {sellerTelegramLink ? (
+                    <a
+                      href={sellerTelegramLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline"
+                    >
+                      {catalog.emergency_telegram}
+                    </a>
+                  ) : (
+                    <span>{catalog.emergency_telegram}</span>
+                  )}
                 </p>
               )}
             </CardContent>

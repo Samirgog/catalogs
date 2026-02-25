@@ -18,10 +18,13 @@ import {
   appendTelegramTextParam,
   buildTelegramOrderMessage,
   getFlowLabels,
+  getFulfillmentLabel,
+  requiresAddressForFulfillment,
 } from '../utils/presentation';
 import type { FulfillmentMethodType } from '@/types';
 import { Spinner } from '@/components/ui/spinner';
 import { clientOrderService } from '../services/orders';
+import { useAddressSuggestions } from '@/hooks/useAddressSuggestions';
 
 type Props = {
   catalogId: string;
@@ -46,6 +49,11 @@ export function BookingPage({ catalogId }: Props) {
   );
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerComment, setCustomerComment] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState(
+    () => localStorage.getItem('client-last-delivery-address') || ''
+  );
+  const addressSuggestions = useAddressSuggestions(deliveryAddress);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
 
   useEffect(() => {
     if (customerName) return;
@@ -90,6 +98,10 @@ export function BookingPage({ catalogId }: Props) {
       customer_phone: customerPhone.trim(),
       customer_comment: customerComment.trim(),
       fulfillment_method: selectedFulfillment,
+      delivery_address: requiresAddressForFulfillment(selectedFulfillment)
+        ? deliveryAddress.trim()
+        : undefined,
+      payment_method: selectedAction.kind,
       items: [
         {
           item_id: selectedItem.id,
@@ -107,6 +119,15 @@ export function BookingPage({ catalogId }: Props) {
     } else {
       await updateStatus(order.id, 'submitted');
     }
+    if (
+      requiresAddressForFulfillment(selectedFulfillment) &&
+      deliveryAddress.trim()
+    ) {
+      localStorage.setItem(
+        'client-last-delivery-address',
+        deliveryAddress.trim()
+      );
+    }
 
     setCurrentOrder(order);
     clearSelectedItem();
@@ -123,6 +144,13 @@ export function BookingPage({ catalogId }: Props) {
     try {
       setIsSubmitting(true);
       setError(null);
+      if (
+        requiresAddressForFulfillment(selectedFulfillment) &&
+        !deliveryAddress.trim()
+      ) {
+        toast.error('Укажите адрес');
+        return;
+      }
       const currentOrder = getCurrentOrder();
       if (currentOrder?.id && currentOrder.catalogId === catalog.id) {
         const existingOrder = await clientOrderService.getById(currentOrder.id);
@@ -134,7 +162,9 @@ export function BookingPage({ catalogId }: Props) {
             'ready',
           ]);
           if (!terminalStatuses.has(existingOrder.status)) {
-            toast.success('У вас уже есть активный заказ');
+            toast.error(
+              'Нельзя оформить новую запись, пока не завершена текущая'
+            );
             navigate(`/order/${existingOrder.id}`);
             return;
           }
@@ -157,6 +187,10 @@ export function BookingPage({ catalogId }: Props) {
           customer_phone: customerPhone.trim(),
           customer_comment: customerComment.trim(),
           fulfillment_method: selectedFulfillment,
+          delivery_address: requiresAddressForFulfillment(selectedFulfillment)
+            ? deliveryAddress.trim()
+            : undefined,
+          payment_method: selectedAction.kind,
           items: [
             {
               item_id: selectedItem.id,
@@ -174,7 +208,13 @@ export function BookingPage({ catalogId }: Props) {
         clearSelectedItem();
         const message = buildTelegramOrderMessage({
           catalogType: catalog.type,
-          order: { ...order, fulfillment_method: selectedFulfillment },
+          order: {
+            ...order,
+            fulfillment_method: selectedFulfillment,
+            delivery_address: requiresAddressForFulfillment(selectedFulfillment)
+              ? deliveryAddress.trim()
+              : undefined,
+          },
         });
         const link = appendTelegramTextParam(selectedAction.telegramUrl, message);
         toast.success('Переход в Telegram');
@@ -242,6 +282,9 @@ export function BookingPage({ catalogId }: Props) {
   }
 
   const isSbpSelected = selectedAction?.kind === 'light_sbp';
+  const shouldShowAddressField = requiresAddressForFulfillment(
+    selectedFulfillment
+  );
   const actionButtonLabel = isSubmitting
     ? 'Выполняем...'
     : selectedAction?.kind === 'payment_in_chat'
@@ -433,7 +476,100 @@ export function BookingPage({ catalogId }: Props) {
                     </div>
                   </Label>
                 )}
+                {fulfillmentOptions.includes('digital') && (
+                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value="digital" className="mt-1" />
+                      <div className="flex-1">
+                        <p className="font-medium">Цифровой продукт</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Цифровое получение услуги/доступа
+                        </p>
+                      </div>
+                    </div>
+                  </Label>
+                )}
+                {fulfillmentOptions.includes('to_table') && (
+                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value="to_table" className="mt-1" />
+                      <div className="flex-1">
+                        <p className="font-medium">К столику</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Обслуживание у столика в заведении
+                        </p>
+                      </div>
+                    </div>
+                  </Label>
+                )}
+                {fulfillmentOptions.includes('on_site') && (
+                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value="on_site" className="mt-1" />
+                      <div className="flex-1">
+                        <p className="font-medium">На месте</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Приду к исполнителю
+                        </p>
+                      </div>
+                    </div>
+                  </Label>
+                )}
+                {fulfillmentOptions.includes('at_client') && (
+                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value="at_client" className="mt-1" />
+                      <div className="flex-1">
+                        <p className="font-medium">У клиента</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Нужен выезд по адресу
+                        </p>
+                      </div>
+                    </div>
+                  </Label>
+                )}
               </RadioGroup>
+            </CardContent>
+          </Card>
+        )}
+
+        {shouldShowAddressField && (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Адрес ({getFulfillmentLabel(selectedFulfillment)})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative">
+                <Input
+                  value={deliveryAddress}
+                  onFocus={() => setShowAddressSuggestions(true)}
+                  onBlur={() =>
+                    setTimeout(() => setShowAddressSuggestions(false), 120)
+                  }
+                  onChange={e => setDeliveryAddress(e.target.value)}
+                  placeholder="Введите адрес"
+                />
+                {showAddressSuggestions &&
+                  addressSuggestions.suggestions.length > 0 && (
+                    <div className="absolute z-20 mt-1 w-full rounded-xl border bg-background shadow-lg overflow-hidden">
+                      {addressSuggestions.suggestions.map(option => (
+                        <button
+                          type="button"
+                          key={option.value}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/60"
+                          onClick={() => {
+                            setDeliveryAddress(option.value);
+                            setShowAddressSuggestions(false);
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+              </div>
             </CardContent>
           </Card>
         )}

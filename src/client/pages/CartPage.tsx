@@ -50,10 +50,14 @@ export const CartPage = ({ catalogId }: Props) => {
           if (!terminalStatuses.has(existingOrder.status)) {
             if (existingOrder.status === 'created') {
               navigate(`/checkout/${existingOrder.id}`);
-              toast.success('Можно оформить только один текущий заказ');
+              toast.error(
+                'Нельзя оформить новый заказ, пока не завершен текущий'
+              );
             } else {
               navigate(`/order/${existingOrder.id}`);
-              toast.success('У вас уже есть активный заказ');
+              toast.error(
+                'Нельзя оформить новый заказ, пока не завершен текущий'
+              );
             }
             return;
           }

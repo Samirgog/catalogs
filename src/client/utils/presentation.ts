@@ -52,6 +52,10 @@ export const buildTelegramOrderMessage = (params: {
   return [
     'Здравствуйте!',
     `${labels.orderWord} №${number}`,
+    `Способ получения: ${getFulfillmentLabel(params.order.fulfillment_method)}`,
+    ...(params.order.delivery_address
+      ? [`Адрес: ${params.order.delivery_address}`]
+      : []),
     '',
     `Состав (${labels.itemsWord.toLowerCase()}):`,
     ...lines,
@@ -64,3 +68,25 @@ export const appendTelegramTextParam = (baseUrl: string, text: string) => {
   const delimiter = baseUrl.includes('?') ? '&' : '?';
   return `${baseUrl}${delimiter}text=${encodeURIComponent(text)}`;
 };
+
+export const getFulfillmentLabel = (method?: string) => {
+  switch (method) {
+    case 'pickup':
+      return 'Самовывоз';
+    case 'delivery':
+      return 'Доставка';
+    case 'digital':
+      return 'Цифровой продукт';
+    case 'to_table':
+      return 'К столику';
+    case 'on_site':
+      return 'На месте';
+    case 'at_client':
+      return 'У клиента';
+    default:
+      return 'Не указан';
+  }
+};
+
+export const requiresAddressForFulfillment = (method?: string) =>
+  method === 'delivery' || method === 'at_client';

@@ -49,6 +49,8 @@ export const useCreateOrder = () => {
     customer_phone?: string;
     customer_comment?: string;
     fulfillment_method?: FulfillmentMethodType;
+    payment_method?: Order['payment_method'];
+    delivery_address?: string;
     items: Record<string, unknown>[];
     total_price: number;
     table_number?: string;

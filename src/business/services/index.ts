@@ -7,3 +7,4 @@ export * from './images';
 export * from './qr';
 export * from './staff';
 export * from './fulfillment';
+export * from './places';

@@ -51,16 +51,32 @@ function formatOrderText(order: Record<string, unknown>) {
     return `• ${title} x${qty} — ${price * qty} ₽`;
   });
 
+  const paymentMethod = String(order.payment_method || '');
   const paymentLabel =
-    String(order.status) === 'payment_reported'
-      ? 'СБП (клиент отметил оплату)'
-      : 'При получении / через чат';
+    paymentMethod === 'light_sbp'
+      ? 'Упрощенная СБП'
+      : paymentMethod === 'payment_in_chat'
+        ? 'Через Telegram-чат'
+        : paymentMethod === 'payment_on_delivery'
+          ? 'При получении'
+          : String(order.status) === 'payment_reported'
+            ? 'СБП (клиент отметил оплату)'
+            : 'Не указан';
+  const fulfillmentMethod = String(order.fulfillment_method || '');
   const fulfillmentLabel =
-    String(order.fulfillment_method) === 'delivery'
+    fulfillmentMethod === 'delivery'
       ? 'Доставка'
-      : String(order.fulfillment_method) === 'pickup'
+      : fulfillmentMethod === 'pickup'
         ? 'Самовывоз'
-        : 'Не указан';
+        : fulfillmentMethod === 'digital'
+          ? 'Цифровой продукт'
+          : fulfillmentMethod === 'to_table'
+            ? 'К столику'
+            : fulfillmentMethod === 'on_site'
+              ? 'На месте'
+              : fulfillmentMethod === 'at_client'
+                ? 'У клиента'
+                : 'Не указан';
 
   return [
     `🧾 <b>Заказ №${orderNo}</b>`,
@@ -71,6 +87,9 @@ function formatOrderText(order: Record<string, unknown>) {
     `Комментарий: <b>${String(order.customer_comment || 'Нет')}</b>`,
     `Способ оплаты: <b>${paymentLabel}</b>`,
     `Способ получения: <b>${fulfillmentLabel}</b>`,
+    ...(order.delivery_address
+      ? [`Адрес: <b>${String(order.delivery_address)}</b>`]
+      : []),
     '',
     ...lines,
   ].join('\n');

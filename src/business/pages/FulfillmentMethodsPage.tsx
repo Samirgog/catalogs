@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Truck, Store } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { Home, Store, Truck, TabletSmartphone, UtensilsCrossed, User } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/button';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { useFulfillmentMethods } from '../hooks/useFulfillment';
 import { toast } from 'sonner';
+import { useCatalog } from '../hooks/useCatalogs';
+import type { FulfillmentMethodType } from '@/types';
+import { Spinner } from '@/components/ui/spinner';
 
 export function FulfillmentMethodsPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
@@ -17,22 +20,96 @@ export function FulfillmentMethodsPage() {
   const { methods, loading, error, setMethodEnabled } = useFulfillmentMethods(
     catalogId ?? ''
   );
+  const { catalog, loading: catalogLoading } = useCatalog(catalogId ?? '');
 
-  const pickupEnabled = useMemo(
-    () => methods.find(m => m.method === 'pickup')?.is_enabled ?? false,
-    [methods]
-  );
-  const deliveryEnabled = useMemo(
-    () => methods.find(m => m.method === 'delivery')?.is_enabled ?? false,
-    [methods]
-  );
+  const methodEnabled = (method: FulfillmentMethodType) =>
+    methods.find(m => m.method === method)?.is_enabled ?? false;
+
+  const availableMethods = useMemo(() => {
+    if (!catalog) return [] as Array<{ id: FulfillmentMethodType; label: string; desc: string; icon: ReactNode }>;
+    if (catalog.type === 'goods' && catalog.subtype === 'cafe_restaurant') {
+      return [
+        {
+          id: 'delivery' as FulfillmentMethodType,
+          label: 'Доставка',
+          desc: 'Привезти заказ клиенту',
+          icon: <Truck className="w-5 h-5" />,
+        },
+        {
+          id: 'pickup' as FulfillmentMethodType,
+          label: 'Самовывоз',
+          desc: 'Клиент забирает заказ сам',
+          icon: <Store className="w-5 h-5" />,
+        },
+        {
+          id: 'to_table' as FulfillmentMethodType,
+          label: 'К столику',
+          desc: 'Доставка по номеру столика в зале',
+          icon: <UtensilsCrossed className="w-5 h-5" />,
+        },
+      ];
+    }
+    if (catalog.type === 'goods' && catalog.subtype === 'shop') {
+      return [
+        {
+          id: 'delivery' as FulfillmentMethodType,
+          label: 'Доставка',
+          desc: 'Привезти товар клиенту',
+          icon: <Truck className="w-5 h-5" />,
+        },
+        {
+          id: 'pickup' as FulfillmentMethodType,
+          label: 'Самовывоз',
+          desc: 'Клиент забирает товар в точке',
+          icon: <Store className="w-5 h-5" />,
+        },
+        {
+          id: 'digital' as FulfillmentMethodType,
+          label: 'Цифровой продукт',
+          desc: 'Выдать цифровой доступ/файл',
+          icon: <TabletSmartphone className="w-5 h-5" />,
+        },
+      ];
+    }
+    if (catalog.type === 'goods' && catalog.subtype === 'digital_store') {
+      return [
+        {
+          id: 'digital' as FulfillmentMethodType,
+          label: 'Цифровой продукт',
+          desc: 'Выдача цифрового продукта',
+          icon: <TabletSmartphone className="w-5 h-5" />,
+        },
+      ];
+    }
+    return [
+      {
+        id: 'on_site' as FulfillmentMethodType,
+        label: 'На месте',
+        desc: 'Оказание услуги в вашей точке',
+        icon: <Home className="w-5 h-5" />,
+      },
+      {
+        id: 'at_client' as FulfillmentMethodType,
+        label: 'У клиента',
+        desc: 'Выезд к клиенту по адресу',
+        icon: <User className="w-5 h-5" />,
+      },
+    ];
+  }, [catalog]);
 
   if (!catalogId) {
     return <div className="p-4">Отсутствует идентификатор каталога.</div>;
   }
 
-  const handleToggle = async (method: 'pickup' | 'delivery', value: boolean) => {
+  const handleToggle = async (method: FulfillmentMethodType, value: boolean) => {
     try {
+      if (!value) {
+        const enabledCount = availableMethods.filter(m => methodEnabled(m.id)).length;
+        if (enabledCount <= 1 && methodEnabled(method)) {
+          toast.error('Нужно оставить хотя бы один способ получения');
+          return;
+        }
+      }
       setSavingMethod(method);
       await setMethodEnabled(method, value);
       toast.success('Способы получения обновлены');
@@ -52,50 +129,32 @@ export function FulfillmentMethodsPage() {
       </div>
 
       <div className="p-4 space-y-4">
-        {loading && <div className="glass-card p-3 text-sm">Загрузка...</div>}
+        {(loading || catalogLoading) && (
+          <div className="glass-card p-3 flex items-center justify-center">
+            <Spinner />
+          </div>
+        )}
         {error && <div className="glass-card p-3 text-sm text-red-600">{error}</div>}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between gap-4">
-              <span className="flex items-center gap-2">
-                <Store className="w-5 h-5" />
-                Самовывоз
-              </span>
-              <Switch
-                checked={pickupEnabled}
-                disabled={savingMethod === 'pickup'}
-                onCheckedChange={checked => handleToggle('pickup', checked)}
-              />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Клиент сам приезжает и получает заказ в вашей точке.
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between gap-4">
-              <span className="flex items-center gap-2">
-                <Truck className="w-5 h-5" />
-                Доставка
-              </span>
-              <Switch
-                checked={deliveryEnabled}
-                disabled={savingMethod === 'delivery'}
-                onCheckedChange={checked => handleToggle('delivery', checked)}
-              />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Клиент сможет выбрать доставку при оформлении.
-            </p>
-          </CardContent>
-        </Card>
+        {availableMethods.map(option => (
+          <Card key={option.id}>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-4">
+                <span className="flex items-center gap-2">
+                  {option.icon}
+                  {option.label}
+                </span>
+                <Switch
+                  checked={methodEnabled(option.id)}
+                  disabled={savingMethod === option.id}
+                  onCheckedChange={checked => handleToggle(option.id, checked)}
+                />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">{option.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="fixed bottom-6 left-4 right-4">

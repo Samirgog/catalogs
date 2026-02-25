@@ -18,12 +18,16 @@ import {
 import { useCatalog, useCatalogs } from '../hooks/useCatalogs';
 import { useImagePreview } from '../hooks/useImages';
 import { uploadImage } from '../services/images'; // Direct import for upload
-import type { CatalogFormData, CatalogType } from '../../types';
+import type { CatalogFormData, CatalogSubtype, CatalogType, Place } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group.tsx';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
+import { useAddressSuggestions } from '@/hooks/useAddressSuggestions';
+import { placesService } from '../services/places';
+import { fulfillmentService } from '../services/fulfillment';
+import { actionService } from '../services/actions';
 
 const catalogOptions = [
   {
@@ -37,6 +41,47 @@ const catalogOptions = [
     description: 'Предоставление услуг с возможностью записаться',
   },
 ];
+
+const subtypeOptions: Record<CatalogType, Array<{
+  value: CatalogSubtype;
+  title: string;
+  description: string;
+}>> = {
+  goods: [
+    {
+      value: 'shop',
+      title: 'Магазин',
+      description: 'Классические товары, витрина и корзина',
+    },
+    {
+      value: 'cafe_restaurant',
+      title: 'Кафе/Ресторан',
+      description: 'Еда и напитки, поддержка выдачи к столику',
+    },
+    {
+      value: 'digital_store',
+      title: 'Цифровой магазин',
+      description: 'Цифровые товары и доступы',
+    },
+  ],
+  services: [
+    {
+      value: 'salon',
+      title: 'Салон',
+      description: 'Услуги в точке (beauty/wellness и т.п.)',
+    },
+    {
+      value: 'private_master',
+      title: 'Частный мастер',
+      description: 'Выездные и локальные услуги частного специалиста',
+    },
+    {
+      value: 'studio_club',
+      title: 'Студия/Клуб (абонементы)',
+      description: 'Услуги и абонементные форматы',
+    },
+  ],
+};
 
 export function CatalogEditorPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
@@ -64,6 +109,7 @@ export function CatalogEditorPage() {
     title: '',
     banner_url: '',
     address: '',
+    subtype: 'shop' as CatalogSubtype,
     is_open_24_7: false,
     work_start: '',
     work_end: '',
@@ -75,6 +121,11 @@ export function CatalogEditorPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hydratedFromDraftRef = useRef(false);
+  const [foodcourtEnabled, setFoodcourtEnabled] = useState(false);
+  const [foodcourtPlace, setFoodcourtPlace] = useState<Place | null>(null);
+  const [foodcourtLoading, setFoodcourtLoading] = useState(false);
+  const addressSuggestions = useAddressSuggestions(formData.address);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
 
   useEffect(() => {
     try {
@@ -97,6 +148,7 @@ export function CatalogEditorPage() {
         is_active: fetchedCatalog.is_active,
         banner_url: fetchedCatalog.banner_url || '',
         address: fetchedCatalog.address || '',
+        subtype: fetchedCatalog.subtype || (fetchedCatalog.type === 'goods' ? 'shop' : 'salon'),
         is_open_24_7: Boolean(fetchedCatalog.is_open_24_7),
         work_start: fetchedCatalog.work_start || '',
         work_end: fetchedCatalog.work_end || '',
@@ -104,8 +156,28 @@ export function CatalogEditorPage() {
         emergency_telegram: fetchedCatalog.emergency_telegram || '',
         type: fetchedCatalog.type || 'goods',
       });
+      setFoodcourtEnabled(
+        fetchedCatalog.type === 'goods' &&
+          (fetchedCatalog.subtype || '') === 'cafe_restaurant'
+      );
     }
   }, [fetchedCatalog]);
+
+  useEffect(() => {
+    const loadFoodcourt = async () => {
+      if (!catalogId || !isEditing) return;
+      try {
+        setFoodcourtLoading(true);
+        const place = await placesService.getFoodcourtForCatalog(catalogId);
+        setFoodcourtPlace(place);
+      } catch {
+        setFoodcourtPlace(null);
+      } finally {
+        setFoodcourtLoading(false);
+      }
+    };
+    void loadFoodcourt();
+  }, [catalogId, isEditing]);
 
   useEffect(() => {
     sessionStorage.setItem(draftKey, JSON.stringify(formData));
@@ -149,9 +221,29 @@ export function CatalogEditorPage() {
         return;
       }
 
+      if (formData.is_active && isEditing && catalogId) {
+        const [methods, actions] = await Promise.all([
+          fulfillmentService.getByCatalogId(catalogId),
+          actionService.getByCatalogId(catalogId),
+        ]);
+
+        const hasEnabledMethod = methods.some(method => method.is_enabled);
+        const hasEnabledAction = actions.some(action => action.is_enabled);
+
+        if (!hasEnabledMethod) {
+          toast.error('Настройте хотя бы один способ получения');
+          return;
+        }
+        if (!hasEnabledAction) {
+          toast.error('Настройте хотя бы один способ оплаты');
+          return;
+        }
+      }
+
       const catalogData: CatalogFormData = {
         title: formData.title.trim(),
         type: formData.type,
+        subtype: formData.subtype,
         is_active: formData.is_active,
         banner_url: formData.banner_url,
         address: formData.address.trim(),
@@ -392,13 +484,36 @@ export function CatalogEditorPage() {
               >
                 Адрес
               </Label>
-              <Input
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                placeholder="Укажите адрес точки"
-              />
+              <div className="relative">
+                <Input
+                  id="address"
+                  name="address"
+                  value={formData.address}
+                  onFocus={() => setShowAddressSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowAddressSuggestions(false), 120)}
+                  onChange={handleInputChange}
+                  placeholder="Укажите адрес точки"
+                />
+                {showAddressSuggestions && addressSuggestions.suggestions.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full rounded-xl border bg-background shadow-lg overflow-hidden">
+                    {addressSuggestions.suggestions.map(option => (
+                      <button
+                        type="button"
+                        key={option.value}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/60"
+                        onClick={() =>
+                          setFormData(prev => ({
+                            ...prev,
+                            address: option.value,
+                          }))
+                        }
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-3 py-2">
@@ -439,7 +554,7 @@ export function CatalogEditorPage() {
                       id="work_start"
                       name="work_start"
                       type="time"
-                      className="w-9/12 min-w-0"
+                      className="w-full min-w-0"
                       value={formData.work_start}
                       onChange={handleInputChange}
                     />
@@ -455,7 +570,7 @@ export function CatalogEditorPage() {
                       id="work_end"
                       name="work_end"
                       type="time"
-                      className="w-9/12 min-w-0"
+                      className="w-full min-w-0"
                       value={formData.work_end}
                       onChange={handleInputChange}
                     />
@@ -521,7 +636,7 @@ export function CatalogEditorPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Тип каталога</CardTitle>
+            <CardTitle>Тип и подтип</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <RadioGroup
@@ -530,6 +645,7 @@ export function CatalogEditorPage() {
                 setFormData(prev => ({
                   ...prev,
                   type: value,
+                  subtype: subtypeOptions[value][0].value,
                 }))
               }
               className="space-y-3"
@@ -558,8 +674,117 @@ export function CatalogEditorPage() {
                 </div>
               ))}
             </RadioGroup>
+
+            <div className="space-y-3 pt-2">
+              <p className="text-sm text-muted-foreground">Подтип</p>
+              <RadioGroup
+                value={formData.subtype}
+                onValueChange={(value: CatalogSubtype) =>
+                  setFormData(prev => ({ ...prev, subtype: value }))
+                }
+                className="space-y-2"
+              >
+                {subtypeOptions[formData.type].map(option => (
+                  <div
+                    key={option.value}
+                    className="flex items-start gap-3 p-3 glass-card rounded-xl"
+                  >
+                    <RadioGroupItem
+                      value={option.value}
+                      id={`subtype-${option.value}`}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <Label
+                        htmlFor={`subtype-${option.value}`}
+                        className="text-sm font-medium leading-none"
+                      >
+                        {option.title}
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {option.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
           </CardContent>
         </Card>
+
+        {formData.type === 'goods' && formData.subtype === 'cafe_restaurant' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Фудкорт</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Являюсь частью фудкорта</p>
+                  <p className="text-sm text-muted-foreground">
+                    Включите, если каталог относится к фудкорту
+                  </p>
+                </div>
+                <Switch
+                  checked={foodcourtEnabled}
+                  onCheckedChange={setFoodcourtEnabled}
+                />
+              </div>
+
+              {foodcourtEnabled && (
+                <>
+                  {foodcourtLoading && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Spinner className="h-4 w-4" />
+                      Проверяем привязку...
+                    </div>
+                  )}
+                  {!foodcourtLoading && !foodcourtPlace && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        const text = encodeURIComponent(
+                          `Здравствуйте! Хочу подключиться к фудкорту.\nКаталог: ${formData.title || 'Без названия'}\nID: ${catalogId || 'new'}`
+                        );
+                        const supportUsername = (import.meta.env.VITE_SUPPORT_TELEGRAM || 'catalogs_support_bot').replace('@', '');
+                        window.open(`https://t.me/${supportUsername}?text=${text}`, '_blank');
+                      }}
+                    >
+                      Перейти в чат с поддержкой
+                    </Button>
+                  )}
+                  {!foodcourtLoading && foodcourtPlace && (
+                    <div className="glass-card p-3 rounded-xl space-y-2">
+                      <p className="text-sm">
+                        Фудкорт: <b>{foodcourtPlace.name}</b>
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {foodcourtPlace.address || 'Адрес не указан'}
+                      </p>
+                      <Button
+                        variant="destructive"
+                        className="w-full"
+                        onClick={async () => {
+                          if (!catalogId) return;
+                          try {
+                            await placesService.detachFromFoodcourt(catalogId);
+                            setFoodcourtPlace(null);
+                            toast.success('Каталог откреплен от фудкорта');
+                          } catch {
+                            toast.error('Не удалось открепить каталог от фудкорта');
+                          }
+                        }}
+                      >
+                        Открепиться от фудкорта
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <div className="space-y-3">
           <Button

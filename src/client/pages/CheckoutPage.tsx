@@ -21,10 +21,13 @@ import {
   appendTelegramTextParam,
   buildTelegramOrderMessage,
   getFlowLabels,
+  getFulfillmentLabel,
+  requiresAddressForFulfillment,
 } from '../utils/presentation';
 import type { FulfillmentMethodType } from '@/types';
 import { Spinner } from '@/components/ui/spinner';
 import { useCartStore } from '../stores/cart';
+import { useAddressSuggestions } from '@/hooks/useAddressSuggestions';
 
 type Props = {
   catalogId: string;
@@ -58,6 +61,9 @@ export function CheckoutPage({ catalogId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [selectedFulfillment, setSelectedFulfillment] =
     useState<FulfillmentMethodType>('pickup');
+  const [deliveryAddress, setDeliveryAddress] = useState(
+    () => localStorage.getItem('client-last-delivery-address') || ''
+  );
   const [customerName, setCustomerName] = useState(
     user?.first_name || user?.username || ''
   );
@@ -84,6 +90,8 @@ export function CheckoutPage({ catalogId }: Props) {
         .map(method => method.method),
     [catalog?.fulfillment_methods]
   );
+  const addressSuggestions = useAddressSuggestions(deliveryAddress);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
 
   useEffect(() => {
     if (fulfillmentOptions.length === 0) return;
@@ -114,6 +122,13 @@ export function CheckoutPage({ catalogId }: Props) {
     try {
       setIsSubmitting(true);
       setError(null);
+      if (
+        requiresAddressForFulfillment(selectedFulfillment) &&
+        !deliveryAddress.trim()
+      ) {
+        toast.error('Укажите адрес');
+        return;
+      }
 
       if (selectedAction.kind === 'payment_in_chat') {
         if (!selectedAction.telegramUrl) {
@@ -126,12 +141,22 @@ export function CheckoutPage({ catalogId }: Props) {
           customer_phone: customerPhone.trim(),
           customer_comment: customerComment.trim(),
           fulfillment_method: selectedFulfillment,
+          delivery_address: requiresAddressForFulfillment(selectedFulfillment)
+            ? deliveryAddress.trim()
+            : undefined,
+          payment_method: selectedAction.kind,
         });
         await updateStatus(order.id, 'submitted');
         setCurrentOrder(order);
         const message = buildTelegramOrderMessage({
           catalogType: catalog.type,
-          order: { ...order, fulfillment_method: selectedFulfillment },
+          order: {
+            ...order,
+            fulfillment_method: selectedFulfillment,
+            delivery_address: requiresAddressForFulfillment(selectedFulfillment)
+              ? deliveryAddress.trim()
+              : undefined,
+          },
         });
         const link = appendTelegramTextParam(
           selectedAction.telegramUrl,
@@ -148,7 +173,18 @@ export function CheckoutPage({ catalogId }: Props) {
         customer_phone: customerPhone.trim(),
         customer_comment: customerComment.trim(),
         fulfillment_method: selectedFulfillment,
+        delivery_address: requiresAddressForFulfillment(selectedFulfillment)
+          ? deliveryAddress.trim()
+          : undefined,
+        payment_method: selectedAction.kind,
       });
+
+      if (
+        requiresAddressForFulfillment(selectedFulfillment) &&
+        deliveryAddress.trim()
+      ) {
+        localStorage.setItem('client-last-delivery-address', deliveryAddress.trim());
+      }
 
       if (selectedAction.kind === 'light_sbp') {
         await updateStatus(order.id, 'payment_reported');
@@ -222,6 +258,9 @@ export function CheckoutPage({ catalogId }: Props) {
   }
 
   const isSbpSelected = selectedAction?.kind === 'light_sbp';
+  const shouldShowAddressField = requiresAddressForFulfillment(
+    selectedFulfillment
+  );
   const actionButtonLabel = isSubmitting
     ? 'Выполняем...'
     : selectedAction?.kind === 'payment_in_chat'
@@ -401,7 +440,100 @@ export function CheckoutPage({ catalogId }: Props) {
                     </div>
                   </Label>
                 )}
+                {fulfillmentOptions.includes('digital') && (
+                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value="digital" className="mt-1" />
+                      <div className="flex-1">
+                        <p className="font-medium">Цифровой продукт</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Получение цифровых данных в сообщении/инструкции
+                        </p>
+                      </div>
+                    </div>
+                  </Label>
+                )}
+                {fulfillmentOptions.includes('to_table') && (
+                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value="to_table" className="mt-1" />
+                      <div className="flex-1">
+                        <p className="font-medium">К столику</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Доставка к вашему столику внутри заведения
+                        </p>
+                      </div>
+                    </div>
+                  </Label>
+                )}
+                {fulfillmentOptions.includes('on_site') && (
+                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value="on_site" className="mt-1" />
+                      <div className="flex-1">
+                        <p className="font-medium">На месте</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Получение в точке продавца
+                        </p>
+                      </div>
+                    </div>
+                  </Label>
+                )}
+                {fulfillmentOptions.includes('at_client') && (
+                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem value="at_client" className="mt-1" />
+                      <div className="flex-1">
+                        <p className="font-medium">У клиента</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Выезд по вашему адресу
+                        </p>
+                      </div>
+                    </div>
+                  </Label>
+                )}
               </RadioGroup>
+            </CardContent>
+          </Card>
+        )}
+
+        {shouldShowAddressField && (
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                Адрес ({getFulfillmentLabel(selectedFulfillment)})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative">
+                <Input
+                  value={deliveryAddress}
+                  onFocus={() => setShowAddressSuggestions(true)}
+                  onBlur={() =>
+                    setTimeout(() => setShowAddressSuggestions(false), 120)
+                  }
+                  onChange={e => setDeliveryAddress(e.target.value)}
+                  placeholder="Введите адрес"
+                />
+                {showAddressSuggestions &&
+                  addressSuggestions.suggestions.length > 0 && (
+                    <div className="absolute z-20 mt-1 w-full rounded-xl border bg-background shadow-lg overflow-hidden">
+                      {addressSuggestions.suggestions.map(option => (
+                        <button
+                          type="button"
+                          key={option.value}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/60"
+                          onClick={() => {
+                            setDeliveryAddress(option.value);
+                            setShowAddressSuggestions(false);
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+              </div>
             </CardContent>
           </Card>
         )}

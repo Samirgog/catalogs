@@ -21,6 +21,13 @@ export type AuthResponse = {
 };
 
 export type CatalogType = 'goods' | 'services';
+export type CatalogSubtype =
+  | 'shop'
+  | 'cafe_restaurant'
+  | 'digital_store'
+  | 'salon'
+  | 'private_master'
+  | 'studio_club';
 
 export type Catalog = {
   id: string;
@@ -28,6 +35,7 @@ export type Catalog = {
   title: string;
   description?: string;
   type: CatalogType;
+  subtype?: CatalogSubtype;
   banner_url?: string;
   address?: string;
   is_open_24_7?: boolean;
@@ -101,6 +109,8 @@ export type Order = {
   customer_phone?: string;
   customer_comment?: string;
   fulfillment_method?: FulfillmentMethodType;
+  payment_method?: 'payment_on_delivery' | 'payment_in_chat' | 'light_sbp';
+  delivery_address?: string;
   items: Record<string, unknown>[];
   total_price: number;
   table_number?: string;
@@ -180,6 +190,7 @@ export type CatalogFormData = {
   title: string;
   description?: string;
   type: CatalogType;
+  subtype?: CatalogSubtype;
   banner_url?: string;
   address?: string;
   is_open_24_7?: boolean;
@@ -190,7 +201,13 @@ export type CatalogFormData = {
   is_active?: boolean;
 };
 
-export type FulfillmentMethodType = 'pickup' | 'delivery';
+export type FulfillmentMethodType =
+  | 'pickup'
+  | 'delivery'
+  | 'digital'
+  | 'to_table'
+  | 'on_site'
+  | 'at_client';
 
 export type FulfillmentMethod = {
   id: string;

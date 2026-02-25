@@ -146,6 +146,14 @@ export function ActionsEditorPage() {
 
     try {
       setIsSaving(true);
+      if (
+        !formState.paymentOnDeliveryEnabled &&
+        !formState.telegramContactEnabled &&
+        !formState.sbpEnabled
+      ) {
+        toast.error('Нужно включить хотя бы один способ оплаты');
+        return;
+      }
 
       await Promise.all([
         upsertAction(

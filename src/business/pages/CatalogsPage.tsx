@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit } from 'lucide-react';
+import { Plus, Edit, LifeBuoy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCatalogs } from '../hooks/useCatalogs';
 import { toast } from 'sonner';
@@ -31,6 +31,12 @@ export function CatalogsPage() {
   
   const handleCreateCatalog = () => {
     navigate('/catalogs/new');
+  };
+
+  const handleSupport = () => {
+    const supportUsername = (import.meta.env.VITE_SUPPORT_TELEGRAM || 'catalogs_support_bot').replace('@', '');
+    const text = encodeURIComponent('Здравствуйте! Нужна помощь по настройке каталога.');
+    window.open(`https://t.me/${supportUsername}?text=${text}`, '_blank');
   };
   
   return (
@@ -147,6 +153,14 @@ export function CatalogsPage() {
         >
           <Plus className="w-5 h-5 mr-2" />
           Создать каталог
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full h-12 mt-2"
+          onClick={handleSupport}
+        >
+          <LifeBuoy className="w-4 h-4 mr-2" />
+          Связаться с поддержкой
         </Button>
       </div>
     </div>
