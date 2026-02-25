@@ -69,11 +69,32 @@ export function BookingPage({ catalogId }: Props) {
   );
   const labels = getFlowLabels(catalog?.type ?? 'services');
   const fulfillmentOptions = useMemo(
-    () =>
-      (catalog?.fulfillment_methods ?? [])
+    () => {
+      const all = (catalog?.fulfillment_methods ?? [])
         .filter(method => method.is_enabled)
-        .map(method => method.method),
-    [catalog?.fulfillment_methods]
+        .map(method => method.method);
+
+      if (!catalog) return all;
+      if (catalog.type === 'goods' && catalog.subtype === 'shop') {
+        return all.filter(method => method === 'pickup' || method === 'delivery');
+      }
+      if (catalog.type === 'goods' && catalog.subtype === 'cafe_restaurant') {
+        return all.filter(
+          method =>
+            method === 'pickup' ||
+            method === 'delivery' ||
+            method === 'to_table'
+        );
+      }
+      if (catalog.type === 'goods' && catalog.subtype === 'digital_store') {
+        return all.filter(method => method === 'digital');
+      }
+      if (catalog.type === 'services') {
+        return all.filter(method => method === 'on_site' || method === 'at_client');
+      }
+      return all;
+    },
+    [catalog]
   );
 
   useEffect(() => {
@@ -438,7 +459,7 @@ export function BookingPage({ catalogId }: Props) {
         </Card>
 
         {fulfillmentOptions.length > 0 && (
-          <Card>
+          <Card className="relative z-40">
             <CardHeader>
               <CardTitle>Способ получения</CardTitle>
             </CardHeader>
@@ -553,7 +574,7 @@ export function BookingPage({ catalogId }: Props) {
                 />
                 {showAddressSuggestions &&
                   addressSuggestions.suggestions.length > 0 && (
-                    <div className="absolute z-20 mt-1 w-full rounded-xl border bg-background shadow-lg overflow-hidden">
+                    <div className="absolute z-[80] mt-1 w-full rounded-xl border bg-background shadow-lg overflow-hidden">
                       {addressSuggestions.suggestions.map(option => (
                         <button
                           type="button"

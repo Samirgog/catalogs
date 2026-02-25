@@ -5,6 +5,46 @@ type AddressSuggestion = {
   value: string;
 };
 
+type NominatimAddress = {
+  city?: string;
+  town?: string;
+  village?: string;
+  hamlet?: string;
+  municipality?: string;
+  road?: string;
+  pedestrian?: string;
+  street?: string;
+  house_number?: string;
+};
+
+type NominatimItem = {
+  display_name?: string;
+  address?: NominatimAddress;
+};
+
+const buildShortAddress = (item: NominatimItem): string => {
+  const city =
+    item.address?.city ||
+    item.address?.town ||
+    item.address?.village ||
+    item.address?.hamlet ||
+    item.address?.municipality ||
+    '';
+  const street =
+    item.address?.road || item.address?.pedestrian || item.address?.street || '';
+  const house = item.address?.house_number || '';
+
+  const assembled = [city, street, house].filter(Boolean).join(', ');
+  if (assembled) return assembled;
+
+  return (item.display_name || '')
+    .split(',')
+    .map(part => part.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(', ');
+};
+
 export const useAddressSuggestions = (query: string) => {
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,12 +75,19 @@ export const useAddressSuggestions = (query: string) => {
           return;
         }
 
-        const data = (await response.json()) as Array<{ display_name?: string }>;
+        const data = (await response.json()) as NominatimItem[];
         const normalized = data
-          .map(item => item.display_name?.trim() || '')
-          .filter(Boolean)
+          .map(item => {
+            const label = item.display_name?.trim() || '';
+            const value = buildShortAddress(item);
+            return { label, value };
+          })
+          .filter(item => item.value)
           .slice(0, 5)
-          .map(text => ({ label: text, value: text }));
+          .map(item => ({
+            label: item.label || item.value,
+            value: item.value,
+          }));
 
         setSuggestions(normalized);
       } catch {

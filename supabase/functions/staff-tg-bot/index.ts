@@ -23,7 +23,7 @@ const staffMenuKeyboard = {
     [{ text: 'Начать работу' }],
     [{ text: 'Закончить работу' }],
     [{ text: 'Активные заказы' }],
-    [{ text: 'Сменить каталог' }],
+    [{ text: 'Выйти' }],
   ],
   resize_keyboard: true,
   is_persistent: true,
@@ -415,7 +415,7 @@ async function handleTextMessage(message: Record<string, unknown>) {
     );
   }
 
-  if (text === 'Сменить каталог') {
+  if (text === 'Выйти') {
     await unbindStaff(telegramId);
     return sendMessage(
       chatId,

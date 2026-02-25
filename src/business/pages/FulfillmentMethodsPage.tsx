@@ -63,12 +63,6 @@ export function FulfillmentMethodsPage() {
           desc: 'Клиент забирает товар в точке',
           icon: <Store className="w-5 h-5" />,
         },
-        {
-          id: 'digital' as FulfillmentMethodType,
-          label: 'Цифровой продукт',
-          desc: 'Выдать цифровой доступ/файл',
-          icon: <TabletSmartphone className="w-5 h-5" />,
-        },
       ];
     }
     if (catalog.type === 'goods' && catalog.subtype === 'digital_store') {

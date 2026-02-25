@@ -28,6 +28,13 @@ import { useAddressSuggestions } from '@/hooks/useAddressSuggestions';
 import { placesService } from '../services/places';
 import { fulfillmentService } from '../services/fulfillment';
 import { actionService } from '../services/actions';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const catalogOptions = [
   {
@@ -83,6 +90,14 @@ const subtypeOptions: Record<CatalogType, Array<{
   ],
 };
 
+const toShortAddress = (value: string) =>
+  value
+    .split(',')
+    .map(part => part.trim())
+    .filter(Boolean)
+    .slice(0, 3)
+    .join(', ');
+
 export function CatalogEditorPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
   const navigate = useNavigate();
@@ -124,6 +139,10 @@ export function CatalogEditorPage() {
   const [foodcourtEnabled, setFoodcourtEnabled] = useState(false);
   const [foodcourtPlace, setFoodcourtPlace] = useState<Place | null>(null);
   const [foodcourtLoading, setFoodcourtLoading] = useState(false);
+  const [foodcourtOptions, setFoodcourtOptions] = useState<Place[]>([]);
+  const [selectedFoodcourtId, setSelectedFoodcourtId] = useState('');
+  const [isSavingCatalog, setIsSavingCatalog] = useState(false);
+  const [isBindingFoodcourt, setIsBindingFoodcourt] = useState(false);
   const addressSuggestions = useAddressSuggestions(formData.address);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
 
@@ -156,12 +175,21 @@ export function CatalogEditorPage() {
         emergency_telegram: fetchedCatalog.emergency_telegram || '',
         type: fetchedCatalog.type || 'goods',
       });
-      setFoodcourtEnabled(
-        fetchedCatalog.type === 'goods' &&
-          (fetchedCatalog.subtype || '') === 'cafe_restaurant'
-      );
+      setFoodcourtEnabled(false);
     }
   }, [fetchedCatalog]);
+
+  useEffect(() => {
+    const loadFoodcourtOptions = async () => {
+      try {
+        const options = await placesService.listFoodcourts();
+        setFoodcourtOptions(options);
+      } catch {
+        setFoodcourtOptions([]);
+      }
+    };
+    void loadFoodcourtOptions();
+  }, []);
 
   useEffect(() => {
     const loadFoodcourt = async () => {
@@ -170,6 +198,8 @@ export function CatalogEditorPage() {
         setFoodcourtLoading(true);
         const place = await placesService.getFoodcourtForCatalog(catalogId);
         setFoodcourtPlace(place);
+        setFoodcourtEnabled(Boolean(place));
+        setSelectedFoodcourtId(place?.id ?? '');
       } catch {
         setFoodcourtPlace(null);
       } finally {
@@ -178,6 +208,13 @@ export function CatalogEditorPage() {
     };
     void loadFoodcourt();
   }, [catalogId, isEditing]);
+
+  useEffect(() => {
+    if (formData.type === 'goods' && formData.subtype === 'cafe_restaurant') {
+      return;
+    }
+    setFoodcourtEnabled(false);
+  }, [formData.subtype, formData.type]);
 
   useEffect(() => {
     sessionStorage.setItem(draftKey, JSON.stringify(formData));
@@ -194,24 +231,33 @@ export function CatalogEditorPage() {
   };
 
   const handleSave = async () => {
-    await saveCatalog(false);
+    await saveCatalog({ keepOnEditor: false, strictValidation: true });
   };
 
-  const saveCatalog = async (keepOnEditor: boolean) => {
+  const saveCatalog = async (options?: {
+    keepOnEditor?: boolean;
+    strictValidation?: boolean;
+    silentSuccess?: boolean;
+  }) => {
+    const keepOnEditor = Boolean(options?.keepOnEditor);
+    const strictValidation = options?.strictValidation ?? true;
+    const silentSuccess = Boolean(options?.silentSuccess);
     try {
+      setIsSavingCatalog(true);
       if (!formData.title.trim()) {
         toast.error('Заполните название каталога');
         return;
       }
-      if (!formData.emergency_phone.trim()) {
+      if (strictValidation && !formData.emergency_phone.trim()) {
         toast.error('Укажите номер телефона для связи');
         return;
       }
-      if (!formData.emergency_telegram.trim()) {
+      if (strictValidation && !formData.emergency_telegram.trim()) {
         toast.error('Укажите Telegram контакт для связи');
         return;
       }
       if (
+        strictValidation &&
         !formData.is_open_24_7 &&
         (!formData.work_start.trim() || !formData.work_end.trim())
       ) {
@@ -221,7 +267,7 @@ export function CatalogEditorPage() {
         return;
       }
 
-      if (formData.is_active && isEditing && catalogId) {
+      if (strictValidation && formData.is_active && isEditing && catalogId) {
         const [methods, actions] = await Promise.all([
           fulfillmentService.getByCatalogId(catalogId),
           actionService.getByCatalogId(catalogId),
@@ -246,7 +292,7 @@ export function CatalogEditorPage() {
         subtype: formData.subtype,
         is_active: formData.is_active,
         banner_url: formData.banner_url,
-        address: formData.address.trim(),
+        address: toShortAddress(formData.address.trim()),
         is_open_24_7: formData.is_open_24_7,
         work_start: formData.is_open_24_7 ? undefined : formData.work_start,
         work_end: formData.is_open_24_7 ? undefined : formData.work_end,
@@ -265,7 +311,9 @@ export function CatalogEditorPage() {
         savedCatalogId = newCatalog.id;
       }
 
-      toast.success('Каталог успешно сохранен');
+      if (!silentSuccess) {
+        toast.success('Каталог успешно сохранен');
+      }
       sessionStorage.removeItem(draftKey);
       if (!isEditing && savedCatalogId && keepOnEditor) {
         navigate(`/catalogs/${savedCatalogId}/edit`, { replace: true });
@@ -275,56 +323,39 @@ export function CatalogEditorPage() {
       console.error('Error saving catalog:', err);
       toast.error('Ошибка сохранения каталога. Попробуйте еще раз.');
       return '';
+    } finally {
+      setIsSavingCatalog(false);
     }
+  };
+
+  const navigateWithSave = async (buildPath: (id: string) => string) => {
+    const savedCatalogId = await saveCatalog({
+      keepOnEditor: true,
+      strictValidation: false,
+      silentSuccess: true,
+    });
+    if (!savedCatalogId) return;
+    navigate(buildPath(savedCatalogId));
   };
 
   const handleConfigureCategories = () => {
-    // Navigate to categories configuration page with catalog ID
-    if (isEditing && catalogId) {
-      navigate(`/categories/editor/${catalogId}`);
-    } else {
-      void (async () => {
-        const savedCatalogId = await saveCatalog(true);
-        if (savedCatalogId) {
-          navigate(`/categories/editor/${savedCatalogId}`);
-        }
-      })();
-    }
+    void navigateWithSave(id => `/categories/editor/${id}`);
   };
 
   const handleConfigureActions = () => {
-    if (isEditing && catalogId) {
-      navigate(`/actions/editor/${catalogId}`);
-    } else {
-      toast.error('Сначала сохраните каталог перед настройкой способов оплаты');
-    }
+    void navigateWithSave(id => `/actions/editor/${id}`);
   };
 
   const handleGenerateLink = () => {
-    // Navigate to links page with catalog ID
-    if (isEditing && catalogId) {
-      navigate(`/catalogs/${catalogId}/links`);
-    } else {
-      toast.error('Сначала сохраните каталог перед получением ссылки');
-    }
+    void navigateWithSave(id => `/catalogs/${id}/links`);
   };
 
   const handleConfigureStaff = () => {
-    if (isEditing && catalogId) {
-      navigate(`/staff/${catalogId}`);
-    } else {
-      toast.error('Сначала сохраните каталог перед настройкой сотрудников');
-    }
+    void navigateWithSave(id => `/staff/${id}`);
   };
 
   const handleConfigureFulfillment = () => {
-    if (isEditing && catalogId) {
-      navigate(`/catalogs/${catalogId}/fulfillment`);
-    } else {
-      toast.error(
-        'Сначала сохраните каталог перед настройкой способов получения'
-      );
-    }
+    void navigateWithSave(id => `/catalogs/${id}/fulfillment`);
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -502,10 +533,13 @@ export function CatalogEditorPage() {
                         key={option.value}
                         className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/60"
                         onClick={() =>
-                          setFormData(prev => ({
-                            ...prev,
-                            address: option.value,
-                          }))
+                          {
+                            setFormData(prev => ({
+                              ...prev,
+                              address: toShortAddress(option.value),
+                            }));
+                            setShowAddressSuggestions(false);
+                          }
                         }
                       >
                         {option.label}
@@ -727,7 +761,19 @@ export function CatalogEditorPage() {
                 </div>
                 <Switch
                   checked={foodcourtEnabled}
-                  onCheckedChange={setFoodcourtEnabled}
+                  onCheckedChange={async checked => {
+                    setFoodcourtEnabled(checked);
+                    if (!checked && catalogId && foodcourtPlace) {
+                      try {
+                        await placesService.detachFromFoodcourt(catalogId);
+                        setFoodcourtPlace(null);
+                        setSelectedFoodcourtId('');
+                        toast.success('Каталог откреплен от фудкорта');
+                      } catch {
+                        toast.error('Не удалось открепить каталог от фудкорта');
+                      }
+                    }
+                  }}
                 />
               </div>
 
@@ -739,45 +785,110 @@ export function CatalogEditorPage() {
                       Проверяем привязку...
                     </div>
                   )}
-                  {!foodcourtLoading && !foodcourtPlace && (
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => {
-                        const text = encodeURIComponent(
-                          `Здравствуйте! Хочу подключиться к фудкорту.\nКаталог: ${formData.title || 'Без названия'}\nID: ${catalogId || 'new'}`
-                        );
-                        const supportUsername = (import.meta.env.VITE_SUPPORT_TELEGRAM || 'catalogs_support_bot').replace('@', '');
-                        window.open(`https://t.me/${supportUsername}?text=${text}`, '_blank');
-                      }}
-                    >
-                      Перейти в чат с поддержкой
-                    </Button>
-                  )}
-                  {!foodcourtLoading && foodcourtPlace && (
-                    <div className="glass-card p-3 rounded-xl space-y-2">
-                      <p className="text-sm">
-                        Фудкорт: <b>{foodcourtPlace.name}</b>
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {foodcourtPlace.address || 'Адрес не указан'}
-                      </p>
+                  {!foodcourtLoading && (
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label>Выберите фудкорт</Label>
+                        <Select
+                          value={selectedFoodcourtId}
+                          onValueChange={setSelectedFoodcourtId}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите из списка" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {foodcourtOptions.map(place => (
+                              <SelectItem key={place.id} value={place.id}>
+                                {place.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <Button
-                        variant="destructive"
+                        variant="outline"
                         className="w-full"
+                        disabled={!catalogId || !selectedFoodcourtId || isBindingFoodcourt}
                         onClick={async () => {
-                          if (!catalogId) return;
+                          if (!catalogId || !selectedFoodcourtId) return;
                           try {
-                            await placesService.detachFromFoodcourt(catalogId);
-                            setFoodcourtPlace(null);
-                            toast.success('Каталог откреплен от фудкорта');
+                            setIsBindingFoodcourt(true);
+                            await placesService.attachToFoodcourt(
+                              catalogId,
+                              selectedFoodcourtId
+                            );
+                            const linked =
+                              foodcourtOptions.find(
+                                place => place.id === selectedFoodcourtId
+                              ) || null;
+                            setFoodcourtPlace(linked);
+                            toast.success('Фудкорт успешно привязан');
                           } catch {
-                            toast.error('Не удалось открепить каталог от фудкорта');
+                            toast.error('Не удалось привязать фудкорт');
+                          } finally {
+                            setIsBindingFoodcourt(false);
                           }
                         }}
                       >
-                        Открепиться от фудкорта
+                        {isBindingFoodcourt
+                          ? 'Сохраняем...'
+                          : 'Привязать выбранный фудкорт'}
                       </Button>
+                      {foodcourtPlace && (
+                        <div className="glass-card p-3 rounded-xl space-y-2">
+                          <p className="text-sm">
+                            Текущий фудкорт: <b>{foodcourtPlace.name}</b>
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {foodcourtPlace.address || 'Адрес не указан'}
+                          </p>
+                          <Button
+                            variant="destructive"
+                            className="w-full"
+                            onClick={async () => {
+                              if (!catalogId) return;
+                              try {
+                                await placesService.detachFromFoodcourt(
+                                  catalogId
+                                );
+                                setFoodcourtPlace(null);
+                                setSelectedFoodcourtId('');
+                                toast.success('Каталог откреплен от фудкорта');
+                              } catch {
+                                toast.error(
+                                  'Не удалось открепить каталог от фудкорта'
+                                );
+                              }
+                            }}
+                          >
+                            Открепиться от фудкорта
+                          </Button>
+                        </div>
+                      )}
+                      <div className="glass-card rounded-xl p-3 space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          Не нашли нужный фудкорт? Напишите нам и мы поможем
+                        </p>
+                        <Button
+                          variant="secondary"
+                          className="w-full"
+                          onClick={() => {
+                            const text = encodeURIComponent(
+                              `Здравствуйте! Не нашел фудкорт в списке.\nКаталог: ${formData.title || 'Без названия'}\nID: ${catalogId || 'new'}`
+                            );
+                            const supportUsername = (
+                              import.meta.env.VITE_SUPPORT_TELEGRAM ||
+                              'catalogs_support_bot'
+                            ).replace('@', '');
+                            window.open(
+                              `https://t.me/${supportUsername}?text=${text}`,
+                              '_blank'
+                            );
+                          }}
+                        >
+                          Написать в поддержку
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </>
@@ -789,40 +900,45 @@ export function CatalogEditorPage() {
         <div className="space-y-3">
           <Button
             variant="outline"
-            className="w-full h-12"
+            className="w-full h-12 justify-start"
             onClick={handleConfigureCategories}
+            disabled={isSavingCatalog}
           >
             <FolderOpen className="w-4 h-4 mr-2" />
             Настроить категории
           </Button>
           <Button
             variant="outline"
-            className="w-full h-12"
+            className="w-full h-12 justify-start"
             onClick={handleConfigureActions}
+            disabled={isSavingCatalog}
           >
             <Settings className="w-4 h-4 mr-2" />
             Способы оплаты и действия
           </Button>
           <Button
             variant="outline"
-            className="w-full h-12"
+            className="w-full h-12 justify-start"
             onClick={handleConfigureFulfillment}
+            disabled={isSavingCatalog}
           >
             <Truck className="w-4 h-4 mr-2" />
             Способы получения
           </Button>
           <Button
             variant="outline"
-            className="w-full h-12"
+            className="w-full h-12 justify-start"
             onClick={handleGenerateLink}
+            disabled={isSavingCatalog}
           >
             <Link className="w-4 h-4 mr-2" />
             Получить ссылку и QR-код
           </Button>
           <Button
             variant="outline"
-            className="w-full h-12"
+            className="w-full h-12 justify-start"
             onClick={handleConfigureStaff}
+            disabled={isSavingCatalog}
           >
             <Users className="w-4 h-4 mr-2" />
             Сотрудники и уведомления
@@ -832,9 +948,13 @@ export function CatalogEditorPage() {
 
       {/* Fixed Save Button */}
       <div className="fixed bottom-6 left-4 right-4">
-        <Button className="w-full h-14 text-base" onClick={handleSave}>
+        <Button
+          className="w-full h-14 text-base"
+          onClick={handleSave}
+          disabled={isSavingCatalog}
+        >
           <Save className="w-5 h-5 mr-2" />
-          Сохранить
+          {isSavingCatalog ? 'Сохранение...' : 'Сохранить'}
         </Button>
       </div>
     </div>

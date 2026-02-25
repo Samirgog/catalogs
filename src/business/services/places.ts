@@ -11,6 +11,17 @@ const normalizePlace = (value: unknown): Place | null => {
 };
 
 export const placesService = {
+  async listFoodcourts(): Promise<Place[]> {
+    const { data, error } = await businessSupabase
+      .from('places')
+      .select('*')
+      .eq('type', 'foodcourt')
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return data ?? [];
+  },
+
   async getFoodcourtForCatalog(catalogId: string): Promise<Place | null> {
     const { data, error } = await businessSupabase
       .from('place_catalogs')
@@ -64,5 +75,18 @@ export const placesService = {
       .in('place_id', foodcourtPlaceIds);
 
     if (deleteError) throw deleteError;
+  },
+
+  async attachToFoodcourt(catalogId: string, placeId: string): Promise<void> {
+    await this.detachFromFoodcourt(catalogId);
+
+    const { error } = await businessSupabase
+      .from('place_catalogs')
+      .insert({
+        catalog_id: catalogId,
+        place_id: placeId,
+      });
+
+    if (error) throw error;
   },
 };
