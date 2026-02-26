@@ -12,7 +12,6 @@ import { uploadImage } from '../services/images';
 import { FormValidator, ErrorHandler, ValidationError } from './CategoriesEditorPage/utils';
 import type { ItemFormData } from '@/types';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
-import { toast } from 'sonner';
 
 export function ItemEditorPage() {
   const { catalogId, categoryId, itemId } = useParams<{ 
@@ -64,6 +63,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
   const [formData, setFormData] = useState<ItemFormData>({ 
     title: '', 
     description: '', 
+    detailed_description: '',
     price: 0, 
     image_url: '', 
     is_available: true, 
@@ -71,6 +71,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [priorityInput, setPriorityInput] = useState('1');
 
   // Load existing item data if editing
   useEffect(() => {
@@ -84,11 +85,13 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
             setFormData({
               title: item.title,
               description: item.description || '',
+              detailed_description: item.detailed_description || '',
               price: item.price || 0,
               image_url: item.image_url || '',
               is_available: item.is_available ?? true,
               position: item.position || 0
             });
+            setPriorityInput(String(item.position || 1));
             setPreviewUrl(item.image_url || null);
           }
         } catch (error) {
@@ -106,6 +109,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
         ...prev,
         position: 1 // Will be adjusted when saving
       }));
+      setPriorityInput('1');
     }
   }, [itemId, categoryId, navigate]);
 
@@ -116,27 +120,40 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
       setIsLoading(true);
       FormValidator.validateItemForm(formData);
       
+      const parsedPriority = Number(priorityInput);
+      const normalizedPriority = Number.isFinite(parsedPriority)
+        ? Math.max(1, parsedPriority)
+        : 1;
+      const payload: ItemFormData = {
+        ...formData,
+        position: normalizedPriority,
+      };
+
       if (itemId) {
         // Update existing item
-        await itemService.update(itemId, formData);
-        ErrorHandler.showSuccess('Item updated successfully');
-        toast.success('Товар успешно обновлен');
+        await itemService.update(itemId, payload);
+        ErrorHandler.showSuccess('Товар успешно обновлен');
       } else {
         // Create new item
-        await itemService.create(formData, categoryId);
-        ErrorHandler.showSuccess('Item created successfully');
-        toast.success('Товар успешно создан');
+        await itemService.create(payload, categoryId);
+        ErrorHandler.showSuccess('Товар успешно создан');
       }
       
       // Navigate back to categories editor
-      navigate(`/categories/editor/${catalogId}`);
+      navigate(`/categories/editor/${catalogId}`, {
+        state: {
+          pendingCategoryId: categoryId,
+          pendingUntil: Date.now() + 2500,
+        },
+      });
     } catch (error) {
       if (error instanceof ValidationError) {
-        ErrorHandler.showError(error, 'Invalid item data');
-        toast.error('Проверьте корректность заполнения полей');
+        ErrorHandler.showError(error, 'Проверьте корректность заполнения полей');
       } else {
-        ErrorHandler.showError(error, itemId ? 'Failed to update item' : 'Failed to create item');
-        toast.error('Не удалось сохранить товар');
+        ErrorHandler.showError(
+          error,
+          itemId ? 'Не удалось сохранить изменения' : 'Не удалось создать товар'
+        );
       }
     } finally {
       setIsLoading(false);
@@ -186,8 +203,23 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
               id="item-description"
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              placeholder="Введите описание товара"
-              className="w-full min-h-[100px] glass-input"
+              placeholder="Краткое описание для карточки"
+              className="w-full min-h-[80px] glass-input"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="item-detailed-description" className="block mb-2 text-sm font-medium">
+              Детальное описание
+            </Label>
+            <Textarea
+              id="item-detailed-description"
+              value={formData.detailed_description}
+              onChange={(e) =>
+                setFormData({ ...formData, detailed_description: e.target.value })
+              }
+              placeholder="Подробное описание, которое откроется в карточке"
+              className="w-full min-h-[120px] glass-input"
               autoFocus
             />
           </div>
@@ -308,14 +340,17 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
           
           <div>
             <Label htmlFor="item-position" className="block mb-2 text-sm font-medium">
-              Позиция
+              Приоритет внутри категории
             </Label>
             <Input
               id="item-position"
               type="number"
-              value={formData.position}
-              onChange={(e) => setFormData({...formData, position: parseInt(e.target.value) || 0})}
-              placeholder="Позиция в списке"
+              min={1}
+              value={priorityInput}
+              onChange={(e) => {
+                setPriorityInput(e.target.value);
+              }}
+              placeholder="1"
               className="w-full glass-input"
             />
           </div>

@@ -75,6 +75,22 @@ export function FulfillmentMethodsPage() {
         },
       ];
     }
+    if (catalog.type === 'services' && catalog.subtype === 'studio_club') {
+      return [
+        {
+          id: 'digital' as FulfillmentMethodType,
+          label: 'Цифровой вариант',
+          desc: 'Онлайн-выдача абонемента/доступа',
+          icon: <TabletSmartphone className="w-5 h-5" />,
+        },
+        {
+          id: 'pickup' as FulfillmentMethodType,
+          label: 'Самовывоз',
+          desc: 'Получение абонемента в точке',
+          icon: <Store className="w-5 h-5" />,
+        },
+      ];
+    }
     return [
       {
         id: 'on_site' as FulfillmentMethodType,
@@ -124,8 +140,11 @@ export function FulfillmentMethodsPage() {
 
       <div className="p-4 space-y-4">
         {(loading || catalogLoading) && (
-          <div className="glass-card p-3 flex items-center justify-center">
-            <Spinner />
+          <div className="fixed inset-0 bg-background/70 backdrop-blur-sm z-40 flex items-center justify-center">
+            <div className="glass-card p-4 flex items-center gap-2">
+              <Spinner />
+              <span>Загрузка...</span>
+            </div>
           </div>
         )}
         {error && <div className="glass-card p-3 text-sm text-red-600">{error}</div>}

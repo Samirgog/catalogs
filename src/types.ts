@@ -68,6 +68,7 @@ export type Item = {
   category_id: string;
   title: string;
   description?: string;
+  detailed_description?: string;
   price?: number;
   image_url?: string;
   is_available: boolean;
@@ -180,6 +181,7 @@ export type CategoryFormData = {
 export type ItemFormData = {
   title: string;
   description?: string;
+  detailed_description?: string;
   price?: number;
   image_url?: string;
   is_available?: boolean;

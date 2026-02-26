@@ -10,6 +10,7 @@ import type { Category, Item } from '../../../../types';
 
 interface CategoriesListProps {
   categories: (Category & { items: Item[] })[];
+  pendingCategoryId?: string;
   onEditCategory: (category: Category) => void;
   onDeleteCategory: (categoryId: string) => void;
   onAddItem: (category: Category) => void;
@@ -20,6 +21,7 @@ interface CategoriesListProps {
 
 export function CategoriesList({
   categories,
+  pendingCategoryId,
   onEditCategory,
   onDeleteCategory,
   onAddItem,
@@ -33,6 +35,7 @@ export function CategoriesList({
         <CategorySection
           key={category.id}
           category={category}
+          pending={pendingCategoryId === category.id}
           onEditCategory={onEditCategory}
           onDeleteCategory={onDeleteCategory}
           onAddItem={onAddItem}
@@ -47,6 +50,7 @@ export function CategoriesList({
 
 interface CategorySectionProps {
   category: Category & { items: Item[] };
+  pending?: boolean;
   onEditCategory: (category: Category) => void;
   onDeleteCategory: (categoryId: string) => void;
   onAddItem: (category: Category) => void;
@@ -57,6 +61,7 @@ interface CategorySectionProps {
 
 function CategorySection({
   category,
+  pending = false,
   onEditCategory,
   onDeleteCategory,
   onAddItem,
@@ -70,21 +75,21 @@ function CategorySection({
         <h2 className="text-xl font-semibold">{category.title}</h2>
         <div className="flex gap-2">
           <Button 
-            variant="ghost" 
-            size="sm"
+            variant="outline" 
+            size="icon"
             onClick={() => onEditCategory(category)}
+            aria-label="Редактировать категорию"
           >
-            <Pencil className="w-4 h-4 mr-1" />
-            Редактировать
+            <Pencil className="w-4 h-4" />
           </Button>
           <Button 
-            variant="ghost" 
-            size="sm"
+            variant="outline" 
+            size="icon"
             onClick={() => onDeleteCategory(category.id)}
             className="text-red-500 hover:text-red-700"
+            aria-label="Удалить категорию"
           >
-            <Trash2 className="w-4 h-4 mr-1" />
-            Удалить
+            <Trash2 className="w-4 h-4" />
           </Button>
         </div>
       </div>
@@ -103,6 +108,18 @@ function CategorySection({
       
       {/* Items Grid */}
       <div className="grid gap-3">
+        {pending && (
+          <div className="glass-card border-0 p-3 animate-pulse">
+            <div className="flex gap-4">
+              <div className="h-20 w-20 rounded-md bg-muted" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 w-1/3 rounded bg-muted" />
+                <div className="h-3 w-1/2 rounded bg-muted" />
+                <div className="h-5 w-20 rounded bg-muted mt-4" />
+              </div>
+            </div>
+          </div>
+        )}
         {category.items.map((item) => (
           <EditableItemCard
             key={item.id}

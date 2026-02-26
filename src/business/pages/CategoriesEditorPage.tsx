@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AddCategorySection } from '../components/AddCategorySection';
 import { useCategories } from '../hooks/useCategories';
@@ -9,6 +9,7 @@ import { CategoryHandlers, ItemHandlers } from './CategoriesEditorPage/handlers'
 import { FormValidator, ErrorHandler, ValidationError } from './CategoriesEditorPage/utils';
 import type { Category, Item, CategoryFormData } from '@/types';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
+import { EmptyLottie } from '@/components/empty-lottie';
 
 export function CategoriesEditorPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
@@ -87,6 +88,12 @@ function CategoriesEditorView({
   itemHandlers
 }: CategoriesEditorViewProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const pendingCategoryId =
+    (location.state as { pendingCategoryId?: string; pendingUntil?: number } | null)
+      ?.pendingUntil && (location.state as { pendingUntil?: number }).pendingUntil! > Date.now()
+      ? (location.state as { pendingCategoryId?: string }).pendingCategoryId
+      : undefined;
   
   // Refresh data when component mounts or comes back from editor
   useEffect(() => {
@@ -114,12 +121,12 @@ function CategoriesEditorView({
 
       await categoryHandlers.create(categoryData);
       setNewCategoryForm({ title: '', position: 0 });
-      ErrorHandler.showSuccess('Category created successfully');
+      ErrorHandler.showSuccess('Категория создана');
     } catch (error) {
       if (error instanceof ValidationError) {
-        ErrorHandler.showError(error, 'Invalid category data');
+        ErrorHandler.showError(error, 'Некорректные данные категории');
       } else {
-        ErrorHandler.showError(error, 'Failed to create category');
+        ErrorHandler.showError(error, 'Не удалось создать категорию');
       }
     }
   };
@@ -127,13 +134,13 @@ function CategoriesEditorView({
 
 
   const handleDeleteCategory = async (categoryId: string) => {
-    if (!window.confirm('Are you sure you want to delete this category?')) return;
+    if (!window.confirm('Вы уверены, что хотите удалить категорию?')) return;
 
     try {
       await categoryHandlers.delete(categoryId);
-      ErrorHandler.showSuccess('Category deleted successfully');
+      ErrorHandler.showSuccess('Категория удалена');
     } catch (error) {
-      ErrorHandler.showError(error, 'Failed to delete category');
+      ErrorHandler.showError(error, 'Не удалось удалить категорию');
     }
   };
 
@@ -146,19 +153,19 @@ function CategoriesEditorView({
       console.log('Calling itemHandlers.delete...');
       await itemHandlers.delete(itemId, categoryId);
       console.log('Delete successful');
-      ErrorHandler.showSuccess('Item deleted successfully');
+      ErrorHandler.showSuccess('Товар удален');
     } catch (error) {
       console.error('Delete failed:', error);
-      ErrorHandler.showError(error, 'Failed to delete item');
+      ErrorHandler.showError(error, 'Не удалось удалить товар');
     }
   };
 
   const handleDuplicateItem = async (item: Item, categoryId: string) => {
     try {
       await itemHandlers.duplicate(item, categoryId, categories);
-      ErrorHandler.showSuccess('Item duplicated successfully');
+      ErrorHandler.showSuccess('Товар продублирован');
     } catch (error) {
-      ErrorHandler.showError(error, 'Failed to duplicate item');
+      ErrorHandler.showError(error, 'Не удалось продублировать товар');
     }
   };
 
@@ -210,6 +217,7 @@ function CategoriesEditorView({
 
         <CategoriesList
           categories={categories}
+          pendingCategoryId={pendingCategoryId}
           onEditCategory={(cat) => {
             navigate(`/categories/${catalogId}/category-editor/${cat.id}`);
           }}
@@ -223,6 +231,18 @@ function CategoriesEditorView({
           onDuplicateItem={(categoryId, item) => handleDuplicateItem(item, categoryId)}
           onDeleteItem={handleDeleteItem}
         />
+
+        {categories.length === 0 && (
+          <div className="mt-8 glass-card rounded-xl p-6 text-center space-y-2">
+            <div className="flex justify-center">
+              <EmptyLottie src={`${import.meta.env.BASE_URL}assets/empty_ghost.lottie`} className="w-40 h-40" />
+            </div>
+            <p className="font-medium">Категорий пока нет</p>
+            <p className="text-sm text-muted-foreground">
+              Добавьте первую категорию, чтобы заполнить каталог.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Navigation Button */}

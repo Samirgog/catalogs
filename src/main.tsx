@@ -17,8 +17,16 @@ const initTelegramWebApp = () => {
       // Disable swipe down to close
       WebApp.disableVerticalSwipes();
       
-      // Set header color to match app theme
-      WebApp.setHeaderColor('#ffffff');
+      // Set header/background color to match app theme
+      const bg = getComputedStyle(document.documentElement)
+        .getPropertyValue('--background')
+        .trim();
+      const fallback = '#0f172a';
+      const color = bg ? `hsl(${bg})` : fallback;
+      WebApp.setHeaderColor(color);
+      if (typeof WebApp.setBackgroundColor === 'function') {
+        WebApp.setBackgroundColor(color);
+      }
       
       // Enable closing confirmation
       WebApp.enableClosingConfirmation();

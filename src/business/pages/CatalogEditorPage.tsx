@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import {
   Save,
+  Trash2,
   FolderOpen,
   Settings,
   Upload,
@@ -110,7 +111,7 @@ export function CatalogEditorPage() {
   const { catalog: fetchedCatalog, loading: catalogLoading } = useCatalog(
     catalogId && catalogId !== 'new' ? catalogId : ''
   );
-  const { createCatalog, updateCatalog } = useCatalogs();
+  const { createCatalog, updateCatalog, deleteCatalog } = useCatalogs();
 
   // Image handling hooks
   const { generatePreview, previewUrl, clearPreview } = useImagePreview();
@@ -135,6 +136,7 @@ export function CatalogEditorPage() {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const createdCatalogIdRef = useRef<string | null>(null);
   const hydratedFromDraftRef = useRef(false);
   const [foodcourtEnabled, setFoodcourtEnabled] = useState(false);
   const [foodcourtPlace, setFoodcourtPlace] = useState<Place | null>(null);
@@ -242,6 +244,7 @@ export function CatalogEditorPage() {
     const keepOnEditor = Boolean(options?.keepOnEditor);
     const strictValidation = options?.strictValidation ?? true;
     const silentSuccess = Boolean(options?.silentSuccess);
+    if (isSavingCatalog) return '';
     try {
       setIsSavingCatalog(true);
       if (!formData.title.trim()) {
@@ -300,15 +303,16 @@ export function CatalogEditorPage() {
         emergency_telegram: formData.emergency_telegram.trim(),
       };
 
-      let savedCatalogId = catalogId;
+      let savedCatalogId = catalogId || createdCatalogIdRef.current;
 
-      if (isEditing && catalogId) {
+      if (savedCatalogId) {
         // Update existing catalog
-        await updateCatalog(catalogId, catalogData);
+        await updateCatalog(savedCatalogId, catalogData);
       } else {
         // Create new catalog
         const newCatalog = await createCatalog(catalogData);
         savedCatalogId = newCatalog.id;
+        createdCatalogIdRef.current = newCatalog.id;
       }
 
       if (!silentSuccess) {
@@ -329,6 +333,7 @@ export function CatalogEditorPage() {
   };
 
   const navigateWithSave = async (buildPath: (id: string) => string) => {
+    if (isSavingCatalog) return;
     const savedCatalogId = await saveCatalog({
       keepOnEditor: true,
       strictValidation: false,
@@ -356,6 +361,24 @@ export function CatalogEditorPage() {
 
   const handleConfigureFulfillment = () => {
     void navigateWithSave(id => `/catalogs/${id}/fulfillment`);
+  };
+
+  const handleDeleteCatalog = async () => {
+    const targetId = catalogId || createdCatalogIdRef.current;
+    if (!targetId) {
+      toast.error('Каталог еще не создан');
+      return;
+    }
+    if (!window.confirm('Удалить каталог полностью?')) return;
+
+    try {
+      await deleteCatalog(targetId);
+      sessionStorage.removeItem(draftKey);
+      toast.success('Каталог удален');
+      navigate('/catalogs');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Не удалось удалить каталог');
+    }
   };
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -576,35 +599,35 @@ export function CatalogEditorPage() {
               </div>
 
               {!formData.is_open_24_7 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
-                  <div className="min-w-0 w-full">
+                <div className="flex flex-wrap gap-3 w-full">
+                  <div className="min-w-0 w-[220px] max-w-full">
                     <Label
                       htmlFor="work_start"
                       className="block mb-2 text-sm font-medium"
                     >
-                      С
+                      Время начала работы
                     </Label>
                     <Input
                       id="work_start"
                       name="work_start"
                       type="time"
-                      className="w-full min-w-0"
+                      className="w-full"
                       value={formData.work_start}
                       onChange={handleInputChange}
                     />
                   </div>
-                  <div className="min-w-0 w-full">
+                  <div className="min-w-0 w-[220px] max-w-full">
                     <Label
                       htmlFor="work_end"
                       className="block mb-2 text-sm font-medium"
                     >
-                      До
+                      Время окончания работы
                     </Label>
                     <Input
                       id="work_end"
                       name="work_end"
                       type="time"
-                      className="w-full min-w-0"
+                      className="w-full"
                       value={formData.work_end}
                       onChange={handleInputChange}
                     />
@@ -898,6 +921,15 @@ export function CatalogEditorPage() {
         )}
 
         <div className="space-y-3">
+          <Button
+            variant="destructive"
+            className="w-full h-12 justify-start"
+            onClick={handleDeleteCatalog}
+            disabled={isSavingCatalog}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Удалить каталог
+          </Button>
           <Button
             variant="outline"
             className="w-full h-12 justify-start"

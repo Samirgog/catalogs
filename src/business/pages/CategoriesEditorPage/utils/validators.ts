@@ -8,28 +8,28 @@ export class ValidationError extends Error {
 export class FormValidator {
   static validateRequired(value: string, fieldName: string): void {
     if (!value || !value.trim()) {
-      throw new ValidationError(`${fieldName} is required`);
+      throw new ValidationError(`Поле «${fieldName}» обязательно`);
     }
   }
 
   static validateMinLength(value: string, minLength: number, fieldName: string): void {
     if (value.trim().length < minLength) {
-      throw new ValidationError(`${fieldName} must be at least ${minLength} characters`);
+      throw new ValidationError(`Поле «${fieldName}» должно быть не короче ${minLength} символов`);
     }
   }
 
   static validatePrice(price: number): void {
     if (price < 0) {
-      throw new ValidationError('Price cannot be negative');
+      throw new ValidationError('Цена не может быть отрицательной');
     }
     if (!Number.isFinite(price)) {
-      throw new ValidationError('Price must be a valid number');
+      throw new ValidationError('Цена должна быть числом');
     }
   }
 
   static validateCategoryForm(data: { title: string; position?: number }): void {
-    this.validateRequired(data.title, 'Category title');
-    this.validateMinLength(data.title, 1, 'Category title');
+    this.validateRequired(data.title, 'Название категории');
+    this.validateMinLength(data.title, 1, 'Название категории');
   }
 
   static validateItemForm(data: { 
@@ -38,8 +38,8 @@ export class FormValidator {
     description?: string;
     position?: number;
   }): void {
-    this.validateRequired(data.title, 'Item title');
-    this.validateMinLength(data.title, 1, 'Item title');
+    this.validateRequired(data.title, 'Название товара');
+    this.validateMinLength(data.title, 1, 'Название товара');
     if (data.price !== undefined) {
       this.validatePrice(data.price);
     }

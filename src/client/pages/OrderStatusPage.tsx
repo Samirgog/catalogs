@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { CheckCircle2, Clock3, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,8 @@ import { useOrder, useUpdateOrderStatus } from '../hooks/useOrders';
 import { useCatalog } from '../hooks/useCatalogs';
 import type { ClientActionOption } from '../utils/actionOptions';
 import {
+  clearOrderFromHistory,
+  getCurrentOrdersByCatalog,
   clearCurrentOrder,
   getReadableOrderNumber,
   setCurrentOrder,
@@ -15,6 +17,7 @@ import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
 import { getFlowLabels, getFulfillmentLabel } from '../utils/presentation';
 import { Spinner } from '@/components/ui/spinner';
+import { clientOrderService } from '../services/orders';
 
 const STATUS_META: Record<
   string,
@@ -90,6 +93,9 @@ export function OrderStatusPage() {
   );
   const { updateStatus } = useUpdateOrderStatus();
   const { catalog } = useCatalog(order?.catalog_id ?? null);
+  const [activeOrders, setActiveOrders] = useState<
+    Array<{ id: string; orderNumber: string; status: string }>
+  >([]);
   useAutoBackButton('/catalog');
 
   const parsedItems = useMemo(() => asItems(order?.items), [order?.items]);
@@ -129,10 +135,60 @@ export function OrderStatusPage() {
       order.status === 'ready'
     ) {
       clearCurrentOrder();
+      clearOrderFromHistory(order.id);
       return;
     }
     setCurrentOrder(order);
   }, [order]);
+
+  useEffect(() => {
+    if (!catalog?.id) return;
+    let isMounted = true;
+
+    const load = async () => {
+      const refs = getCurrentOrdersByCatalog(catalog.id);
+      const terminalStatuses = new Set([
+        'cancelled',
+        'rejected',
+        'completed',
+        'ready',
+      ]);
+      const resolved = await Promise.all(
+        refs.map(async ref => {
+          try {
+            const full = await clientOrderService.getById(ref.id);
+            if (!full) return null;
+            if (terminalStatuses.has(full.status)) {
+              clearOrderFromHistory(full.id);
+              return null;
+            }
+            return {
+              id: full.id,
+              orderNumber: getReadableOrderNumber(full),
+              status: full.status,
+            };
+          } catch {
+            return null;
+          }
+        })
+      );
+      if (!isMounted) return;
+      const unique = resolved
+        .filter(Boolean)
+        .filter(
+          (value, index, arr) =>
+            arr.findIndex(item => item?.id === value?.id) === index
+        ) as Array<{ id: string; orderNumber: string; status: string }>;
+      setActiveOrders(unique);
+    };
+
+    void load();
+    const interval = window.setInterval(() => void load(), 10000);
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, [catalog?.id]);
 
   useEffect(() => {
     if (!isError) return;
@@ -388,6 +444,29 @@ export function OrderStatusPage() {
               >
                 Перейти к оплате
               </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {activeOrders.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Активные заказы</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {activeOrders.map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => navigate(`/order/${item.id}`)}
+                  className="w-full text-left rounded-xl border p-3 hover:bg-secondary/40"
+                >
+                  <p className="font-medium">№{item.orderNumber}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Статус: {STATUS_META[item.status]?.label || item.status}
+                  </p>
+                </button>
+              ))}
             </CardContent>
           </Card>
         )}

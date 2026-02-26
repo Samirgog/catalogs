@@ -39,6 +39,16 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
     toast.error('Не удалось загрузить каталог');
   }, [isError]);
 
+  useEffect(() => {
+    const direct = new URLSearchParams(window.location.search).get('table');
+    const hashQueryRaw = window.location.hash.split('?')[1] || '';
+    const hashTable = new URLSearchParams(hashQueryRaw).get('table');
+    const table = (direct || hashTable || '').trim();
+    if (table) {
+      localStorage.setItem('client-table-number', table);
+    }
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

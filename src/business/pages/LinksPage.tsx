@@ -33,6 +33,7 @@ export function LinksPage() {
   const [isGenerating, setIsGenerating] = useState(true);
   const [copySuccess, setCopySuccess] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [tablesCount, setTablesCount] = useState('10');
 
   useEffect(() => {
     if (catalogError) toast.error(catalogError);
@@ -196,6 +197,34 @@ export function LinksPage() {
     }
   };
 
+  const handleDownloadTableQrs = async () => {
+    if (!linkData?.qrLink?.slug) return;
+    const count = Math.max(1, Number(tablesCount || 1));
+    const rows: Array<{ table: number; qr: string; url: string }> = [];
+
+    for (let i = 1; i <= count; i += 1) {
+      const url = `https://t.me/catalogs_test_1_bot?startapp=${linkData.qrLink.slug}&table=${i}`;
+      const qr = await QRCode.toDataURL(url, { width: 240 });
+      rows.push({ table: i, qr, url });
+    }
+
+    const html = `<!doctype html><html><head><meta charset=\"utf-8\"/><title>QR столиков</title><style>body{font-family:Arial,sans-serif;padding:20px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.card{border:1px solid #ddd;border-radius:12px;padding:12px;text-align:center}img{width:180px;height:180px;object-fit:contain}.url{font-size:11px;word-break:break-all;color:#555}</style></head><body><h1>QR-коды столиков</h1><div class=\"grid\">${rows
+      .map(
+        row =>
+          `<div class=\"card\"><h2>Столик ${row.table}</h2><img src=\"${row.qr}\"/><div class=\"url\">${row.url}</div></div>`
+      )
+      .join('')}</div></body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `table-qrs-${catalogId}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Файл QR для столиков подготовлен');
+  };
+
   if (isGenerating || qrLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -279,6 +308,33 @@ export function LinksPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {catalog.type === 'goods' && catalog.subtype === 'cafe_restaurant' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>QR-коды для столиков</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label htmlFor="tables-count">Количество столиков</Label>
+                    <Input
+                      id="tables-count"
+                      type="number"
+                      min={1}
+                      value={tablesCount}
+                      onChange={e => setTablesCount(e.target.value)}
+                    />
+                  </div>
+                  <Button className="w-full" onClick={handleDownloadTableQrs}>
+                    Сформировать QR для столиков
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Будет скачан HTML-файл для печати с отдельным QR для каждого
+                    столика.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader>

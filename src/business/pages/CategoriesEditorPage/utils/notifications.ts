@@ -70,7 +70,7 @@ export class NotificationManager {
 
 // Error handler utility
 export class ErrorHandler {
-  static handle(error: unknown, defaultMessage: string = 'An error occurred'): string {
+  static handle(error: unknown, defaultMessage: string = 'Произошла ошибка'): string {
     if (error instanceof Error) {
       console.error('Handled error:', error);
       return error.message;
@@ -80,13 +80,13 @@ export class ErrorHandler {
     return defaultMessage;
   }
 
-  static showError(error: unknown, defaultMessage: string = 'Operation failed'): void {
+  static showError(error: unknown, defaultMessage: string = 'Операция не выполнена'): void {
     const message = this.handle(error, defaultMessage);
-    toast.error(message);
+    toast.error(message, { id: 'categories-editor-toast', duration: 2200 });
   }
 
   static showSuccess(message: string): void {
-    toast.success(message);
+    toast.success(message, { id: 'categories-editor-toast', duration: 1800 });
   }
 }
 import { toast } from 'sonner';

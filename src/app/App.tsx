@@ -76,6 +76,10 @@ export function App() {
                 element={<BookingPage catalogId={userEntry.catalogId!} />}
               />
               <Route
+                path="/booking/:orderId"
+                element={<BookingPage catalogId={userEntry.catalogId!} />}
+              />
+              <Route
                 path="/cart"
                 element={<CartPage catalogId={userEntry.catalogId!} />}
               />

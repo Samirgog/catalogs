@@ -53,6 +53,9 @@ export const buildTelegramOrderMessage = (params: {
     'Здравствуйте!',
     `${labels.orderWord} №${number}`,
     `Способ получения: ${getFulfillmentLabel(params.order.fulfillment_method)}`,
+    ...(params.order.table_number
+      ? [`Столик: ${params.order.table_number}`]
+      : []),
     ...(params.order.delivery_address
       ? [`Адрес: ${params.order.delivery_address}`]
       : []),

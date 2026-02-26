@@ -8,6 +8,7 @@ import { useCatalogs } from '../hooks/useCatalogs';
 import { toast } from 'sonner';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { Spinner } from '@/components/ui/spinner';
+import { EmptyLottie } from '@/components/empty-lottie';
 
 export function CatalogsPage() {
   const { catalogs, loading, error } = useCatalogs();
@@ -87,6 +88,17 @@ export function CatalogsPage() {
         
         {!loading && !error && (
           <div className="space-y-4">
+            {catalogs.length === 0 && (
+              <Card className="p-6 text-center space-y-3">
+                <div className="flex justify-center">
+                  <EmptyLottie src={`${import.meta.env.BASE_URL}assets/empty_ghost.lottie`} className="w-44 h-44" />
+                </div>
+                <h3 className="text-lg font-semibold">Каталогов пока нет</h3>
+                <p className="text-sm text-muted-foreground">
+                  Создайте свой первый каталог, чтобы начать принимать заказы.
+                </p>
+              </Card>
+            )}
             {catalogs.map((catalog) => (
             <Card 
               key={catalog.id} 

@@ -207,8 +207,11 @@ export function ActionsEditorPage() {
 
       <div className="p-4 space-y-4">
         {loading && actions.length === 0 && (
-          <div className="glass-card p-4 flex items-center justify-center">
-            <Spinner />
+          <div className="fixed inset-0 bg-background/70 backdrop-blur-sm z-40 flex items-center justify-center">
+            <div className="glass-card p-4 flex items-center gap-2">
+              <Spinner />
+              <span>Загрузка...</span>
+            </div>
           </div>
         )}
         <Card>

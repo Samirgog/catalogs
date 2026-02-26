@@ -3,6 +3,58 @@ import type { Item, ItemFormData } from '../../types';
 
 // Item Services
 export const itemService = {
+  async shiftPositionsForInsert(categoryId: string, fromPosition: number): Promise<void> {
+    const { data, error } = await businessSupabase
+      .from('items')
+      .select('id, position')
+      .eq('category_id', categoryId)
+      .gte('position', fromPosition)
+      .order('position', { ascending: false });
+    if (error) throw error;
+
+    for (const row of data ?? []) {
+      await businessSupabase
+        .from('items')
+        .update({ position: (row.position || 0) + 1 })
+        .eq('id', row.id);
+    }
+  },
+
+  async shiftPositionsForUpdate(
+    categoryId: string,
+    itemId: string,
+    previousPosition: number,
+    nextPosition: number
+  ): Promise<void> {
+    if (previousPosition === nextPosition) return;
+    const { data, error } = await businessSupabase
+      .from('items')
+      .select('id, position')
+      .eq('category_id', categoryId)
+      .neq('id', itemId)
+      .order('position', { ascending: true });
+    if (error) throw error;
+
+    for (const row of data ?? []) {
+      const pos = row.position || 0;
+      if (nextPosition < previousPosition) {
+        if (pos >= nextPosition && pos < previousPosition) {
+          await businessSupabase
+            .from('items')
+            .update({ position: pos + 1 })
+            .eq('id', row.id);
+        }
+      } else {
+        if (pos <= nextPosition && pos > previousPosition) {
+          await businessSupabase
+            .from('items')
+            .update({ position: pos - 1 })
+            .eq('id', row.id);
+        }
+      }
+    }
+  },
+
   // Get all items for a category
   async getByCategoryId(categoryId: string): Promise<Item[]> {
     const { data, error } = await businessSupabase
@@ -29,10 +81,13 @@ export const itemService = {
 
   // Create new item
   async create(itemData: ItemFormData, categoryId: string): Promise<Item> {
+    const nextPosition = Math.max(1, Number(itemData.position || 1));
+    await this.shiftPositionsForInsert(categoryId, nextPosition);
     const { data, error } = await businessSupabase
       .from('items')
       .insert({
         ...itemData,
+        position: nextPosition,
         category_id: categoryId,
         metadata: {}
       })
@@ -45,6 +100,22 @@ export const itemService = {
 
   // Update item
   async update(id: string, itemData: Partial<ItemFormData>): Promise<Item> {
+    if (typeof itemData.position === 'number') {
+      const { data: current, error: currentError } = await businessSupabase
+        .from('items')
+        .select('id, category_id, position')
+        .eq('id', id)
+        .single();
+      if (currentError) throw currentError;
+      const nextPosition = Math.max(1, Number(itemData.position || 1));
+      await this.shiftPositionsForUpdate(
+        current.category_id,
+        id,
+        Number(current.position || 1),
+        nextPosition
+      );
+      itemData.position = nextPosition;
+    }
     const { data, error } = await businessSupabase
       .from('items')
       .update(itemData)

@@ -7,14 +7,11 @@ import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
 import { useCreateOrder } from '../hooks/useOrders';
 import {
-  clearCurrentOrder,
-  getCurrentOrder,
   setCurrentOrder,
 } from '../utils/currentOrder';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
-import { clientOrderService } from '../services/orders';
 
 type Props = {
   catalogId: string;
@@ -36,37 +33,6 @@ export const CartPage = ({ catalogId }: Props) => {
     try {
       setIsSubmitting(true);
       setError(null);
-      const currentOrder = getCurrentOrder();
-
-      if (currentOrder?.id && currentOrder.catalogId === catalog.id) {
-        const existingOrder = await clientOrderService.getById(currentOrder.id);
-        if (existingOrder) {
-          const terminalStatuses = new Set([
-            'cancelled',
-            'rejected',
-            'completed',
-            'ready',
-          ]);
-          if (!terminalStatuses.has(existingOrder.status)) {
-            if (existingOrder.status === 'created') {
-              navigate(`/checkout/${existingOrder.id}`);
-              toast.error(
-                'Нельзя оформить новый заказ, пока не завершен текущий'
-              );
-            } else {
-              navigate(`/order/${existingOrder.id}`);
-              toast.error(
-                'Нельзя оформить новый заказ, пока не завершен текущий'
-              );
-            }
-            return;
-          }
-          clearCurrentOrder();
-        } else {
-          clearCurrentOrder();
-        }
-      }
-
       const order = await createOrder({
         catalog_id: catalog.id,
         customer_id: userId || 'anonymous',

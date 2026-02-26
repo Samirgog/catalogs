@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -8,10 +8,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
-import { useCreateOrder, useUpdateOrderStatus } from '../hooks/useOrders';
+import {
+  useCreateOrder,
+  useOrder,
+  useUpdateOrder,
+  useUpdateOrderStatus,
+} from '../hooks/useOrders';
 import { useBookingStore } from '../stores/booking';
 import { getClientActionOptions } from '../utils/actionOptions';
-import { clearCurrentOrder, getCurrentOrder, setCurrentOrder } from '../utils/currentOrder';
+import { setCurrentOrder } from '../utils/currentOrder';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
 import {
@@ -23,7 +28,6 @@ import {
 } from '../utils/presentation';
 import type { FulfillmentMethodType } from '@/types';
 import { Spinner } from '@/components/ui/spinner';
-import { clientOrderService } from '../services/orders';
 import { useAddressSuggestions } from '@/hooks/useAddressSuggestions';
 
 type Props = {
@@ -32,11 +36,14 @@ type Props = {
 
 export function BookingPage({ catalogId }: Props) {
   const navigate = useNavigate();
+  const { orderId } = useParams<{ orderId?: string }>();
   const { userId, user } = useCurrentUser();
   const { selectedItem, clearSelectedItem } = useBookingStore();
   const { catalog, isLoading } = useCatalog(catalogId);
   const { createOrder } = useCreateOrder();
+  const { updateOrder } = useUpdateOrder();
   const { updateStatus } = useUpdateOrderStatus();
+  const { order, isLoading: isOrderLoading } = useOrder(orderId ?? null);
   useAutoBackButton('/catalog');
 
   const [selectedActionId, setSelectedActionId] = useState<string>('');
@@ -51,6 +58,9 @@ export function BookingPage({ catalogId }: Props) {
   const [customerComment, setCustomerComment] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState(
     () => localStorage.getItem('client-last-delivery-address') || ''
+  );
+  const [tableNumber, setTableNumber] = useState(
+    () => localStorage.getItem('client-table-number') || ''
   );
   const addressSuggestions = useAddressSuggestions(deliveryAddress);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
@@ -90,6 +100,9 @@ export function BookingPage({ catalogId }: Props) {
         return all.filter(method => method === 'digital');
       }
       if (catalog.type === 'services') {
+        if (catalog.subtype === 'studio_club') {
+          return all.filter(method => method === 'digital' || method === 'pickup');
+        }
         return all.filter(method => method === 'on_site' || method === 'at_client');
       }
       return all;
@@ -109,20 +122,11 @@ export function BookingPage({ catalogId }: Props) {
     null;
   const selectedActionValue = selectedAction?.id ?? '';
 
-  const createOrderAndOpenStatus = async (reportPayment: boolean) => {
-    if (!catalog || !selectedItem || !selectedAction) return;
-
-    const order = await createOrder({
+  const createDraftOrder = async () => {
+    if (!catalog || !selectedItem) return null;
+    const draft = await createOrder({
       catalog_id: catalog.id,
       customer_id: userId || 'anonymous',
-      customer_name: customerName.trim(),
-      customer_phone: customerPhone.trim(),
-      customer_comment: customerComment.trim(),
-      fulfillment_method: selectedFulfillment,
-      delivery_address: requiresAddressForFulfillment(selectedFulfillment)
-        ? deliveryAddress.trim()
-        : undefined,
-      payment_method: selectedAction.kind,
       items: [
         {
           item_id: selectedItem.id,
@@ -133,6 +137,25 @@ export function BookingPage({ catalogId }: Props) {
         },
       ],
       total_price: selectedItem.price ?? 0,
+      status: 'created',
+    });
+    setCurrentOrder(draft);
+    return draft;
+  };
+
+  const createOrderAndOpenStatus = async (reportPayment: boolean) => {
+    if (!catalog || !selectedAction || !order) return;
+
+    await updateOrder(order.id, {
+      customer_name: customerName.trim(),
+      customer_phone: customerPhone.trim(),
+      customer_comment: customerComment.trim(),
+      fulfillment_method: selectedFulfillment,
+      table_number: selectedFulfillment === 'to_table' ? tableNumber.trim() : undefined,
+      delivery_address: requiresAddressForFulfillment(selectedFulfillment)
+        ? deliveryAddress.trim()
+        : undefined,
+      payment_method: selectedAction.kind,
     });
 
     if (reportPayment) {
@@ -149,6 +172,9 @@ export function BookingPage({ catalogId }: Props) {
         deliveryAddress.trim()
       );
     }
+    if (selectedFulfillment === 'to_table' && tableNumber.trim()) {
+      localStorage.setItem('client-table-number', tableNumber.trim());
+    }
 
     setCurrentOrder(order);
     clearSelectedItem();
@@ -160,7 +186,7 @@ export function BookingPage({ catalogId }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!catalog || !selectedItem || !selectedAction) return;
+    if (!catalog || !selectedAction || !order) return;
 
     try {
       setIsSubmitting(true);
@@ -172,57 +198,26 @@ export function BookingPage({ catalogId }: Props) {
         toast.error('Укажите адрес');
         return;
       }
-      const currentOrder = getCurrentOrder();
-      if (currentOrder?.id && currentOrder.catalogId === catalog.id) {
-        const existingOrder = await clientOrderService.getById(currentOrder.id);
-        if (existingOrder) {
-          const terminalStatuses = new Set([
-            'cancelled',
-            'rejected',
-            'completed',
-            'ready',
-          ]);
-          if (!terminalStatuses.has(existingOrder.status)) {
-            toast.error(
-              'Нельзя оформить новую запись, пока не завершена текущая'
-            );
-            navigate(`/order/${existingOrder.id}`);
-            return;
-          }
-          clearCurrentOrder();
-        } else {
-          clearCurrentOrder();
-        }
+      if (selectedFulfillment === 'to_table' && !tableNumber.trim()) {
+        toast.error('Укажите номер столика');
+        return;
       }
-
       if (selectedAction.kind === 'payment_in_chat') {
         if (!selectedAction.telegramUrl) {
           setError('Ссылка на Telegram не настроена продавцом.');
           toast.error('Ссылка на Telegram не настроена продавцом');
           return;
         }
-        const order = await createOrder({
-          catalog_id: catalog.id,
-          customer_id: userId || 'anonymous',
+        await updateOrder(order.id, {
           customer_name: customerName.trim(),
           customer_phone: customerPhone.trim(),
           customer_comment: customerComment.trim(),
           fulfillment_method: selectedFulfillment,
+          table_number: selectedFulfillment === 'to_table' ? tableNumber.trim() : undefined,
           delivery_address: requiresAddressForFulfillment(selectedFulfillment)
             ? deliveryAddress.trim()
             : undefined,
           payment_method: selectedAction.kind,
-          items: [
-            {
-              item_id: selectedItem.id,
-              category_id: selectedItem.category_id,
-              title: selectedItem.title,
-              price: selectedItem.price ?? 0,
-              quantity: 1,
-            },
-          ],
-          total_price: selectedItem.price ?? 0,
-          status: 'created',
         });
         await updateStatus(order.id, 'submitted');
         setCurrentOrder(order);
@@ -261,7 +256,7 @@ export function BookingPage({ catalogId }: Props) {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || (orderId && isOrderLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Spinner className="h-7 w-7" />
@@ -286,7 +281,9 @@ export function BookingPage({ catalogId }: Props) {
     );
   }
 
-  if (!selectedItem) {
+  const selectedItemData = selectedItem || (order?.items?.[0] as any);
+
+  if (!selectedItemData) {
     return (
       <div className="min-h-screen bg-background p-4">
         <div className="glass-card rounded-xl p-6 text-center space-y-4">
@@ -302,6 +299,46 @@ export function BookingPage({ catalogId }: Props) {
     );
   }
 
+  if (!orderId) {
+    return (
+      <div className="min-h-screen bg-background p-4 pb-28">
+        <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center">
+          <h1 className="text-lg font-semibold ml-2 flex-1">Выбранная услуга</h1>
+        </div>
+        <Card className="mt-4 glass-card overflow-hidden">
+          <CardHeader className="pb-0 gap-2">
+            {selectedItemData.image_url && (
+              <img
+                src={selectedItemData.image_url}
+                alt={selectedItemData.title}
+                className="w-full h-48 object-cover rounded-xl"
+              />
+            )}
+            <CardTitle className="mt-3 text-xl">{selectedItemData.title}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 pt-3">
+            {selectedItemData.description && (
+              <p className="text-muted-foreground">{selectedItemData.description}</p>
+            )}
+            {typeof selectedItemData.price === 'number' && (
+              <p className="text-xl font-semibold">{selectedItemData.price} ₽</p>
+            )}
+            <Button
+              className="w-full h-12 mt-2"
+              onClick={async () => {
+                const draft = await createDraftOrder();
+                if (!draft) return;
+                navigate(`/booking/${draft.id}`);
+              }}
+            >
+              Перейти к оплате
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const isSbpSelected = selectedAction?.kind === 'light_sbp';
   const shouldShowAddressField = requiresAddressForFulfillment(
     selectedFulfillment
@@ -313,6 +350,9 @@ export function BookingPage({ catalogId }: Props) {
       : selectedAction?.kind === 'light_sbp'
         ? 'Я оплатил'
         : labels.submitLabel;
+  const paymentPurpose = order
+    ? order.order_number || order.id.slice(0, 8).toUpperCase()
+    : 'номер заказа';
 
   return (
     <div className="min-h-screen flex flex-col pb-28 bg-background">
@@ -327,24 +367,24 @@ export function BookingPage({ catalogId }: Props) {
 
         <Card className="glass-card overflow-hidden">
           <CardHeader className="pb-0 gap-2">
-            {selectedItem.image_url && (
+            {selectedItemData.image_url && (
               <img
-                src={selectedItem.image_url}
-                alt={selectedItem.title}
+                src={selectedItemData.image_url}
+                alt={selectedItemData.title}
                 className="w-full h-48 object-cover rounded-xl"
               />
             )}
-            <CardTitle className="mt-3 text-xl">{selectedItem.title}</CardTitle>
+            <CardTitle className="mt-3 text-xl">{selectedItemData.title}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col justify-between pt-3">
-            {selectedItem.description && (
+            {selectedItemData.description && (
               <p className="text-muted-foreground mt-1">
-                {selectedItem.description}
+                {selectedItemData.description}
               </p>
             )}
-            {typeof selectedItem.price === 'number' && (
+            {typeof selectedItemData.price === 'number' && (
               <p className="text-xl font-semibold mt-3">
-                {selectedItem.price} ₽
+                {selectedItemData.price} ₽
               </p>
             )}
           </CardContent>
@@ -445,7 +485,7 @@ export function BookingPage({ catalogId }: Props) {
                                 </p>
                               )}
                               <p className="font-medium text-foreground">
-                                Назначение платежа: номер заказа (после создания)
+                                Назначение платежа: {paymentPurpose}
                               </p>
                             </div>
                           )}
@@ -591,6 +631,21 @@ export function BookingPage({ catalogId }: Props) {
                     </div>
                   )}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {selectedFulfillment === 'to_table' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Номер столика</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Input
+                value={tableNumber}
+                onChange={e => setTableNumber(e.target.value)}
+                placeholder="Например, 12"
+              />
             </CardContent>
           </Card>
         )}

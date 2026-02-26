@@ -19,11 +19,13 @@ export function ItemActions({ item, businessType = 'goods' }: Props) {
   const cartItem = items.find(cartItem => cartItem.item.id === item.id);
   const isInCart = !!cartItem;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     addItem(item, 1);
   };
 
-  const handleRemoveFromCart = () => {
+  const handleRemoveFromCart = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (cartItem && cartItem.quantity > 1) {
       // Decrease quantity by 1
       updateQuantity(item.id, cartItem.quantity - 1);
@@ -33,13 +35,15 @@ export function ItemActions({ item, businessType = 'goods' }: Props) {
     }
   };
 
-  const handleIncreaseQuantity = () => {
+  const handleIncreaseQuantity = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     if (cartItem) {
       updateQuantity(item.id, cartItem.quantity + 1);
     }
   };
 
-  const handleSignUp = () => {
+  const handleSignUp = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setSelectedItem(item);
     navigate('/booking');
   };
@@ -89,7 +93,7 @@ export function ItemActions({ item, businessType = 'goods' }: Props) {
     case 'services':
       return (
         <Button size="sm" className="mt-2 w-fit h-9" onClick={handleSignUp}>
-          <span className="py-1 font-semibold text-sm">Записаться</span>
+          <span className="py-1 font-semibold text-sm">Выбрать</span>
           {typeof item.price === 'number' && (
             <>
               <span className="mx-1">•</span>

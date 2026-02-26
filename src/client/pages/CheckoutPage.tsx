@@ -69,6 +69,9 @@ export function CheckoutPage({ catalogId }: Props) {
   );
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerComment, setCustomerComment] = useState('');
+  const [tableNumber, setTableNumber] = useState(
+    () => localStorage.getItem('client-table-number') || ''
+  );
 
   useEffect(() => {
     if (customerName) return;
@@ -105,6 +108,9 @@ export function CheckoutPage({ catalogId }: Props) {
         return all.filter(method => method === 'digital');
       }
       if (catalog.type === 'services') {
+        if (catalog.subtype === 'studio_club') {
+          return all.filter(method => method === 'digital' || method === 'pickup');
+        }
         return all.filter(method => method === 'on_site' || method === 'at_client');
       }
       return all;
@@ -150,6 +156,10 @@ export function CheckoutPage({ catalogId }: Props) {
         toast.error('Укажите адрес');
         return;
       }
+      if (selectedFulfillment === 'to_table' && !tableNumber.trim()) {
+        toast.error('Укажите номер столика');
+        return;
+      }
 
       if (selectedAction.kind === 'payment_in_chat') {
         if (!selectedAction.telegramUrl) {
@@ -165,6 +175,7 @@ export function CheckoutPage({ catalogId }: Props) {
           delivery_address: requiresAddressForFulfillment(selectedFulfillment)
             ? deliveryAddress.trim()
             : undefined,
+          table_number: selectedFulfillment === 'to_table' ? tableNumber.trim() : undefined,
           payment_method: selectedAction.kind,
         });
         await updateStatus(order.id, 'submitted');
@@ -197,6 +208,7 @@ export function CheckoutPage({ catalogId }: Props) {
         delivery_address: requiresAddressForFulfillment(selectedFulfillment)
           ? deliveryAddress.trim()
           : undefined,
+        table_number: selectedFulfillment === 'to_table' ? tableNumber.trim() : undefined,
         payment_method: selectedAction.kind,
       });
 
@@ -205,6 +217,9 @@ export function CheckoutPage({ catalogId }: Props) {
         deliveryAddress.trim()
       ) {
         localStorage.setItem('client-last-delivery-address', deliveryAddress.trim());
+      }
+      if (selectedFulfillment === 'to_table' && tableNumber.trim()) {
+        localStorage.setItem('client-table-number', tableNumber.trim());
       }
 
       if (selectedAction.kind === 'light_sbp') {
@@ -555,6 +570,21 @@ export function CheckoutPage({ catalogId }: Props) {
                     </div>
                   )}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {selectedFulfillment === 'to_table' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Номер столика</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Input
+                value={tableNumber}
+                onChange={e => setTableNumber(e.target.value)}
+                placeholder="Например, 12"
+              />
             </CardContent>
           </Card>
         )}

@@ -131,6 +131,9 @@ function formatOrderText(order: Record<string, unknown>) {
     `Комментарий: <b>${String(order.customer_comment || 'Нет')}</b>`,
     `Способ оплаты: <b>${paymentLabel}</b>`,
     `Способ получения: <b>${fulfillmentLabel}</b>`,
+    ...(order.table_number
+      ? [`Столик: <b>${String(order.table_number)}</b>`]
+      : []),
     ...(order.delivery_address
       ? [`Адрес: <b>${String(order.delivery_address)}</b>`]
       : []),
