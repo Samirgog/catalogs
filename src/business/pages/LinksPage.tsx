@@ -75,6 +75,14 @@ export function LinksPage() {
   const [copySuccess, setCopySuccess] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [tablesCount, setTablesCount] = useState('10');
+  const clientBotUsername = (import.meta.env.VITE_CLIENT_BOT_USERNAME || 'catalogs_client_bot').replace('@', '');
+  const clientBotAppShortName = import.meta.env.VITE_CLIENT_BOT_APP_SHORT_NAME || '';
+  const buildClientMiniAppLink = (payload: string, table?: number) => {
+    if (clientBotAppShortName) {
+      return `https://t.me/${clientBotUsername}/${clientBotAppShortName}?startapp=${encodeURIComponent(payload)}${table ? `&table=${table}` : ''}`;
+    }
+    return `https://t.me/${clientBotUsername}?startapp=${encodeURIComponent(payload)}${table ? `&table=${table}` : ''}`;
+  };
   const tutorial = useSectionTutorial('links', linksTutorialSteps, {
     enabled: !isGenerating && !qrLoading && Boolean(linkData),
   });
@@ -174,7 +182,7 @@ export function LinksPage() {
         }
         
         // Generate QR code image
-        const catalogUrl = `https://t.me/catalogs_test_1_bot?startapp=${qrLink.slug}`;
+        const catalogUrl = buildClientMiniAppLink(qrLink.slug);
         
         const qrCodeModule = await loadQrCodeModule();
         const qrCodeDataUrl = await qrCodeModule.toDataURL(catalogUrl, { width: 300 });
@@ -259,7 +267,7 @@ export function LinksPage() {
     const rows: Array<{ table: number; qr: string; url: string }> = [];
 
     for (let i = 1; i <= count; i += 1) {
-      const url = `https://t.me/catalogs_test_1_bot?startapp=${linkData.qrLink.slug}&table=${i}`;
+      const url = buildClientMiniAppLink(linkData.qrLink.slug, i);
       const qr = await qrCodeModule.toDataURL(url, { width: 240 });
       rows.push({ table: i, qr, url });
     }

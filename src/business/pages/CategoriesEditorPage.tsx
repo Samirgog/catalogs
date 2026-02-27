@@ -291,7 +291,7 @@ function CategoriesEditorView({
           onDeleteItem={handleDeleteItem}
         />
 
-        {categories.length === 0 && (
+        {!loading && !error && categories.length === 0 && (
           <div className="mt-8 glass-card rounded-xl p-6 text-center space-y-2">
             <div className="flex justify-center">
               <EmptyLottie src={`${import.meta.env.BASE_URL}empty_ghost.lottie`} className="w-40 h-40" />
