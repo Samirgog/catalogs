@@ -6,7 +6,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import type { Item, CatalogType } from "../../types";
+import type { Item, CatalogSubtype, CatalogType } from "../../types";
 import { ItemActions } from "./ItemActions";
 
 type Props = {
@@ -16,9 +16,17 @@ type Props = {
   description?: string;
   item: Item;
   businessType?: CatalogType;
+  businessSubtype?: CatalogSubtype;
 };
 
-export function ItemCard({ srcImage, title, description, item, businessType = 'goods' }: Props) {
+export function ItemCard({
+  srcImage,
+  title,
+  description,
+  item,
+  businessType = 'goods',
+  businessSubtype,
+}: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -38,7 +46,11 @@ export function ItemCard({ srcImage, title, description, item, businessType = 'g
                 {description && <h5 className="font-normal text-muted-foreground text-xs mt-1">{description}</h5>}
               </div>
 
-              <ItemActions item={item} businessType={businessType} />
+              <ItemActions
+                item={item}
+                businessType={businessType}
+                businessSubtype={businessSubtype}
+              />
             </div>
         </CardContent>
       </Card>
@@ -66,7 +78,11 @@ export function ItemCard({ srcImage, title, description, item, businessType = 'g
               <p className="text-xl font-semibold">{item.price} ₽</p>
             )}
             <div>
-              <ItemActions item={item} businessType={businessType} />
+              <ItemActions
+                item={item}
+                businessType={businessType}
+                businessSubtype={businessSubtype}
+              />
             </div>
           </div>
         </DrawerContent>

@@ -77,7 +77,7 @@ export function BookingPage({ catalogId }: Props) {
     () => getClientActionOptions(catalog?.actions),
     [catalog?.actions]
   );
-  const labels = getFlowLabels(catalog?.type ?? 'services');
+  const labels = getFlowLabels(catalog?.type ?? 'services', catalog?.subtype);
   const fulfillmentOptions = useMemo(
     () => {
       const all = (catalog?.fulfillment_methods ?? [])
@@ -224,6 +224,7 @@ export function BookingPage({ catalogId }: Props) {
         clearSelectedItem();
         const message = buildTelegramOrderMessage({
           catalogType: catalog.type,
+          catalogSubtype: catalog.subtype,
           order: {
             ...order,
             fulfillment_method: selectedFulfillment,

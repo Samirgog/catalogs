@@ -922,15 +922,6 @@ export function CatalogEditorPage() {
 
         <div className="space-y-3">
           <Button
-            variant="destructive"
-            className="w-full h-12 justify-start"
-            onClick={handleDeleteCatalog}
-            disabled={isSavingCatalog}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Удалить каталог
-          </Button>
-          <Button
             variant="outline"
             className="w-full h-12 justify-start"
             onClick={handleConfigureCategories}
@@ -976,6 +967,23 @@ export function CatalogEditorPage() {
             Сотрудники и уведомления
           </Button>
         </div>
+
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-destructive">Опасная зона</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="destructive"
+              className="w-full h-12 justify-start"
+              onClick={handleDeleteCatalog}
+              disabled={isSavingCatalog}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Удалить каталог
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Fixed Save Button */}

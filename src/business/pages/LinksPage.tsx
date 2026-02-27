@@ -208,21 +208,76 @@ export function LinksPage() {
       rows.push({ table: i, qr, url });
     }
 
-    const html = `<!doctype html><html><head><meta charset=\"utf-8\"/><title>QR столиков</title><style>body{font-family:Arial,sans-serif;padding:20px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.card{border:1px solid #ddd;border-radius:12px;padding:12px;text-align:center}img{width:180px;height:180px;object-fit:contain}.url{font-size:11px;word-break:break-all;color:#555}</style></head><body><h1>QR-коды столиков</h1><div class=\"grid\">${rows
-      .map(
-        row =>
-          `<div class=\"card\"><h2>Столик ${row.table}</h2><img src=\"${row.qr}\"/><div class=\"url\">${row.url}</div></div>`
-      )
-      .join('')}</div></body></html>`;
+    const columns = 2;
+    const rowHeight = 320;
+    const cardWidth = 420;
+    const rowsCount = Math.ceil(rows.length / columns);
+    const canvas = document.createElement('canvas');
+    canvas.width = cardWidth * columns;
+    canvas.height = rowHeight * rowsCount + 80;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      toast.error('Не удалось подготовить файл QR');
+      return;
+    }
 
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `table-qrs-${catalogId}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Файл QR для столиков подготовлен');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 28px Arial';
+    ctx.fillText('QR-коды столиков', 20, 44);
+
+    for (let i = 0; i < rows.length; i += 1) {
+      const col = i % columns;
+      const row = Math.floor(i / columns);
+      const x = col * cardWidth + 20;
+      const y = row * rowHeight + 70;
+      const img = new Image();
+      img.src = rows[i].qr;
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise(resolve => {
+        img.onload = resolve;
+      });
+      ctx.strokeStyle = '#d4d4d8';
+      ctx.strokeRect(x, y, cardWidth - 40, rowHeight - 20);
+      ctx.fillStyle = '#111111';
+      ctx.font = 'bold 22px Arial';
+      ctx.fillText(`Столик ${rows[i].table}`, x + 16, y + 34);
+      ctx.drawImage(img, x + 16, y + 48, 180, 180);
+      ctx.fillStyle = '#555';
+      ctx.font = '12px Arial';
+      ctx.fillText(rows[i].url.slice(0, 55), x + 16, y + 250);
+    }
+
+    canvas.toBlob(async blob => {
+      if (!blob) {
+        toast.error('Не удалось подготовить файл QR');
+        return;
+      }
+      const file = new File([blob], `table-qrs-${catalogId}.png`, {
+        type: 'image/png',
+      });
+      if (
+        navigator.share &&
+        (navigator as Navigator & { canShare?: (data: ShareData) => boolean })
+          .canShare?.({ files: [file] })
+      ) {
+        await navigator.share({
+          files: [file],
+          title: 'QR-коды столиков',
+        });
+        toast.success('QR-коды столиков готовы');
+        return;
+      }
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `table-qrs-${catalogId}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      toast.success('QR-коды столиков скачаны');
+    }, 'image/png');
   };
 
   if (isGenerating || qrLoading) {

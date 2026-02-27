@@ -92,15 +92,26 @@ export function OrderStatusPage() {
     orderId ?? null
   );
   const { updateStatus } = useUpdateOrderStatus();
-  const { catalog } = useCatalog(order?.catalog_id ?? null);
+  const { catalog } = useCatalog(
+    order && order.id === orderId ? order.catalog_id : null
+  );
   const [activeOrders, setActiveOrders] = useState<
     Array<{ id: string; orderNumber: string; status: string }>
   >([]);
   useAutoBackButton('/catalog');
 
-  const parsedItems = useMemo(() => asItems(order?.items), [order?.items]);
-  const labels = getFlowLabels(catalog?.type ?? 'goods');
-  const status = order?.status ?? 'created';
+  useEffect(() => {
+    if (!orderId) return;
+    void mutate();
+  }, [orderId, mutate]);
+
+  const displayedOrder = order?.id === orderId ? order : null;
+  const parsedItems = useMemo(
+    () => asItems(displayedOrder?.items),
+    [displayedOrder?.items]
+  );
+  const labels = getFlowLabels(catalog?.type ?? 'goods', catalog?.subtype);
+  const status = displayedOrder?.status ?? 'created';
   const baseStatusMeta = STATUS_META[status] ?? {
     label: status,
     className: 'text-slate-700 bg-slate-200',
@@ -127,19 +138,19 @@ export function OrderStatusPage() {
   }, [catalog?.emergency_telegram]);
 
   useEffect(() => {
-    if (!order) return;
+    if (!displayedOrder) return;
     if (
-      order.status === 'completed' ||
-      order.status === 'cancelled' ||
-      order.status === 'rejected' ||
-      order.status === 'ready'
+      displayedOrder.status === 'completed' ||
+      displayedOrder.status === 'cancelled' ||
+      displayedOrder.status === 'rejected' ||
+      displayedOrder.status === 'ready'
     ) {
       clearCurrentOrder();
-      clearOrderFromHistory(order.id);
+      clearOrderFromHistory(displayedOrder.id);
       return;
     }
-    setCurrentOrder(order);
-  }, [order]);
+    setCurrentOrder(displayedOrder);
+  }, [displayedOrder]);
 
   useEffect(() => {
     if (!catalog?.id) return;
@@ -209,10 +220,10 @@ export function OrderStatusPage() {
   };
 
   const handleCancelOrder = async () => {
-    if (!order) return;
+    if (!displayedOrder) return;
 
     try {
-      await updateStatus(order.id, 'cancelled');
+      await updateStatus(displayedOrder.id, 'cancelled');
       await mutate();
       clearCurrentOrder();
       toast.success(`${labels.orderWord} отменена`);
@@ -263,7 +274,7 @@ export function OrderStatusPage() {
     );
   }
 
-  if (!order) {
+  if (!displayedOrder) {
     return (
       <div className="min-h-screen bg-background p-4">
         <Card>
@@ -296,7 +307,7 @@ export function OrderStatusPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-green-600" />
-              {labels.orderWord} №{getReadableOrderNumber(order)}
+              {labels.orderWord} №{getReadableOrderNumber(displayedOrder)}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -313,22 +324,28 @@ export function OrderStatusPage() {
             </p>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Сумма</span>
-              <span className="font-semibold">{order.total_price} ₽</span>
+              <span className="font-semibold">{displayedOrder.total_price} ₽</span>
             </div>
-            {order.fulfillment_method && (
+            {displayedOrder.fulfillment_method && (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">
                   Способ получения
                 </span>
-                <span className="font-medium">{getFulfillmentLabel(order.fulfillment_method)}</span>
+                <span className="font-medium">{getFulfillmentLabel(displayedOrder.fulfillment_method)}</span>
               </div>
             )}
-            {order.delivery_address && (
+            {displayedOrder.delivery_address && (
               <div className="flex items-start justify-between gap-3">
                 <span className="text-sm text-muted-foreground">Адрес</span>
                 <span className="font-medium text-right break-words">
-                  {order.delivery_address}
+                  {displayedOrder.delivery_address}
                 </span>
+              </div>
+            )}
+            {displayedOrder.table_number && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Столик</span>
+                <span className="font-medium">{displayedOrder.table_number}</span>
               </div>
             )}
           </CardContent>
@@ -440,7 +457,7 @@ export function OrderStatusPage() {
             <CardContent>
               <Button
                 className="w-full"
-                onClick={() => navigate(`/checkout/${order.id}`)}
+                onClick={() => navigate(`/checkout/${displayedOrder.id}`)}
               >
                 Перейти к оплате
               </Button>
@@ -458,7 +475,7 @@ export function OrderStatusPage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => navigate(`/order/${item.id}`)}
+                  onClick={() => navigate(`/order/${item.id}`, { state: null })}
                   className="w-full text-left rounded-xl border p-3 hover:bg-secondary/40"
                 >
                   <p className="font-medium">№{item.orderNumber}</p>

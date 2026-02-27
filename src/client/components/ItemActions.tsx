@@ -1,16 +1,21 @@
 import { Button } from '@/components/ui/button';
 import { Plus, Minus } from 'lucide-react';
 import { useCartStore } from '../stores/cart';
-import type { CatalogType, Item } from '../../types';
+import type { CatalogSubtype, CatalogType, Item } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { useBookingStore } from '../stores';
 
 type Props = {
   item: Item;
   businessType?: CatalogType;
+  businessSubtype?: CatalogSubtype;
 };
 
-export function ItemActions({ item, businessType = 'goods' }: Props) {
+export function ItemActions({
+  item,
+  businessType = 'goods',
+  businessSubtype,
+}: Props) {
   const navigate = useNavigate();
   const { items, addItem, removeItem, updateQuantity } = useCartStore();
   const { setSelectedItem } = useBookingStore();
@@ -85,15 +90,24 @@ export function ItemActions({ item, businessType = 'goods' }: Props) {
               onClick={handleAddToCart}
             >
               <Plus size={16} />
+              <span className="font-medium">В корзину</span>
+              <span>•</span>
               <span className="font-semibold">{item.price} ₽</span>
             </Button>
           )}
         </>
       );
     case 'services':
+      {
+        const label =
+          businessSubtype === 'private_master'
+            ? 'Заказать услугу'
+            : businessSubtype === 'studio_club'
+              ? 'В корзину'
+              : 'Выбрать';
       return (
         <Button size="sm" className="mt-2 w-fit h-9" onClick={handleSignUp}>
-          <span className="py-1 font-semibold text-sm">Выбрать</span>
+          <span className="py-1 font-semibold text-sm">{label}</span>
           {typeof item.price === 'number' && (
             <>
               <span className="mx-1">•</span>
@@ -102,6 +116,7 @@ export function ItemActions({ item, businessType = 'goods' }: Props) {
           )}
         </Button>
       );
+      }
     default:
       return null;
   }

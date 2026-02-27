@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Receipt, ShoppingCart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useCartStore } from '../stores/cart';
 import { CatalogHeader, CategorySection, CategoryTabs } from '../components';
 import { type CatalogType } from '../../types';
@@ -8,6 +8,7 @@ import { useCatalog } from '../hooks/useCatalogs';
 import { getCurrentOrder } from '../utils/currentOrder';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
+import { useTelegramNavigation } from '@/hooks/useTelegramNavigation';
 
 type Props = {
   catalogId: string;
@@ -15,6 +16,11 @@ type Props = {
 
 export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromFoodcourt = Boolean(
+    (location.state as { fromFoodcourt?: boolean } | null)?.fromFoodcourt
+  );
+  const { setShowBackButton } = useTelegramNavigation('/foodcourt');
   const { catalog, isLoading, isError } = useCatalog(catalogId);
   const { getTotalItems, getTotalPrice } = useCartStore();
   const [currentOrderId] = useState<string | null>(
@@ -40,6 +46,11 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
   }, [isError]);
 
   useEffect(() => {
+    setShowBackButton(fromFoodcourt);
+    return () => setShowBackButton(false);
+  }, [fromFoodcourt, setShowBackButton]);
+
+  useEffect(() => {
     const direct = new URLSearchParams(window.location.search).get('table');
     const hashQueryRaw = window.location.hash.split('?')[1] || '';
     const hashTable = new URLSearchParams(hashQueryRaw).get('table');
@@ -47,6 +58,7 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
     if (table) {
       localStorage.setItem('client-table-number', table);
     }
+    localStorage.setItem('client-current-catalog-id', catalogId);
   }, []);
 
   if (isLoading) {
@@ -101,6 +113,7 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
             title={c.title}
             items={c.items ?? []}
             businessType={businessType}
+            businessSubtype={catalog.subtype}
           />
         ))}
       </div>
@@ -133,7 +146,7 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
       {currentOrderId && (
         <button
           onClick={handleGoToCurrentOrder}
-          className={`fixed right-4 z-50 rounded-full h-14 w-14 bg-primary text-primary-foreground shadow-lg flex items-center justify-center ${
+          className={`fixed right-4 z-50 rounded-2xl h-14 px-4 bg-primary text-primary-foreground shadow-lg flex items-center justify-center gap-2 ${
             businessType === 'goods' && itemsCount > 0
               ? 'bottom-24'
               : 'bottom-4'
@@ -141,6 +154,7 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
           aria-label="Открыть текущий заказ"
         >
           <Receipt size={22} />
+          <span className="text-sm font-medium">Заказ</span>
         </button>
       )}
     </div>

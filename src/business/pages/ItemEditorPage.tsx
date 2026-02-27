@@ -141,10 +141,13 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
       
       // Navigate back to categories editor
       navigate(`/categories/editor/${catalogId}`, {
-        state: {
-          pendingCategoryId: categoryId,
-          pendingUntil: Date.now() + 2500,
-        },
+        state: itemId
+          ? undefined
+          : {
+              pendingCategoryId: categoryId,
+              pendingMode: 'create',
+              pendingUntil: Date.now() + 1200,
+            },
       });
     } catch (error) {
       if (error instanceof ValidationError) {
@@ -338,22 +341,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
             />
           </div>
           
-          <div>
-            <Label htmlFor="item-position" className="block mb-2 text-sm font-medium">
-              Приоритет внутри категории
-            </Label>
-            <Input
-              id="item-position"
-              type="number"
-              min={1}
-              value={priorityInput}
-              onChange={(e) => {
-                setPriorityInput(e.target.value);
-              }}
-              placeholder="1"
-              className="w-full glass-input"
-            />
-          </div>
+          <input type="hidden" value={priorityInput} readOnly />
         </div>
       </div>
 

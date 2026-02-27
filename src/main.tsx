@@ -18,14 +18,14 @@ const initTelegramWebApp = () => {
       WebApp.disableVerticalSwipes();
       
       // Set header/background color to match app theme
-      const bg = getComputedStyle(document.documentElement)
-        .getPropertyValue('--background')
-        .trim();
-      const fallback = '#0f172a';
-      const color = bg ? `hsl(${bg})` : fallback;
-      WebApp.setHeaderColor(color);
+      const tgTheme = WebApp.themeParams || {};
+      const preferred =
+        tgTheme.secondary_bg_color ||
+        tgTheme.bg_color ||
+        '#f8fafc';
+      WebApp.setHeaderColor(preferred);
       if (typeof WebApp.setBackgroundColor === 'function') {
-        WebApp.setBackgroundColor(color);
+        WebApp.setBackgroundColor(preferred);
       }
       
       // Enable closing confirmation

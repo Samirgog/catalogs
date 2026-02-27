@@ -1,5 +1,5 @@
 import './App.css';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 
 // Client pages
@@ -8,6 +8,7 @@ import {
   CartPage,
   CheckoutPage,
   CatalogPage,
+  FoodcourtCatalogsPage,
   OrderStatusPage,
 } from '../client/pages';
 
@@ -99,6 +100,22 @@ export function App() {
             </>
           )}
 
+          {userEntry.type === 'place' && (
+            <>
+              <Route path="/" element={<Navigate to="/foodcourt" replace />} />
+              <Route
+                path="/foodcourt"
+                element={<FoodcourtCatalogsPage placeId={userEntry.placeId || ''} />}
+              />
+              <Route path="/catalog/:catalogId" element={<CatalogByRoute />} />
+              <Route path="/order/:orderId" element={<OrderStatusPage />} />
+              <Route path="/cart" element={<CartByContext />} />
+              <Route path="/checkout/:orderId" element={<CheckoutByRoute />} />
+              <Route path="/booking/:orderId" element={<BookingByRoute />} />
+              <Route path="/booking" element={<BookingByRoute />} />
+            </>
+          )}
+
           {userEntry.type === 'admin' && (
             <>
               <Route path="/" element={<Navigate to="/catalogs" replace />} />
@@ -145,4 +162,31 @@ export function App() {
       </div>
     </HashRouter>
   );
+}
+
+function CatalogByRoute() {
+  const { catalogId = '' } = useParams<{ catalogId: string }>();
+  return <CatalogPage catalogId={catalogId} />;
+}
+
+function CheckoutByRoute() {
+  const { catalogId } = useParams<{ catalogId?: string }>();
+  const fallback = localStorage.getItem('client-current-catalog-id') || '';
+  const resolvedCatalogId = catalogId || fallback;
+  if (!resolvedCatalogId) return <Navigate to="/" replace />;
+  return <CheckoutPage catalogId={resolvedCatalogId} />;
+}
+
+function CartByContext() {
+  const resolvedCatalogId = localStorage.getItem('client-current-catalog-id') || '';
+  if (!resolvedCatalogId) return <Navigate to="/" replace />;
+  return <CartPage catalogId={resolvedCatalogId} />;
+}
+
+function BookingByRoute() {
+  const { catalogId } = useParams<{ catalogId?: string }>();
+  const fallback = localStorage.getItem('client-current-catalog-id') || '';
+  const resolvedCatalogId = catalogId || fallback;
+  if (!resolvedCatalogId) return <Navigate to="/" replace />;
+  return <BookingPage catalogId={resolvedCatalogId} />;
 }

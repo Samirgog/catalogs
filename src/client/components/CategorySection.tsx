@@ -1,14 +1,21 @@
 import { ItemCard } from "./ItemCard";
-import type { CatalogType, Item } from "../../types";
+import type { CatalogSubtype, CatalogType, Item } from "../../types";
 
 type Props = {
   id: string;
   title: string;
   items: Item[];
   businessType?: CatalogType;
+  businessSubtype?: CatalogSubtype;
 };
 
-export function CategorySection({ id, title, items, businessType = 'goods' }: Props) {
+export function CategorySection({
+  id,
+  title,
+  items,
+  businessType = 'goods',
+  businessSubtype,
+}: Props) {
     const visibleItems = items
       .filter(item => item.is_available)
       .sort((a, b) => (a.position || 0) - (b.position || 0));
@@ -26,6 +33,7 @@ export function CategorySection({ id, title, items, businessType = 'goods' }: Pr
                   price={item.price}
                   item={item}
                   businessType={businessType}
+                  businessSubtype={businessSubtype}
                 />
               )
             })}

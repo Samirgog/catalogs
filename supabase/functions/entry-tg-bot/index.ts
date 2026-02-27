@@ -9,6 +9,7 @@ if (!BOT_TOKEN) {
 }
 
 const TG_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
+const awaitingClientLink = new Set<number>();
 
 async function tg(method: string, body: unknown) {
   const res = await fetch(`${TG_API}/${method}`, {
@@ -50,25 +51,31 @@ function webAppInline(role: 'admin' | 'catalog', startapp?: string) {
 
 function helpText() {
   return [
-    'Привет! Это единая точка входа в ваш каталог-сервис.',
+    'Добро пожаловать!',
+    'Этот бот помогает быстро открыть каталог:',
+    '• владельцу бизнеса — для управления',
+    '• клиенту — для оформления заказа',
     '',
-    'Что умеет бот:',
-    '• открыть мини-апп для владельца (бизнес)',
-    '• открыть мини-апп для клиента',
-    '• сохранить быстрый доступ через меню',
+    'Как пользоваться:',
+    '1) Нажмите «Войти как бизнес», если вы владелец каталога.',
+    '2) Нажмите «Войти как клиент», отправьте ссылку/QR каталога и бот откроет нужный экран.',
+    '3) Если что-то не работает, нажмите «Поддержка».',
     '',
-    'Как использовать:',
-    '1) Нажмите «Войти как бизнес», если вы управляете каталогами.',
-    '2) Нажмите «Войти как клиент», если хотите открыть каталог по ссылке/QR.',
-    '3) Если пришли по deep-link с параметром startapp, он сохранится и будет использован при открытии.',
-    '',
-    'Если нужна помощь по подключению, нажмите «Поддержка».',
+    'Мы стараемся сделать работу с каталогами максимально простой и быстрой.',
   ].join('\n');
 }
 
 function extractStartPayload(text: string): string {
   const payload = text.replace(/^\/(start|startapp)\s*/i, '').trim();
   return payload;
+}
+
+function extractStartappFromLink(input: string): string {
+  const match = input.match(/startapp=([^&\\s]+)/i);
+  if (match?.[1]) return decodeURIComponent(match[1]);
+  const slugMatch = input.match(/#\\/catalog\\/([a-zA-Z0-9_\\-]+)/);
+  if (slugMatch?.[1]) return slugMatch[1];
+  return '';
 }
 
 async function sendMainMenu(chatId: number, startPayload = '') {
@@ -134,10 +141,30 @@ serve(async req => {
     }
 
     if (text === 'Войти как клиент') {
+      awaitingClientLink.add(chatId);
       await tg('sendMessage', {
         chat_id: chatId,
-        text: 'Откройте клиентскую часть (последний/переданный каталог):',
-        reply_markup: webAppInline('catalog'),
+        text: 'Отправьте ссылку на каталог (или ссылку из QR-кода), и я открою его для клиента.',
+        reply_markup: menuKeyboard,
+      });
+      return new Response('OK');
+    }
+
+    if (awaitingClientLink.has(chatId)) {
+      const startapp = extractStartappFromLink(text);
+      if (!startapp) {
+        await tg('sendMessage', {
+          chat_id: chatId,
+          text: 'Не вижу параметр каталога в ссылке. Пришлите полную ссылку из QR или Telegram.',
+          reply_markup: menuKeyboard,
+        });
+        return new Response('OK');
+      }
+      awaitingClientLink.delete(chatId);
+      await tg('sendMessage', {
+        chat_id: chatId,
+        text: 'Готово! Открывайте каталог:',
+        reply_markup: webAppInline('catalog', startapp),
       });
       return new Response('OK');
     }

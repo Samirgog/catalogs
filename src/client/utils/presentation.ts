@@ -1,4 +1,4 @@
-import type { CatalogType, Order } from '../../types';
+import type { CatalogSubtype, CatalogType, Order } from '../../types';
 
 const asRecord = (value: unknown): Record<string, unknown> => {
   if (!value || typeof value !== 'object') return {};
@@ -8,7 +8,32 @@ const asRecord = (value: unknown): Record<string, unknown> => {
 const asItems = (value: unknown): Record<string, unknown>[] =>
   Array.isArray(value) ? value.map(asRecord) : [];
 
-export const getFlowLabels = (catalogType: CatalogType) => {
+export const getFlowLabels = (
+  catalogType: CatalogType,
+  catalogSubtype?: CatalogSubtype
+) => {
+  if (catalogType === 'services' && catalogSubtype === 'private_master') {
+    return {
+      orderWord: 'Заказ',
+      ordersWord: 'Заказы',
+      itemWord: 'Услуга',
+      itemsWord: 'Услуги',
+      checkoutTitle: 'Оформление заказа',
+      submitLabel: 'Подтвердить заказ',
+    };
+  }
+
+  if (catalogType === 'services' && catalogSubtype === 'studio_club') {
+    return {
+      orderWord: 'Заказ',
+      ordersWord: 'Заказы',
+      itemWord: 'Товар',
+      itemsWord: 'Товары',
+      checkoutTitle: 'Оформление заказа',
+      submitLabel: 'Подтвердить заказ',
+    };
+  }
+
   if (catalogType === 'services') {
     return {
       orderWord: 'Запись',
@@ -36,9 +61,10 @@ export const getReadableOrderNumber = (order: Order) => {
 
 export const buildTelegramOrderMessage = (params: {
   catalogType: CatalogType;
+  catalogSubtype?: CatalogSubtype;
   order: Order;
 }) => {
-  const labels = getFlowLabels(params.catalogType);
+  const labels = getFlowLabels(params.catalogType, params.catalogSubtype);
   const number = getReadableOrderNumber(params.order);
   const items = asItems(params.order.items);
 

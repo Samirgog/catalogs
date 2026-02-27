@@ -13,6 +13,11 @@ export type User = {
 export type UserEntry = {
   type: 'admin' | 'catalog';
   catalogId?: string;
+  placeId?: string;
+} | {
+  type: 'place';
+  placeId?: string;
+  catalogId?: string;
 } | null;
 
 export type AuthResponse = {

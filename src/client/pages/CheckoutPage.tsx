@@ -85,7 +85,7 @@ export function CheckoutPage({ catalogId }: Props) {
     () => getClientActionOptions(catalog?.actions),
     [catalog?.actions]
   );
-  const labels = getFlowLabels(catalog?.type ?? 'goods');
+  const labels = getFlowLabels(catalog?.type ?? 'goods', catalog?.subtype);
   const fulfillmentOptions = useMemo(
     () => {
       const all = (catalog?.fulfillment_methods ?? [])
@@ -182,6 +182,7 @@ export function CheckoutPage({ catalogId }: Props) {
         setCurrentOrder(order);
         const message = buildTelegramOrderMessage({
           catalogType: catalog.type,
+          catalogSubtype: catalog.subtype,
           order: {
             ...order,
             fulfillment_method: selectedFulfillment,

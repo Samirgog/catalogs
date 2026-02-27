@@ -58,10 +58,30 @@ export const catalogService = {
 
   // Delete catalog
   async delete(id: string): Promise<void> {
-    const { error } = await businessSupabase
-      .from('catalogs')
+    const { data: categories } = await businessSupabase
+      .from('categories')
+      .select('id')
+      .eq('catalog_id', id);
+
+    const categoryIds = (categories ?? []).map(row => row.id);
+    if (categoryIds.length > 0) {
+      await businessSupabase.from('items').delete().in('category_id', categoryIds);
+      await businessSupabase.from('categories').delete().in('id', categoryIds);
+    }
+
+    await businessSupabase.from('actions').delete().eq('catalog_id', id);
+    await businessSupabase
+      .from('catalog_fulfillment_methods')
       .delete()
-      .eq('id', id);
+      .eq('catalog_id', id);
+    await businessSupabase.from('qr_links').delete().eq('target_type', 'catalog').eq('target_id', id);
+    await businessSupabase.from('place_catalogs').delete().eq('catalog_id', id);
+    await businessSupabase.from('catalog_staff_members').delete().eq('catalog_id', id);
+    await businessSupabase.from('catalog_staff_codes').delete().eq('catalog_id', id);
+    await businessSupabase.from('order_notifications').delete().eq('catalog_id', id);
+    await businessSupabase.from('orders').delete().eq('catalog_id', id);
+
+    const { error } = await businessSupabase.from('catalogs').delete().eq('id', id);
 
     if (error) throw error;
   }
