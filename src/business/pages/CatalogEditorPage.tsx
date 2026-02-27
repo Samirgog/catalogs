@@ -1,28 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import {
-  Save,
-  Trash2,
-  FolderOpen,
-  Settings,
-  Upload,
-  X,
-  Link,
-  Users,
-  Truck,
-} from 'lucide-react';
+import { Save } from 'lucide-react';
 import { useCatalog, useCatalogs } from '../hooks/useCatalogs';
 import { useImagePreview } from '../hooks/useImages';
 import { uploadImage } from '../services/images'; // Direct import for upload
-import type { CatalogFormData, CatalogSubtype, CatalogType, Place } from '../../types';
+import type { CatalogSubtype, Place } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group.tsx';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
 import { useAddressSuggestions } from '@/hooks/useAddressSuggestions';
@@ -30,74 +15,54 @@ import { placesService } from '../services/places';
 import { fulfillmentService } from '../services/fulfillment';
 import { actionService } from '../services/actions';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  buildCatalogPayload,
+  createInitialCatalogForm,
+  getSyncValidationError,
+  toShortAddress,
+} from './CatalogEditorPage/config';
+import { NavActionButtons } from './CatalogEditorPage/components/NavActionButtons';
+import { DangerZoneCard } from './CatalogEditorPage/components/DangerZoneCard';
+import { BannerSection } from './CatalogEditorPage/components/BannerSection';
+import { BasicSettingsSection } from './CatalogEditorPage/components/BasicSettingsSection';
+import { TypeSubtypeSection } from './CatalogEditorPage/components/TypeSubtypeSection';
+import { FoodcourtSection } from './CatalogEditorPage/components/FoodcourtSection';
+import { TourOverlay } from '../tutorial/TourOverlay';
+import { useSectionTutorial } from '../tutorial/useSectionTutorial';
+import type { TutorialStep } from '../tutorial/types';
+import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
 
-const catalogOptions = [
+const catalogEditorTutorialSteps: TutorialStep[] = [
   {
-    value: 'goods',
-    title: 'Товары',
-    description: 'Продажа физических товаров',
+    id: 'banner',
+    target: '[data-tour="catalog-editor-banner"]',
+    title: 'Баннер каталога',
+    description: 'Загрузите изображение. Оно будет отображаться в шапке каталога у клиентов.',
   },
   {
-    value: 'services',
-    title: 'Услуги',
-    description: 'Предоставление услуг с возможностью записаться',
+    id: 'title',
+    target: '[data-tour="catalog-editor-title"]',
+    title: 'Название каталога',
+    description: 'Укажите понятное название, по которому вас смогут быстро найти.',
+  },
+  {
+    id: 'type',
+    target: '[data-tour="catalog-editor-type-subtype"]',
+    title: 'Тип и подтип бизнеса',
+    description: 'От выбора зависит логика оформления заказа и доступные способы получения.',
+  },
+  {
+    id: 'actions',
+    target: '[data-tour="catalog-editor-nav-actions"]',
+    title: 'Переход к настройкам',
+    description: 'Здесь открываются категории, способы оплаты, выдачи, сотрудники и ссылки.',
+  },
+  {
+    id: 'save',
+    target: '[data-tour="catalog-editor-save"]',
+    title: 'Сохранение',
+    description: 'Перед выходом из раздела нажмите «Сохранить», чтобы изменения не потерялись.',
   },
 ];
-
-const subtypeOptions: Record<CatalogType, Array<{
-  value: CatalogSubtype;
-  title: string;
-  description: string;
-}>> = {
-  goods: [
-    {
-      value: 'shop',
-      title: 'Магазин',
-      description: 'Классические товары, витрина и корзина',
-    },
-    {
-      value: 'cafe_restaurant',
-      title: 'Кафе/Ресторан',
-      description: 'Еда и напитки, поддержка выдачи к столику',
-    },
-    {
-      value: 'digital_store',
-      title: 'Цифровой магазин',
-      description: 'Цифровые товары и доступы',
-    },
-  ],
-  services: [
-    {
-      value: 'salon',
-      title: 'Салон',
-      description: 'Услуги в точке (beauty/wellness и т.п.)',
-    },
-    {
-      value: 'private_master',
-      title: 'Частный мастер',
-      description: 'Выездные и локальные услуги частного специалиста',
-    },
-    {
-      value: 'studio_club',
-      title: 'Студия/Клуб (абонементы)',
-      description: 'Услуги и абонементные форматы',
-    },
-  ],
-};
-
-const toShortAddress = (value: string) =>
-  value
-    .split(',')
-    .map(part => part.trim())
-    .filter(Boolean)
-    .slice(0, 3)
-    .join(', ');
 
 export function CatalogEditorPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
@@ -121,19 +86,7 @@ export function CatalogEditorPage() {
 
   // Form state
   const draftKey = `catalog-editor-draft:${catalogId || 'new'}`;
-  const [formData, setFormData] = useState({
-    title: '',
-    banner_url: '',
-    address: '',
-    subtype: 'shop' as CatalogSubtype,
-    is_open_24_7: false,
-    work_start: '',
-    work_end: '',
-    emergency_phone: '',
-    emergency_telegram: '',
-    is_active: true,
-    type: 'goods' as CatalogType,
-  });
+  const [formData, setFormData] = useState(createInitialCatalogForm);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const createdCatalogIdRef = useRef<string | null>(null);
@@ -148,6 +101,9 @@ export function CatalogEditorPage() {
   const [isBindingFoodcourt, setIsBindingFoodcourt] = useState(false);
   const addressSuggestions = useAddressSuggestions(formData.address);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const tutorial = useSectionTutorial('catalog_editor', catalogEditorTutorialSteps, {
+    enabled: !isLoading,
+  });
 
   useEffect(() => {
     try {
@@ -237,6 +193,12 @@ export function CatalogEditorPage() {
     await saveCatalog({ keepOnEditor: false, strictValidation: true });
   };
 
+  useEffect(() => {
+    const currentId = catalogId || createdCatalogIdRef.current;
+    if (!currentId) return;
+    localStorage.setItem('business-current-catalog-id', currentId);
+  }, [catalogId]);
+
   const saveCatalog = async (options?: {
     keepOnEditor?: boolean;
     strictValidation?: boolean;
@@ -248,26 +210,9 @@ export function CatalogEditorPage() {
     if (isSavingCatalog) return '';
     try {
       setIsSavingCatalog(true);
-      if (!formData.title.trim()) {
-        toast.error('Заполните название каталога');
-        return;
-      }
-      if (strictValidation && !formData.emergency_phone.trim()) {
-        toast.error('Укажите номер телефона для связи');
-        return;
-      }
-      if (strictValidation && !formData.emergency_telegram.trim()) {
-        toast.error('Укажите Telegram контакт для связи');
-        return;
-      }
-      if (
-        strictValidation &&
-        !formData.is_open_24_7 &&
-        (!formData.work_start.trim() || !formData.work_end.trim())
-      ) {
-        toast.error(
-          'Укажите время работы "с" и "до" или включите "Круглосуточно"'
-        );
+      const syncValidationError = getSyncValidationError(formData, strictValidation);
+      if (syncValidationError) {
+        toast.error(syncValidationError);
         return;
       }
 
@@ -290,19 +235,7 @@ export function CatalogEditorPage() {
         }
       }
 
-      const catalogData: CatalogFormData = {
-        title: formData.title.trim(),
-        type: formData.type,
-        subtype: formData.subtype,
-        is_active: formData.is_active,
-        banner_url: formData.banner_url,
-        address: toShortAddress(formData.address.trim()),
-        is_open_24_7: formData.is_open_24_7,
-        work_start: formData.is_open_24_7 ? undefined : formData.work_start,
-        work_end: formData.is_open_24_7 ? undefined : formData.work_end,
-        emergency_phone: formData.emergency_phone.trim(),
-        emergency_telegram: formData.emergency_telegram.trim(),
-      };
+      const catalogData = buildCatalogPayload(formData);
 
       let savedCatalogId = catalogId || createdCatalogIdRef.current;
 
@@ -390,13 +323,13 @@ export function CatalogEditorPage() {
     if (file) {
       // Validate file type
       if (!file.type.startsWith('image/')) {
-        console.log('Please select an image file');
+        toast.error('Выберите файл изображения');
         return;
       }
 
       // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        console.log('File size should not exceed 5MB');
+        toast.error('Размер файла не должен превышать 5 МБ');
         return;
       }
 
@@ -438,6 +371,64 @@ export function CatalogEditorPage() {
     fileInputRef.current?.click();
   };
 
+  const updateFormData = (
+    updater: (prev: typeof formData) => typeof formData
+  ) => {
+    setFormData(updater);
+  };
+
+  const handleFoodcourtToggle = async (checked: boolean) => {
+    setFoodcourtEnabled(checked);
+    if (!checked && catalogId && foodcourtPlace) {
+      try {
+        await placesService.detachFromFoodcourt(catalogId);
+        setFoodcourtPlace(null);
+        setSelectedFoodcourtId('');
+        toast.success('Каталог откреплен от фудкорта');
+      } catch {
+        toast.error('Не удалось открепить каталог от фудкорта');
+      }
+    }
+  };
+
+  const handleAttachFoodcourt = async () => {
+    if (!catalogId || !selectedFoodcourtId) return;
+    try {
+      setIsBindingFoodcourt(true);
+      await placesService.attachToFoodcourt(catalogId, selectedFoodcourtId);
+      const linked =
+        foodcourtOptions.find((place) => place.id === selectedFoodcourtId) || null;
+      setFoodcourtPlace(linked);
+      toast.success('Фудкорт успешно привязан');
+    } catch {
+      toast.error('Не удалось привязать фудкорт');
+    } finally {
+      setIsBindingFoodcourt(false);
+    }
+  };
+
+  const handleDetachFoodcourt = async () => {
+    if (!catalogId) return;
+    try {
+      await placesService.detachFromFoodcourt(catalogId);
+      setFoodcourtPlace(null);
+      setSelectedFoodcourtId('');
+      toast.success('Каталог откреплен от фудкорта');
+    } catch {
+      toast.error('Не удалось открепить каталог от фудкорта');
+    }
+  };
+
+  const handleFoodcourtSupport = () => {
+    const text = encodeURIComponent(
+      `Здравствуйте! Не нашел фудкорт в списке.\nКаталог: ${formData.title || 'Без названия'}\nID: ${catalogId || 'new'}`
+    );
+    const supportUsername = (
+      import.meta.env.VITE_SUPPORT_TELEGRAM || 'catalogs_support_bot'
+    ).replace('@', '');
+    window.open(`https://t.me/${supportUsername}?text=${text}`, '_blank');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -458,549 +449,98 @@ export function CatalogEditorPage() {
       )}
       {/* Header */}
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
-        <h1 className="text-2xl font-bold">
-          {isEditing ? 'Редактировать каталог' : 'Создать каталог'}
-        </h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold">
+            {isEditing ? 'Редактировать каталог' : 'Создать каталог'}
+          </h1>
+          <BusinessTutorialLauncher />
+        </div>
       </div>
 
       <div className="p-4 space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Баннер каталога</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {formData?.banner_url || previewUrl ? (
-                <div className="relative rounded-xl overflow-hidden">
-                  <img
-                    src={formData?.banner_url || previewUrl || ''}
-                    alt="Предпросмотр баннера"
-                    className="w-full h-48 object-cover"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="icon"
-                    className="absolute top-3 right-3 h-9 w-9 backdrop-blur-sm"
-                    onClick={handleRemoveImage}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div
-                  className="rounded-xl border-2 border-dashed border-border p-8 text-center cursor-pointer bg-secondary/30"
-                  onClick={triggerFileInput}
-                >
-                  <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
-                  <p className="mt-2 text-sm text-foreground">
-                    Нажмите для загрузки баннера
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    PNG, JPG, GIF до 5MB
-                  </p>
-                </div>
-              )}
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-
-              {(formData?.banner_url || previewUrl) && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={triggerFileInput}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Заменить изображение
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Настройки каталога</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="title" className="block mb-2 text-sm font-medium">
-                Название каталога
-              </Label>
-              <Input
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="Введите название каталога"
-              />
-            </div>
-
-            <div>
-              <Label
-                htmlFor="address"
-                className="block mb-2 text-sm font-medium"
-              >
-                Адрес
-              </Label>
-              <div className="relative">
-                <Input
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onFocus={() => setShowAddressSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowAddressSuggestions(false), 120)}
-                  onChange={handleInputChange}
-                  placeholder="Укажите адрес точки"
-                />
-                {showAddressSuggestions && addressSuggestions.suggestions.length > 0 && (
-                  <div className="absolute z-20 mt-1 w-full rounded-xl border bg-background shadow-lg overflow-hidden">
-                    {addressSuggestions.suggestions.map(option => (
-                      <button
-                        type="button"
-                        key={option.value}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/60"
-                        onClick={() =>
-                          {
-                            setFormData(prev => ({
-                              ...prev,
-                              address: toShortAddress(option.value),
-                            }));
-                            setShowAddressSuggestions(false);
-                          }
-                        }
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-3 py-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label
-                    htmlFor="is_open_24_7"
-                    className="text-base font-medium"
-                  >
-                    Круглосуточно
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Если выключено — нужно указать время работы
-                  </p>
-                </div>
-                <Switch
-                  id="is_open_24_7"
-                  checked={formData.is_open_24_7}
-                  onCheckedChange={(checked: boolean) =>
-                    setFormData(prev => ({
-                      ...prev,
-                      is_open_24_7: checked,
-                    }))
-                  }
-                />
-              </div>
-
-              {!formData.is_open_24_7 && (
-                <div className="flex flex-wrap gap-3 w-full">
-                  <div className="min-w-0 w-[220px] max-w-full">
-                    <Label
-                      htmlFor="work_start"
-                      className="block mb-2 text-sm font-medium"
-                    >
-                      Время начала работы
-                    </Label>
-                    <Input
-                      id="work_start"
-                      name="work_start"
-                      type="time"
-                      className="w-full"
-                      value={formData.work_start}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="min-w-0 w-[220px] max-w-full">
-                    <Label
-                      htmlFor="work_end"
-                      className="block mb-2 text-sm font-medium"
-                    >
-                      Время окончания работы
-                    </Label>
-                    <Input
-                      id="work_end"
-                      name="work_end"
-                      type="time"
-                      className="w-full"
-                      value={formData.work_end}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <Label
-                htmlFor="emergency_phone"
-                className="block mb-2 text-sm font-medium"
-              >
-                Телефон для связи
-              </Label>
-              <Input
-                id="emergency_phone"
-                name="emergency_phone"
-                value={formData.emergency_phone}
-                onChange={handleInputChange}
-                placeholder="+7 900 000-00-00"
-              />
-            </div>
-
-            <div>
-              <Label
-                htmlFor="emergency_telegram"
-                className="block mb-2 text-sm font-medium"
-              >
-                Telegram контакт для связи
-              </Label>
-              <Input
-                id="emergency_telegram"
-                name="emergency_telegram"
-                value={formData.emergency_telegram}
-                onChange={handleInputChange}
-                placeholder="@username или https://t.me/username"
-              />
-            </div>
-
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <Label htmlFor="is_active" className="text-base font-medium">
-                  Активен
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Каталог будет доступен клиентам
-                </p>
-              </div>
-              <Switch
-                id="is_active"
-                checked={formData.is_active}
-                onCheckedChange={(checked: boolean) =>
-                  setFormData(prev => ({
-                    ...prev,
-                    is_active: checked,
-                  }))
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Тип и подтип</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <RadioGroup
-              value={formData.type}
-              onValueChange={(value: CatalogType) =>
-                setFormData(prev => ({
-                  ...prev,
-                  type: value,
-                  subtype: subtypeOptions[value][0].value,
-                }))
-              }
-              className="space-y-3"
-            >
-              {catalogOptions.map(option => (
-                <div
-                  key={option.value}
-                  className="flex items-start gap-3 p-4 glass-card"
-                >
-                  <RadioGroupItem
-                    value={option.value}
-                    id={option.value}
-                    className="mt-1"
-                  />
-                  <div className="flex-1">
-                    <Label
-                      htmlFor={option.value}
-                      className="text-base font-medium leading-none"
-                    >
-                      {option.title}
-                    </Label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {option.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </RadioGroup>
-
-            <div className="space-y-3 pt-2">
-              <p className="text-sm text-muted-foreground">Подтип</p>
-              <RadioGroup
-                value={formData.subtype}
-                onValueChange={(value: CatalogSubtype) =>
-                  setFormData(prev => ({ ...prev, subtype: value }))
-                }
-                className="space-y-2"
-              >
-                {subtypeOptions[formData.type].map(option => (
-                  <div
-                    key={option.value}
-                    className="flex items-start gap-3 p-3 glass-card rounded-xl"
-                  >
-                    <RadioGroupItem
-                      value={option.value}
-                      id={`subtype-${option.value}`}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <Label
-                        htmlFor={`subtype-${option.value}`}
-                        className="text-sm font-medium leading-none"
-                      >
-                        {option.title}
-                      </Label>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {option.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
-          </CardContent>
-        </Card>
-
-        {formData.type === 'goods' && formData.subtype === 'cafe_restaurant' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Фудкорт</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Являюсь частью фудкорта</p>
-                  <p className="text-sm text-muted-foreground">
-                    Включите, если каталог относится к фудкорту
-                  </p>
-                </div>
-                <Switch
-                  checked={foodcourtEnabled}
-                  onCheckedChange={async checked => {
-                    setFoodcourtEnabled(checked);
-                    if (!checked && catalogId && foodcourtPlace) {
-                      try {
-                        await placesService.detachFromFoodcourt(catalogId);
-                        setFoodcourtPlace(null);
-                        setSelectedFoodcourtId('');
-                        toast.success('Каталог откреплен от фудкорта');
-                      } catch {
-                        toast.error('Не удалось открепить каталог от фудкорта');
-                      }
-                    }
-                  }}
-                />
-              </div>
-
-              {foodcourtEnabled && (
-                <>
-                  {foodcourtLoading && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Spinner className="h-4 w-4" />
-                      Проверяем привязку...
-                    </div>
-                  )}
-                  {!foodcourtLoading && (
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label>Выберите фудкорт</Label>
-                        <Select
-                          value={selectedFoodcourtId}
-                          onValueChange={setSelectedFoodcourtId}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Выберите из списка" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {foodcourtOptions.map(place => (
-                              <SelectItem key={place.id} value={place.id}>
-                                {place.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        disabled={!catalogId || !selectedFoodcourtId || isBindingFoodcourt}
-                        onClick={async () => {
-                          if (!catalogId || !selectedFoodcourtId) return;
-                          try {
-                            setIsBindingFoodcourt(true);
-                            await placesService.attachToFoodcourt(
-                              catalogId,
-                              selectedFoodcourtId
-                            );
-                            const linked =
-                              foodcourtOptions.find(
-                                place => place.id === selectedFoodcourtId
-                              ) || null;
-                            setFoodcourtPlace(linked);
-                            toast.success('Фудкорт успешно привязан');
-                          } catch {
-                            toast.error('Не удалось привязать фудкорт');
-                          } finally {
-                            setIsBindingFoodcourt(false);
-                          }
-                        }}
-                      >
-                        {isBindingFoodcourt
-                          ? 'Сохраняем...'
-                          : 'Привязать выбранный фудкорт'}
-                      </Button>
-                      {foodcourtPlace && (
-                        <div className="glass-card p-3 rounded-xl space-y-2">
-                          <p className="text-sm">
-                            Текущий фудкорт: <b>{foodcourtPlace.name}</b>
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {foodcourtPlace.address || 'Адрес не указан'}
-                          </p>
-                          <Button
-                            variant="destructive"
-                            className="w-full"
-                            onClick={async () => {
-                              if (!catalogId) return;
-                              try {
-                                await placesService.detachFromFoodcourt(
-                                  catalogId
-                                );
-                                setFoodcourtPlace(null);
-                                setSelectedFoodcourtId('');
-                                toast.success('Каталог откреплен от фудкорта');
-                              } catch {
-                                toast.error(
-                                  'Не удалось открепить каталог от фудкорта'
-                                );
-                              }
-                            }}
-                          >
-                            Открепиться от фудкорта
-                          </Button>
-                        </div>
-                      )}
-                      <div className="glass-card rounded-xl p-3 space-y-2">
-                        <p className="text-sm text-muted-foreground">
-                          Не нашли нужный фудкорт? Напишите нам и мы поможем
-                        </p>
-                        <Button
-                          variant="secondary"
-                          className="w-full"
-                          onClick={() => {
-                            const text = encodeURIComponent(
-                              `Здравствуйте! Не нашел фудкорт в списке.\nКаталог: ${formData.title || 'Без названия'}\nID: ${catalogId || 'new'}`
-                            );
-                            const supportUsername = (
-                              import.meta.env.VITE_SUPPORT_TELEGRAM ||
-                              'catalogs_support_bot'
-                            ).replace('@', '');
-                            window.open(
-                              `https://t.me/${supportUsername}?text=${text}`,
-                              '_blank'
-                            );
-                          }}
-                        >
-                          Написать в поддержку
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="space-y-3">
-          <Button
-            variant="outline"
-            className="w-full h-12 justify-start"
-            onClick={handleConfigureCategories}
-            disabled={isSavingCatalog}
-          >
-            <FolderOpen className="w-4 h-4 mr-2" />
-            Настроить категории
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full h-12 justify-start"
-            onClick={handleConfigureActions}
-            disabled={isSavingCatalog}
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Способы оплаты и действия
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full h-12 justify-start"
-            onClick={handleConfigureFulfillment}
-            disabled={isSavingCatalog}
-          >
-            <Truck className="w-4 h-4 mr-2" />
-            Способы получения
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full h-12 justify-start"
-            onClick={handleGenerateLink}
-            disabled={isSavingCatalog}
-          >
-            <Link className="w-4 h-4 mr-2" />
-            Получить ссылку и QR-код
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full h-12 justify-start"
-            onClick={handleConfigureStaff}
-            disabled={isSavingCatalog}
-          >
-            <Users className="w-4 h-4 mr-2" />
-            Сотрудники и уведомления
-          </Button>
+        <div data-tour="catalog-editor-banner">
+          <BannerSection
+            bannerUrl={formData.banner_url}
+            previewUrl={previewUrl}
+            onRemove={handleRemoveImage}
+            onTriggerUpload={triggerFileInput}
+            onFileChange={handleImageChange}
+            fileInputRef={fileInputRef}
+          />
         </div>
 
-        <Card className="border-destructive/40 bg-destructive/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base text-destructive">Опасная зона</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Button
-              variant="destructive"
-              className="w-full h-12 justify-start"
-              onClick={handleDeleteCatalog}
-              disabled={isSavingCatalog}
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Удалить каталог
-            </Button>
-          </CardContent>
-        </Card>
+        <BasicSettingsSection
+          formData={formData}
+          onFormChange={updateFormData}
+          onInputChange={handleInputChange}
+          showAddressSuggestions={showAddressSuggestions}
+          setShowAddressSuggestions={setShowAddressSuggestions}
+          addressOptions={addressSuggestions.suggestions}
+          onAddressSelect={(value) =>
+            setFormData((prev) => ({
+              ...prev,
+              address: toShortAddress(value),
+            }))
+          }
+        />
+
+        <TypeSubtypeSection
+          type={formData.type}
+          subtype={formData.subtype}
+          onTypeChange={(value) =>
+            setFormData((prev) => ({
+              ...prev,
+              type: value,
+              subtype: (value === 'goods' ? 'shop' : 'salon') as CatalogSubtype,
+            }))
+          }
+          onSubtypeChange={(value) =>
+            setFormData((prev) => ({ ...prev, subtype: value }))
+          }
+        />
+
+        {formData.type === 'goods' && formData.subtype === 'cafe_restaurant' && (
+          <FoodcourtSection
+            enabled={foodcourtEnabled}
+            loading={foodcourtLoading}
+            selectedFoodcourtId={selectedFoodcourtId}
+            foodcourtOptions={foodcourtOptions}
+            currentFoodcourt={foodcourtPlace}
+            isBindingFoodcourt={isBindingFoodcourt}
+            canAttach={Boolean(catalogId && selectedFoodcourtId)}
+            onEnabledChange={(checked) => {
+              void handleFoodcourtToggle(checked);
+            }}
+            onSelectedFoodcourtChange={setSelectedFoodcourtId}
+            onAttach={() => {
+              void handleAttachFoodcourt();
+            }}
+            onDetach={() => {
+              void handleDetachFoodcourt();
+            }}
+            onSupportClick={handleFoodcourtSupport}
+          />
+        )}
+
+        <NavActionButtons
+          isSavingCatalog={isSavingCatalog}
+          onConfigureCategories={handleConfigureCategories}
+          onConfigureActions={handleConfigureActions}
+          onConfigureFulfillment={handleConfigureFulfillment}
+          onGenerateLink={handleGenerateLink}
+          onConfigureStaff={handleConfigureStaff}
+        />
+
+        <DangerZoneCard
+          isSavingCatalog={isSavingCatalog}
+          onDelete={handleDeleteCatalog}
+        />
       </div>
 
       {/* Fixed Save Button */}
       <div className="fixed bottom-6 left-4 right-4">
         <Button
+          data-tour="catalog-editor-save"
           className="w-full h-14 text-base"
           onClick={handleSave}
           disabled={isSavingCatalog}
@@ -1009,6 +549,13 @@ export function CatalogEditorPage() {
           {isSavingCatalog ? 'Сохранение...' : 'Сохранить'}
         </Button>
       </div>
+      <TourOverlay
+        open={tutorial.open}
+        steps={catalogEditorTutorialSteps}
+        sectionTitle="Редактор каталога"
+        onClose={tutorial.closeAndMarkSeen}
+        onComplete={tutorial.complete}
+      />
     </div>
   );
 }

@@ -12,8 +12,8 @@ interface CategoriesDataProviderProps {
     categoriesError: string | null;
     refreshData: () => void;
     getItemOperations: (categoryId: string) => {
-      createItem: (data: ItemFormData) => Promise<any>;
-      updateItem: (id: string, data: Partial<ItemFormData>) => Promise<any>;
+      createItem: (data: ItemFormData) => Promise<Item>;
+      updateItem: (id: string, data: Partial<ItemFormData>) => Promise<Item>;
       deleteItem: (id: string) => Promise<void>;
     };
   }) => React.ReactNode;
@@ -87,41 +87,20 @@ export function CategoriesDataProvider({ catalogId, children }: CategoriesDataPr
   // Item CRUD operations
   const getItemOperations = (categoryId: string) => ({
     createItem: async (data: ItemFormData) => {
-      try {
-        const newItem = await itemService.create(data, categoryId);
-        // Revalidate items data
-        await mutateItems();
-        return newItem;
-      } catch (error) {
-        console.error('Failed to create item:', error);
-        throw error;
-      }
+      const newItem = await itemService.create(data, categoryId);
+      await mutateItems();
+      return newItem;
     },
     
     updateItem: async (id: string, data: Partial<ItemFormData>) => {
-      try {
-        const updatedItem = await itemService.update(id, data);
-        // Revalidate items data
-        await mutateItems();
-        return updatedItem;
-      } catch (error) {
-        console.error('Failed to update item:', error);
-        throw error;
-      }
+      const updatedItem = await itemService.update(id, data);
+      await mutateItems();
+      return updatedItem;
     },
     
     deleteItem: async (id: string) => {
-      try {
-        console.log('CategoriesDataProvider: Deleting item with ID:', id);
-        await itemService.delete(id);
-        console.log('CategoriesDataProvider: Item deleted from service');
-        // Revalidate items data
-        await mutateItems();
-        console.log('CategoriesDataProvider: Items data mutated');
-      } catch (error) {
-        console.error('Failed to delete item:', error);
-        throw error;
-      }
+      await itemService.delete(id);
+      await mutateItems();
     }
   });
 

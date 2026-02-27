@@ -2,10 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
 import {
@@ -29,6 +25,19 @@ import {
 import type { FulfillmentMethodType } from '@/types';
 import { Spinner } from '@/components/ui/spinner';
 import { useAddressSuggestions } from '@/hooks/useAddressSuggestions';
+import { getAllowedFulfillmentOptions } from '../utils/fulfillment';
+import { isOrderItemLike } from '../utils/orderItems';
+import { FulfillmentOptionsField } from '../components/FulfillmentOptionsField';
+import { CustomerContactFields } from '../components/CustomerContactFields';
+import { ActionOptionsField } from '../components/ActionOptionsField';
+import { AddressFieldCard } from '../components/AddressFieldCard';
+import { TableNumberCard } from '../components/TableNumberCard';
+import {
+  buildOrderUpdatePayload,
+  getFulfillmentFields,
+  persistFulfillmentDraft,
+  validateFulfillmentInput,
+} from '../utils/orderForm';
 
 type Props = {
   catalogId: string;
@@ -79,34 +88,7 @@ export function BookingPage({ catalogId }: Props) {
   );
   const labels = getFlowLabels(catalog?.type ?? 'services', catalog?.subtype);
   const fulfillmentOptions = useMemo(
-    () => {
-      const all = (catalog?.fulfillment_methods ?? [])
-        .filter(method => method.is_enabled)
-        .map(method => method.method);
-
-      if (!catalog) return all;
-      if (catalog.type === 'goods' && catalog.subtype === 'shop') {
-        return all.filter(method => method === 'pickup' || method === 'delivery');
-      }
-      if (catalog.type === 'goods' && catalog.subtype === 'cafe_restaurant') {
-        return all.filter(
-          method =>
-            method === 'pickup' ||
-            method === 'delivery' ||
-            method === 'to_table'
-        );
-      }
-      if (catalog.type === 'goods' && catalog.subtype === 'digital_store') {
-        return all.filter(method => method === 'digital');
-      }
-      if (catalog.type === 'services') {
-        if (catalog.subtype === 'studio_club') {
-          return all.filter(method => method === 'digital' || method === 'pickup');
-        }
-        return all.filter(method => method === 'on_site' || method === 'at_client');
-      }
-      return all;
-    },
+    () => getAllowedFulfillmentOptions(catalog),
     [catalog]
   );
 
@@ -146,35 +128,29 @@ export function BookingPage({ catalogId }: Props) {
   const createOrderAndOpenStatus = async (reportPayment: boolean) => {
     if (!catalog || !selectedAction || !order) return;
 
-    await updateOrder(order.id, {
-      customer_name: customerName.trim(),
-      customer_phone: customerPhone.trim(),
-      customer_comment: customerComment.trim(),
-      fulfillment_method: selectedFulfillment,
-      table_number: selectedFulfillment === 'to_table' ? tableNumber.trim() : undefined,
-      delivery_address: requiresAddressForFulfillment(selectedFulfillment)
-        ? deliveryAddress.trim()
-        : undefined,
-      payment_method: selectedAction.kind,
-    });
+    await updateOrder(
+      order.id,
+      buildOrderUpdatePayload({
+        selectedFulfillment,
+        deliveryAddress,
+        tableNumber,
+        customerName,
+        customerPhone,
+        customerComment,
+        paymentMethod: selectedAction.kind,
+      })
+    );
 
     if (reportPayment) {
       await updateStatus(order.id, 'payment_reported');
     } else {
       await updateStatus(order.id, 'submitted');
     }
-    if (
-      requiresAddressForFulfillment(selectedFulfillment) &&
-      deliveryAddress.trim()
-    ) {
-      localStorage.setItem(
-        'client-last-delivery-address',
-        deliveryAddress.trim()
-      );
-    }
-    if (selectedFulfillment === 'to_table' && tableNumber.trim()) {
-      localStorage.setItem('client-table-number', tableNumber.trim());
-    }
+    persistFulfillmentDraft({
+      selectedFulfillment,
+      deliveryAddress,
+      tableNumber,
+    });
 
     setCurrentOrder(order);
     clearSelectedItem();
@@ -191,15 +167,13 @@ export function BookingPage({ catalogId }: Props) {
     try {
       setIsSubmitting(true);
       setError(null);
-      if (
-        requiresAddressForFulfillment(selectedFulfillment) &&
-        !deliveryAddress.trim()
-      ) {
-        toast.error('Укажите адрес');
-        return;
-      }
-      if (selectedFulfillment === 'to_table' && !tableNumber.trim()) {
-        toast.error('Укажите номер столика');
+      const validationError = validateFulfillmentInput({
+        selectedFulfillment,
+        deliveryAddress,
+        tableNumber,
+      });
+      if (validationError) {
+        toast.error(validationError);
         return;
       }
       if (selectedAction.kind === 'payment_in_chat') {
@@ -208,29 +182,32 @@ export function BookingPage({ catalogId }: Props) {
           toast.error('Ссылка на Telegram не настроена продавцом');
           return;
         }
-        await updateOrder(order.id, {
-          customer_name: customerName.trim(),
-          customer_phone: customerPhone.trim(),
-          customer_comment: customerComment.trim(),
-          fulfillment_method: selectedFulfillment,
-          table_number: selectedFulfillment === 'to_table' ? tableNumber.trim() : undefined,
-          delivery_address: requiresAddressForFulfillment(selectedFulfillment)
-            ? deliveryAddress.trim()
-            : undefined,
-          payment_method: selectedAction.kind,
-        });
+        await updateOrder(
+          order.id,
+          buildOrderUpdatePayload({
+            selectedFulfillment,
+            deliveryAddress,
+            tableNumber,
+            customerName,
+            customerPhone,
+            customerComment,
+            paymentMethod: selectedAction.kind,
+          })
+        );
         await updateStatus(order.id, 'submitted');
         setCurrentOrder(order);
         clearSelectedItem();
+        const fulfillmentFields = getFulfillmentFields({
+          selectedFulfillment,
+          deliveryAddress,
+          tableNumber,
+        });
         const message = buildTelegramOrderMessage({
           catalogType: catalog.type,
           catalogSubtype: catalog.subtype,
           order: {
             ...order,
-            fulfillment_method: selectedFulfillment,
-            delivery_address: requiresAddressForFulfillment(selectedFulfillment)
-              ? deliveryAddress.trim()
-              : undefined,
+            ...fulfillmentFields,
           },
         });
         const link = appendTelegramTextParam(selectedAction.telegramUrl, message);
@@ -282,7 +259,9 @@ export function BookingPage({ catalogId }: Props) {
     );
   }
 
-  const selectedItemData = selectedItem || (order?.items?.[0] as any);
+  const fallbackOrderItem = order?.items?.[0];
+  const selectedItemData =
+    selectedItem || (isOrderItemLike(fallbackOrderItem) ? fallbackOrderItem : null);
 
   if (!selectedItemData) {
     return (
@@ -351,9 +330,10 @@ export function BookingPage({ catalogId }: Props) {
       : selectedAction?.kind === 'light_sbp'
         ? 'Я оплатил'
         : labels.submitLabel;
-  const paymentPurpose = order
+  const orderWordLower = labels.orderWord.toLowerCase();
+  const paymentPurpose = String(order
     ? order.order_number || order.id.slice(0, 8).toUpperCase()
-    : 'номер заказа';
+    : 'номер заказа');
 
   return (
     <div className="min-h-screen flex flex-col pb-28 bg-background">
@@ -395,260 +375,75 @@ export function BookingPage({ catalogId }: Props) {
           <CardHeader>
             <CardTitle>Контактные данные</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <Label htmlFor="booking-name" className="block mb-2">
-                Имя
-              </Label>
-              <Input
-                id="booking-name"
-                value={customerName}
-                onChange={e => setCustomerName(e.target.value)}
-                placeholder="Ваше имя"
-              />
-            </div>
-            <div>
-              <Label htmlFor="booking-phone" className="block mb-2">
-                Телефон
-              </Label>
-              <Input
-                id="booking-phone"
-                value={customerPhone}
-                onChange={e => setCustomerPhone(e.target.value)}
-                placeholder="+7 900 000-00-00"
-              />
-            </div>
-            <div>
-              <Label htmlFor="booking-comment" className="block mb-2">
-                Комментарий
-              </Label>
-              <Textarea
-                id="booking-comment"
-                value={customerComment}
-                onChange={e => setCustomerComment(e.target.value)}
-                placeholder="Комментарий к записи"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Способ оформления</CardTitle>
-          </CardHeader>
           <CardContent>
-            {actionOptions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Владелец каталога пока не настроил способы оформления.
-              </p>
-            ) : (
-              <RadioGroup
-                value={selectedActionValue}
-                onValueChange={setSelectedActionId}
-                className="space-y-3"
-              >
-                {actionOptions.map(option => (
-                  <Label
-                    key={option.id}
-                    htmlFor={`booking-action-${option.id}`}
-                    className={`block w-full rounded-xl p-4 glass-card cursor-pointer ${
-                      selectedActionValue === option.id
-                        ? 'ring-2 ring-primary'
-                        : 'ring-0'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <RadioGroupItem
-                        id={`booking-action-${option.id}`}
-                        value={option.id}
-                        className="mt-1"
-                      />
-                      <div className="flex-1">
-                        <p className="font-medium">{option.label}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {option.description}
-                        </p>
-                        {selectedActionValue === option.id &&
-                          option.kind === 'light_sbp' && (
-                            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
-                              {option.details.bank && (
-                                <p>Банк: {option.details.bank}</p>
-                              )}
-                              {option.details.name && (
-                                <p>Имя: {option.details.name}</p>
-                              )}
-                              {option.details.phone && (
-                                <p>Телефон: {option.details.phone}</p>
-                              )}
-                              {option.details.sbp_link && (
-                                <p className="break-all">
-                                  Ссылка СБП: {option.details.sbp_link}
-                                </p>
-                              )}
-                              <p className="font-medium text-foreground">
-                                Назначение платежа: {paymentPurpose}
-                              </p>
-                            </div>
-                          )}
-                      </div>
-                    </div>
-                  </Label>
-                ))}
-              </RadioGroup>
-            )}
+            <CustomerContactFields
+              idPrefix="booking"
+              customerName={customerName}
+              customerPhone={customerPhone}
+              customerComment={customerComment}
+              onNameChange={setCustomerName}
+              onPhoneChange={setCustomerPhone}
+              onCommentChange={setCustomerComment}
+              commentPlaceholder="Комментарий к записи"
+            />
           </CardContent>
         </Card>
 
-        {fulfillmentOptions.length > 0 && (
-          <Card className="relative z-40">
-            <CardHeader>
-              <CardTitle>Способ получения</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RadioGroup
-                value={selectedFulfillment}
-                onValueChange={value =>
-                  setSelectedFulfillment(value as FulfillmentMethodType)
-                }
-                className="space-y-3"
-              >
-                {fulfillmentOptions.includes('pickup') && (
-                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
-                    <div className="flex items-start gap-3">
-                      <RadioGroupItem value="pickup" className="mt-1" />
-                      <div className="flex-1">
-                        <p className="font-medium">Самовывоз</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Получу {labels.orderWord.toLowerCase()} в точке
-                        </p>
-                      </div>
-                    </div>
-                  </Label>
-                )}
-                {fulfillmentOptions.includes('delivery') && (
-                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
-                    <div className="flex items-start gap-3">
-                      <RadioGroupItem value="delivery" className="mt-1" />
-                      <div className="flex-1">
-                        <p className="font-medium">Доставка</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Нужна доставка {labels.orderWord.toLowerCase()}
-                        </p>
-                      </div>
-                    </div>
-                  </Label>
-                )}
-                {fulfillmentOptions.includes('digital') && (
-                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
-                    <div className="flex items-start gap-3">
-                      <RadioGroupItem value="digital" className="mt-1" />
-                      <div className="flex-1">
-                        <p className="font-medium">Цифровой продукт</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Цифровое получение услуги/доступа
-                        </p>
-                      </div>
-                    </div>
-                  </Label>
-                )}
-                {fulfillmentOptions.includes('to_table') && (
-                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
-                    <div className="flex items-start gap-3">
-                      <RadioGroupItem value="to_table" className="mt-1" />
-                      <div className="flex-1">
-                        <p className="font-medium">К столику</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Обслуживание у столика в заведении
-                        </p>
-                      </div>
-                    </div>
-                  </Label>
-                )}
-                {fulfillmentOptions.includes('on_site') && (
-                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
-                    <div className="flex items-start gap-3">
-                      <RadioGroupItem value="on_site" className="mt-1" />
-                      <div className="flex-1">
-                        <p className="font-medium">На месте</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Приду к исполнителю
-                        </p>
-                      </div>
-                    </div>
-                  </Label>
-                )}
-                {fulfillmentOptions.includes('at_client') && (
-                  <Label className="block w-full rounded-xl p-4 glass-card cursor-pointer">
-                    <div className="flex items-start gap-3">
-                      <RadioGroupItem value="at_client" className="mt-1" />
-                      <div className="flex-1">
-                        <p className="font-medium">У клиента</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Нужен выезд по адресу
-                        </p>
-                      </div>
-                    </div>
-                  </Label>
-                )}
-              </RadioGroup>
-            </CardContent>
-          </Card>
-        )}
+        <ActionOptionsField
+          options={actionOptions}
+          selectedValue={selectedActionValue}
+          onChange={setSelectedActionId}
+          idPrefix="booking"
+          emptyText="Владелец каталога пока не настроил способы оформления."
+          paymentPurpose={paymentPurpose}
+        />
+
+        <FulfillmentOptionsField
+          options={fulfillmentOptions}
+          selected={selectedFulfillment}
+          onChange={setSelectedFulfillment}
+          className="relative z-40"
+          copy={{
+            pickup: {
+              title: 'Самовывоз',
+              description: `Получу ${orderWordLower} в точке`,
+            },
+            delivery: {
+              title: 'Доставка',
+              description: `Нужна доставка ${orderWordLower}`,
+            },
+            digital: {
+              title: 'Цифровой продукт',
+              description: 'Цифровое получение услуги/доступа',
+            },
+            to_table: {
+              title: 'К столику',
+              description: 'Обслуживание у столика в заведении',
+            },
+            on_site: {
+              title: 'На месте',
+              description: 'Приду к исполнителю',
+            },
+            at_client: {
+              title: 'У клиента',
+              description: 'Нужен выезд по адресу',
+            },
+          }}
+        />
 
         {shouldShowAddressField && (
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                Адрес ({getFulfillmentLabel(selectedFulfillment)})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="relative">
-                <Input
-                  value={deliveryAddress}
-                  onFocus={() => setShowAddressSuggestions(true)}
-                  onBlur={() =>
-                    setTimeout(() => setShowAddressSuggestions(false), 120)
-                  }
-                  onChange={e => setDeliveryAddress(e.target.value)}
-                  placeholder="Введите адрес"
-                />
-                {showAddressSuggestions &&
-                  addressSuggestions.suggestions.length > 0 && (
-                    <div className="absolute z-[80] mt-1 w-full rounded-xl border bg-background shadow-lg overflow-hidden">
-                      {addressSuggestions.suggestions.map(option => (
-                        <button
-                          type="button"
-                          key={option.value}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/60"
-                          onClick={() => {
-                            setDeliveryAddress(option.value);
-                            setShowAddressSuggestions(false);
-                          }}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-              </div>
-            </CardContent>
-          </Card>
+          <AddressFieldCard
+            title={`Адрес (${getFulfillmentLabel(selectedFulfillment)})`}
+            value={deliveryAddress}
+            onChange={setDeliveryAddress}
+            suggestions={addressSuggestions.suggestions}
+            showSuggestions={showAddressSuggestions}
+            setShowSuggestions={setShowAddressSuggestions}
+          />
         )}
 
         {selectedFulfillment === 'to_table' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Номер столика</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Input
-                value={tableNumber}
-                onChange={e => setTableNumber(e.target.value)}
-                placeholder="Например, 12"
-              />
-            </CardContent>
-          </Card>
+          <TableNumberCard value={tableNumber} onChange={setTableNumber} />
         )}
 
         {isSbpSelected && (

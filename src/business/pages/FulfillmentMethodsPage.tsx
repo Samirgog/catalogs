@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useCatalog } from '../hooks/useCatalogs';
 import type { FulfillmentMethodType } from '@/types';
 import { Spinner } from '@/components/ui/spinner';
+import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
 
 export function FulfillmentMethodsPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
@@ -135,7 +136,10 @@ export function FulfillmentMethodsPage() {
   return (
     <div className="min-h-screen bg-background pb-28">
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
-        <h1 className="text-2xl font-bold">Способы получения</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold">Способы получения</h1>
+          <BusinessTutorialLauncher />
+        </div>
       </div>
 
       <div className="p-4 space-y-4">

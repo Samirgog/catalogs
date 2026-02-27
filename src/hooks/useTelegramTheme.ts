@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getTelegramWebApp } from '@/lib/telegram';
 
 /**
  * Hook for Telegram WebApp theme detection and application
@@ -11,7 +12,7 @@ export const useTelegramTheme = () => {
   useEffect(() => {
     const applyTheme = () => {
       // Check if we're in Telegram WebApp environment
-      const tg = (window as any).Telegram?.WebApp;
+      const tg = getTelegramWebApp();
       
       if (tg) {
         // Use Telegram's theme params
@@ -19,12 +20,16 @@ export const useTelegramTheme = () => {
         const colorScheme = tg.colorScheme;
         
         // Telegram provides colorScheme which is 'dark' or 'light'
-        const isTgDark = colorScheme === 'dark' || 
-          (themeParams && (
+        const parsedBg = themeParams?.bg_color
+          ? parseInt(themeParams.bg_color.replace('#', ''), 16)
+          : Number.NaN;
+        const isTgDark = colorScheme === 'dark' || Boolean(
+          themeParams && (
             // Dark mode indicators from Telegram theme params
             themeParams.bg_color === '#17212b' ||
-            parseInt(themeParams.bg_color?.replace('#', ''), 16) < 0x500000
-          ));
+            (!Number.isNaN(parsedBg) && parsedBg < 0x500000)
+          )
+        );
         
         setIsDark(isTgDark);
         
@@ -60,11 +65,11 @@ export const useTelegramTheme = () => {
         try {
           // Set header color to match background
           if (themeParams?.bg_color) {
-            tg.setHeaderColor(themeParams.bg_color);
+            tg.setHeaderColor?.(themeParams.bg_color);
           }
           // Set background color for the main content area
           if (themeParams?.bg_color) {
-            tg.setBackgroundColor(themeParams.bg_color);
+            tg.setBackgroundColor?.(themeParams.bg_color);
           }
         } catch (e) {
           // Silently handle if these methods aren't available
@@ -82,7 +87,7 @@ export const useTelegramTheme = () => {
     applyTheme();
 
     // Also listen for theme changes in Telegram
-    const tg = (window as any).Telegram?.WebApp;
+    const tg = getTelegramWebApp();
     if (tg) {
       // Theme might change while app is running
       tg.onEvent('themeChanged', applyTheme);
@@ -95,7 +100,7 @@ export const useTelegramTheme = () => {
     // Listen for system theme changes as fallback
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
-      if (!((window as any).Telegram?.WebApp)) {
+      if (!getTelegramWebApp()) {
         setIsDark(e.matches);
       }
     };

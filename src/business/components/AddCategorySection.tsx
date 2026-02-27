@@ -10,7 +10,7 @@ interface AddCategorySectionProps {
 
 export function AddCategorySection({ title, onTitleChange, onSubmit }: AddCategorySectionProps) {
   return (
-    <div className="mb-4 p-4 glass-card">
+    <div className="mb-4 p-4 glass-card" data-tour="categories-add-category">
       <h2 className="text-lg font-semibold mb-3">Добавить новую категорию</h2>
       <div className="flex gap-2">
         <Input

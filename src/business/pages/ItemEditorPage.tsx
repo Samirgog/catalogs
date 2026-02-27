@@ -12,6 +12,7 @@ import { uploadImage } from '../services/images';
 import { FormValidator, ErrorHandler, ValidationError } from './CategoriesEditorPage/utils';
 import type { ItemFormData } from '@/types';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
+import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
 
 export function ItemEditorPage() {
   const { catalogId, categoryId, itemId } = useParams<{ 
@@ -177,9 +178,12 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
     <div className="min-h-screen bg-background pb-36">
       {/* Header */}
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
-        <h1 className="text-xl font-bold">
-          {itemId ? 'Редактировать товар' : 'Создать товар'}
-        </h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-xl font-bold">
+            {itemId ? 'Редактировать товар' : 'Создать товар'}
+          </h1>
+          <BusinessTutorialLauncher />
+        </div>
       </div>
 
       {/* Content */}
@@ -300,7 +304,6 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
                       const uploadPath = `items/${categoryId}/${safeFileName}`;
                       
                       const imageUrl = await uploadImage(file, uploadPath);
-                      console.log('Uploaded item image URL:', imageUrl);
                       
                       setFormData(prev => ({
                         ...prev,

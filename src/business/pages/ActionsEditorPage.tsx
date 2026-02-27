@@ -11,6 +11,7 @@ import { useActions } from '../hooks/useActions';
 import type { Action, ActionType } from '../../types';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
+import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
 
 type ActionsFormState = {
   paymentOnDeliveryEnabled: boolean;
@@ -200,9 +201,12 @@ export function ActionsEditorPage() {
   return (
     <div className="min-h-screen bg-background pb-28">
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
-        <h1 className="text-2xl font-bold">
-          Настройка способов оплаты и действий
-        </h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold">
+            Настройка способов оплаты и действий
+          </h1>
+          <BusinessTutorialLauncher />
+        </div>
       </div>
 
       <div className="p-4 space-y-4">

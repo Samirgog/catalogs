@@ -1,11 +1,11 @@
 import { uploadImage } from '../../../services/images';
-import type { ItemFormData } from '../../../../types';
+import type { Category, Item, ItemFormData } from '../../../../types';
 import { v4 as uuidv4 } from 'uuid';
 
 interface ItemHandlersProps {
   getItemHook: (categoryId: string) => {
-    createItem: (data: ItemFormData) => Promise<any>;
-    updateItem: (id: string, data: Partial<ItemFormData>) => Promise<any>;
+    createItem: (data: ItemFormData) => Promise<Item>;
+    updateItem: (id: string, data: Partial<ItemFormData>) => Promise<Item>;
     deleteItem: (id: string) => Promise<void>;
   };
 }
@@ -51,7 +51,6 @@ export class ItemHandlers {
       const result = await itemHook.createItem(itemData);
       return result;
     } catch (error) {
-      console.error('Failed to create item:', error);
       throw error;
     }
   }
@@ -97,30 +96,24 @@ export class ItemHandlers {
       const result = await itemHook.updateItem(itemId, itemData);
       return result;
     } catch (error) {
-      console.error('Failed to update item:', error);
       throw error;
     }
   }
 
   async delete(itemId: string, categoryId: string) {
-    console.log('ItemHandlers.delete called with:', { itemId, categoryId });
     try {
       const itemHook = this.props.getItemHook(categoryId);
       if (!itemHook) {
-        console.error('No item hook found for category:', categoryId);
         throw new Error(`No item hook found for category ${categoryId}`);
       }
 
-      console.log('Calling itemHook.deleteItem with ID:', itemId);
       await itemHook.deleteItem(itemId);
-      console.log('itemHook.deleteItem completed successfully');
     } catch (error) {
-      console.error('Failed to delete item:', error);
       throw error;
     }
   }
 
-  async duplicate(originalItem: any, categoryId: string, allCategories: any[]) {
+  async duplicate(originalItem: Item, categoryId: string, allCategories: Array<Category & { items?: Item[] }>) {
     try {
       const itemHook = this.props.getItemHook(categoryId);
       if (!itemHook) {
@@ -142,7 +135,6 @@ export class ItemHandlers {
       const result = await itemHook.createItem(duplicatedItem);
       return result;
     } catch (error) {
-      console.error('Failed to duplicate item:', error);
       throw error;
     }
   }

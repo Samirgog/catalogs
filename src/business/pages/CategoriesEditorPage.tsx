@@ -10,6 +10,42 @@ import { FormValidator, ErrorHandler, ValidationError } from './CategoriesEditor
 import type { Category, Item, CategoryFormData } from '@/types';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { EmptyLottie } from '@/components/empty-lottie';
+import { TourOverlay } from '../tutorial/TourOverlay';
+import { useSectionTutorial } from '../tutorial/useSectionTutorial';
+import type { TutorialStep } from '../tutorial/types';
+import { isTutorialSeen } from '../tutorial/storage';
+import { useCurrentUser } from '@/useTelegramAuth';
+import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
+
+const categoriesTutorialSteps: TutorialStep[] = [
+  {
+    id: 'add-category',
+    target: '[data-tour="categories-add-category"]',
+    title: 'Добавление категории',
+    description: 'Создайте раздел каталога: например, «Напитки» или «Популярное».',
+  },
+  {
+    id: 'categories-list',
+    target: '[data-tour="categories-list"]',
+    title: 'Список категорий и позиций',
+    description: 'Здесь отображаются все категории и товары/услуги внутри них.',
+  },
+  {
+    id: 'add-item',
+    target: '[data-tour="categories-add-item"]',
+    title: 'Добавление товара или услуги',
+    description: 'Кнопка открывает редактор новой позиции внутри выбранной категории.',
+  },
+];
+
+const firstItemTutorialStep: TutorialStep[] = [
+  {
+    id: 'first-item',
+    target: '[data-tour="categories-first-item-card"]',
+    title: 'Карточка товара/услуги',
+    description: 'После создания позиция появляется здесь. Нажмите на меню карточки для редактирования.',
+  },
+];
 
 export function CategoriesEditorPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
@@ -25,7 +61,9 @@ export function CategoriesEditorPage() {
     if (!catalogId) {
       console.error('Missing catalogId parameter');
       navigate('/catalogs');
+      return;
     }
+    localStorage.setItem('business-current-catalog-id', catalogId);
   }, [catalogId, navigate]);
 
   // Early return if no catalogId
@@ -46,7 +84,6 @@ export function CategoriesEditorPage() {
         });
         
         const categoryHandlers = new CategoryHandlers({
-          catalogId,
           createCategory,
           updateCategory,
           deleteCategory
@@ -78,6 +115,21 @@ interface CategoriesEditorViewProps {
   itemHandlers: ItemHandlers;
 }
 
+type PendingLocationState = {
+  pendingCategoryId?: string;
+  pendingMode?: 'create';
+  pendingUntil?: number;
+} | null;
+
+const getPendingCategoryIdFromState = (
+  state: PendingLocationState
+): string | undefined => {
+  if (!state) return undefined;
+  if (state.pendingMode !== 'create') return undefined;
+  if (!state.pendingUntil || state.pendingUntil <= Date.now()) return undefined;
+  return state.pendingCategoryId;
+};
+
 function CategoriesEditorView({
   catalogId,
   categories,
@@ -89,15 +141,21 @@ function CategoriesEditorView({
 }: CategoriesEditorViewProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const pendingCategoryId =
-    (location.state as {
-      pendingCategoryId?: string;
-      pendingMode?: 'create';
-      pendingUntil?: number;
-    } | null)?.pendingMode === 'create' &&
-    (location.state as { pendingUntil?: number }).pendingUntil! > Date.now()
-      ? (location.state as { pendingCategoryId?: string }).pendingCategoryId
-      : undefined;
+  const { user } = useCurrentUser();
+  const userKey = String(user?.id || user?.telegram_id || 'anonymous');
+  const hasAnyItems = categories.some((category) => category.items.length > 0);
+  const isMainTutorialSeen = isTutorialSeen(userKey, 'categories_editor');
+  const mainTutorial = useSectionTutorial('categories_editor', categoriesTutorialSteps, {
+    enabled: !loading,
+  });
+  const firstItemTutorial = useSectionTutorial(
+    'categories_first_item_hint',
+    firstItemTutorialStep,
+    { enabled: !loading && hasAnyItems && isMainTutorialSeen }
+  );
+  const pendingCategoryId = getPendingCategoryIdFromState(
+    (location.state as PendingLocationState) ?? null
+  );
   
   // Refresh data when component mounts or comes back from editor
   useEffect(() => {
@@ -150,16 +208,12 @@ function CategoriesEditorView({
 
   // Item operations
   const handleDeleteItem = async (itemId: string, categoryId: string) => {
-    console.log('Attempting to delete item:', { itemId, categoryId });
     if (!window.confirm('Вы уверены, что хотите удалить этот товар?')) return;
     
     try {
-      console.log('Calling itemHandlers.delete...');
       await itemHandlers.delete(itemId, categoryId);
-      console.log('Delete successful');
       ErrorHandler.showSuccess('Товар удален');
     } catch (error) {
-      console.error('Delete failed:', error);
       ErrorHandler.showError(error, 'Не удалось удалить товар');
     }
   };
@@ -176,9 +230,7 @@ function CategoriesEditorView({
   const handleCategorySubmit = async () => {
     try {
       await handleCreateCategory();
-    } catch (error) {
-      console.error('Category operation failed:', error);
-    }
+    } catch {}
   };
 
 
@@ -187,7 +239,10 @@ function CategoriesEditorView({
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
-        <h1 className="text-2xl font-bold">Редактор каталога</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold">Редактор каталога</h1>
+          <BusinessTutorialLauncher />
+        </div>
       </div>
 
       {/* Loading/Error states */}
@@ -252,12 +307,27 @@ function CategoriesEditorView({
       {/* Navigation Button */}
       <div className="fixed bottom-6 left-4 right-4">
         <Button 
+          data-tour="categories-back"
           className="w-full h-14 text-base"
           onClick={() => navigate(`/catalogs/${catalogId}/edit`)}
         >
           Назад к редактированию каталога
         </Button>
       </div>
+      <TourOverlay
+        open={mainTutorial.open}
+        steps={categoriesTutorialSteps}
+        sectionTitle="Категории и товары"
+        onClose={mainTutorial.closeAndMarkSeen}
+        onComplete={mainTutorial.complete}
+      />
+      <TourOverlay
+        open={firstItemTutorial.open}
+        steps={firstItemTutorialStep}
+        sectionTitle="Карточка позиции"
+        onClose={firstItemTutorial.closeAndMarkSeen}
+        onComplete={firstItemTutorial.complete}
+      />
     </div>
   );
 }

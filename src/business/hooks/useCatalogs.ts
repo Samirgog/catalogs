@@ -5,6 +5,8 @@ import { useUserStore } from '@/userStore';
 
 // SWR fetcher function
 const fetcher = (userId: string) => catalogService.getAll(userId);
+const isCacheKey = (key: unknown, prefix: string) =>
+  Array.isArray(key) && key[0] === prefix;
 
 // Hook for managing catalogs
 export const useCatalogs = () => {
@@ -22,61 +24,50 @@ export const useCatalogs = () => {
   const { mutate: globalMutate } = useSWRConfig();
 
   const createCatalog = async (catalogData: CatalogFormData) => {
-    try {
-      const newCatalog = await catalogService.create(catalogData, user?.id || '');
-      
-      // Optimistically update the cache
-      await mutate(
-        (prev: Catalog[] = []) => [newCatalog, ...prev],
-        { revalidate: false }
-      );
-      
-      // Also invalidate related caches
-      globalMutate(
-        (key: any) => Array.isArray(key) && key[0] === 'catalog' && key[1] === newCatalog.id
-      );
-      
-      return newCatalog;
-    } catch (err) {
-      throw err;
-    }
+    const newCatalog = await catalogService.create(catalogData, user?.id || '');
+    
+    // Optimistically update the cache
+    await mutate(
+      (prev: Catalog[] = []) => [newCatalog, ...prev],
+      { revalidate: false }
+    );
+    
+    // Also invalidate related caches
+    globalMutate(
+      (key: unknown) =>
+        Array.isArray(key) && key[0] === 'catalog' && key[1] === newCatalog.id
+    );
+    
+    return newCatalog;
   };
 
   const updateCatalog = async (id: string, catalogData: Partial<CatalogFormData>) => {
-    try {
-      const updatedCatalog = await catalogService.update(id, catalogData);
-      
-      // Update specific catalog cache
-      globalMutate(['catalog', id], updatedCatalog, false);
-      
-      // Update catalogs list
-      await mutate(
-        (prev: Catalog[] = []) => 
-          prev.map(cat => cat.id === id ? updatedCatalog : cat),
-        { revalidate: false }
-      );
-      
-      return updatedCatalog;
-    } catch (err) {
-      throw err;
-    }
+    const updatedCatalog = await catalogService.update(id, catalogData);
+    
+    // Update specific catalog cache
+    globalMutate(['catalog', id], updatedCatalog, false);
+    
+    // Update catalogs list
+    await mutate(
+      (prev: Catalog[] = []) => 
+        prev.map(cat => cat.id === id ? updatedCatalog : cat),
+      { revalidate: false }
+    );
+    
+    return updatedCatalog;
   };
 
   const deleteCatalog = async (id: string) => {
-    try {
-      await catalogService.delete(id);
-      
-      // Remove from catalogs list
-      await mutate(
-        (prev: Catalog[] = []) => prev.filter(cat => cat.id !== id),
-        { revalidate: false }
-      );
-      
-      // Invalidate specific catalog cache
-      globalMutate(['catalog', id], undefined, { revalidate: false });
-    } catch (err) {
-      throw err;
-    }
+    await catalogService.delete(id);
+    
+    // Remove from catalogs list
+    await mutate(
+      (prev: Catalog[] = []) => prev.filter(cat => cat.id !== id),
+      { revalidate: false }
+    );
+    
+    // Invalidate specific catalog cache
+    globalMutate(['catalog', id], undefined, { revalidate: false });
   };
 
   return {
@@ -105,41 +96,33 @@ export const useCatalog = (id: string) => {
   const { mutate: globalMutate } = useSWRConfig();
 
   const updateCatalog = async (catalogData: Partial<CatalogFormData>) => {
-    try {
-      const updatedCatalog = await catalogService.update(id, catalogData);
-      
-      // Update this catalog cache
-      await mutate(updatedCatalog, { revalidate: false });
-      
-      // Update catalogs list
-      globalMutate(
-        (key: any) => Array.isArray(key) && key[0] === 'catalogs',
-        undefined,
-        { revalidate: true }
-      );
-      
-      return updatedCatalog;
-    } catch (err) {
-      throw err;
-    }
+    const updatedCatalog = await catalogService.update(id, catalogData);
+    
+    // Update this catalog cache
+    await mutate(updatedCatalog, { revalidate: false });
+    
+    // Update catalogs list
+    globalMutate(
+      (key: unknown) => isCacheKey(key, 'catalogs'),
+      undefined,
+      { revalidate: true }
+    );
+    
+    return updatedCatalog;
   };
 
   const deleteCatalog = async () => {
-    try {
-      await catalogService.delete(id);
-      
-      // Clear this catalog cache
-      await mutate(undefined, { revalidate: false });
-      
-      // Update catalogs list
-      globalMutate(
-        (key: any) => Array.isArray(key) && key[0] === 'catalogs',
-        undefined,
-        { revalidate: true }
-      );
-    } catch (err) {
-      throw err;
-    }
+    await catalogService.delete(id);
+    
+    // Clear this catalog cache
+    await mutate(undefined, { revalidate: false });
+    
+    // Update catalogs list
+    globalMutate(
+      (key: unknown) => isCacheKey(key, 'catalogs'),
+      undefined,
+      { revalidate: true }
+    );
   };
 
   return {

@@ -1,9 +1,8 @@
-import type { CategoryFormData } from '../../../../types';
+import type { Category, CategoryFormData } from '../../../../types';
 
 interface CategoryHandlersProps {
-  catalogId: string;
-  createCategory: (data: CategoryFormData) => Promise<any>;
-  updateCategory: (id: string, data: Partial<CategoryFormData>) => Promise<any>;
+  createCategory: (data: CategoryFormData) => Promise<Category>;
+  updateCategory: (id: string, data: Partial<CategoryFormData>) => Promise<Category>;
   deleteCategory: (id: string) => Promise<void>;
 }
 
@@ -28,7 +27,6 @@ export class CategoryHandlers {
       const result = await this.props.createCategory(categoryData);
       return result;
     } catch (error) {
-      console.error('Failed to create category:', error);
       throw error;
     }
   }
@@ -54,7 +52,6 @@ export class CategoryHandlers {
       const result = await this.props.updateCategory(categoryId, categoryData);
       return result;
     } catch (error) {
-      console.error('Failed to update category:', error);
       throw error;
     }
   }
@@ -63,7 +60,6 @@ export class CategoryHandlers {
     try {
       await this.props.deleteCategory(categoryId);
     } catch (error) {
-      console.error('Failed to delete category:', error);
       throw error;
     }
   }

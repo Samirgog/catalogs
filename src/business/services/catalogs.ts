@@ -1,5 +1,6 @@
 import { businessSupabase } from '../../lib/supabase';
 import type { Catalog, CatalogFormData } from '../../types';
+import type { PostgrestError } from '@supabase/supabase-js';
 
 // Catalog Services
 export const catalogService = {
@@ -58,7 +59,7 @@ export const catalogService = {
 
   // Delete catalog
   async delete(id: string): Promise<void> {
-    const assertNoError = (error: any, context: string) => {
+    const assertNoError = (error: PostgrestError | null, context: string) => {
       if (error) {
         throw new Error(`${context}: ${error.message || 'unknown error'}`);
       }

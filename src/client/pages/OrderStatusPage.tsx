@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { CheckCircle2, Clock3, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useOrder, useUpdateOrderStatus } from '../hooks/useOrders';
@@ -15,68 +15,17 @@ import {
 } from '../utils/currentOrder';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
-import { getFlowLabels, getFulfillmentLabel } from '../utils/presentation';
+import { getFlowLabels } from '../utils/presentation';
 import { Spinner } from '@/components/ui/spinner';
 import { clientOrderService } from '../services/orders';
-
-const STATUS_META: Record<
-  string,
-  { label: string; className: string; description: string }
-> = {
-  created: {
-    label: 'Создан',
-    className: 'text-slate-700 bg-slate-200',
-    description: 'Черновик заказа создан. Выберите способ оплаты.',
-  },
-  submitted: {
-    label: 'Оформлен',
-    className: 'text-amber-700 bg-amber-100',
-    description: 'Заказ отправлен продавцу и ожидает обработки.',
-  },
-  payment_reported: {
-    label: 'Оплата отправлена',
-    className: 'text-blue-700 bg-blue-100',
-    description: 'Клиент сообщил об оплате, ожидается подтверждение продавца.',
-  },
-  accepted: {
-    label: 'Принят',
-    className: 'text-green-700 bg-green-100',
-    description: 'Продавец принял заказ в работу.',
-  },
-  rejected: {
-    label: 'Отклонен',
-    className: 'text-red-700 bg-red-100',
-    description: 'Заказ отклонен продавцом.',
-  },
-  ready: {
-    label: 'Готов',
-    className: 'text-indigo-700 bg-indigo-100',
-    description: 'Заказ готов к выдаче.',
-  },
-  new: {
-    label: 'Новый',
-    className: 'text-amber-700 bg-amber-100',
-    description: 'Заказ получен и ожидает обработки.',
-  },
-  paid: {
-    label: 'Оплачен',
-    className: 'text-green-700 bg-green-100',
-    description: 'Оплата подтверждена.',
-  },
-  completed: {
-    label: 'Завершен',
-    className: 'text-slate-700 bg-slate-200',
-    description: 'Заказ завершен.',
-  },
-};
-
-const asRecord = (value: unknown): Record<string, unknown> => {
-  if (!value || typeof value !== 'object') return {};
-  return value as Record<string, unknown>;
-};
-
-const asItems = (value: unknown): Record<string, unknown>[] =>
-  Array.isArray(value) ? value.map(asRecord) : [];
+import { parseOrderItems } from '../utils/orderItems';
+import { normalizeTelegramContactLink } from '../utils/fulfillment';
+import { SellerContactsCard } from '../components/SellerContactsCard';
+import { STATUS_META, TERMINAL_STATUSES } from './OrderStatusPage/statusMeta';
+import { OrderStatusSummaryCard } from './OrderStatusPage/components/OrderStatusSummaryCard';
+import { OrderItemsCard } from './OrderStatusPage/components/OrderItemsCard';
+import { ActiveOrdersCard } from './OrderStatusPage/components/ActiveOrdersCard';
+import { OrderNextActionsCard } from './OrderStatusPage/components/OrderNextActionsCard';
 
 type LocationState = {
   action?: ClientActionOption;
@@ -107,7 +56,7 @@ export function OrderStatusPage() {
 
   const displayedOrder = order?.id === orderId ? order : null;
   const parsedItems = useMemo(
-    () => asItems(displayedOrder?.items),
+    () => parseOrderItems(displayedOrder?.items),
     [displayedOrder?.items]
   );
   const labels = getFlowLabels(catalog?.type ?? 'goods', catalog?.subtype);
@@ -127,15 +76,10 @@ export function OrderStatusPage() {
             .replaceAll('заказа', 'записи')
         : baseStatusMeta.description,
   };
-  const sellerTelegramLink = useMemo(() => {
-    const raw = catalog?.emergency_telegram?.trim();
-    if (!raw) return '';
-    if (raw.startsWith('https://') || raw.startsWith('http://')) return raw;
-    if (raw.startsWith('@')) return `https://t.me/${raw.slice(1)}`;
-    if (raw.startsWith('t.me/')) return `https://${raw}`;
-    if (/^[a-zA-Z0-9_]{5,}$/.test(raw)) return `https://t.me/${raw}`;
-    return raw;
-  }, [catalog?.emergency_telegram]);
+  const sellerTelegramLink = useMemo(
+    () => normalizeTelegramContactLink(catalog?.emergency_telegram),
+    [catalog?.emergency_telegram]
+  );
 
   useEffect(() => {
     if (!displayedOrder) return;
@@ -158,18 +102,12 @@ export function OrderStatusPage() {
 
     const load = async () => {
       const refs = getCurrentOrdersByCatalog(catalog.id);
-      const terminalStatuses = new Set([
-        'cancelled',
-        'rejected',
-        'completed',
-        'ready',
-      ]);
       const resolved = await Promise.all(
         refs.map(async ref => {
           try {
             const full = await clientOrderService.getById(ref.id);
             if (!full) return null;
-            if (terminalStatuses.has(full.status)) {
+            if (TERMINAL_STATUSES.has(full.status)) {
               clearOrderFromHistory(full.id);
               return null;
             }
@@ -303,128 +241,20 @@ export function OrderStatusPage() {
       </div>
 
       <div className="p-4 space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
-              {labels.orderWord} №{getReadableOrderNumber(displayedOrder)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Статус</span>
-              <span
-                className={`px-3 py-1 rounded-full text-xs font-medium ${statusMeta.className}`}
-              >
-                {statusMeta.label}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {statusMeta.description}
-            </p>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Сумма</span>
-              <span className="font-semibold">{displayedOrder.total_price} ₽</span>
-            </div>
-            {displayedOrder.fulfillment_method && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  Способ получения
-                </span>
-                <span className="font-medium">{getFulfillmentLabel(displayedOrder.fulfillment_method)}</span>
-              </div>
-            )}
-            {displayedOrder.delivery_address && (
-              <div className="flex items-start justify-between gap-3">
-                <span className="text-sm text-muted-foreground">Адрес</span>
-                <span className="font-medium text-right break-words">
-                  {displayedOrder.delivery_address}
-                </span>
-              </div>
-            )}
-            {displayedOrder.table_number && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Столик</span>
-                <span className="font-medium">{displayedOrder.table_number}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <OrderStatusSummaryCard
+          order={displayedOrder}
+          orderWord={labels.orderWord}
+          statusMeta={statusMeta}
+        />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Позиции</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {parsedItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {labels.orderWord === 'Запись'
-                  ? 'Состав записи отсутствует.'
-                  : 'Состав заказа отсутствует.'}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {parsedItems.map((item, index) => {
-                  const title = String(item.title ?? 'Позиция');
-                  const quantity = Number(item.quantity ?? 1);
-                  const price = Number(item.price ?? 0);
-                  return (
-                    <div
-                      key={`${title}-${index}`}
-                      className="flex items-center justify-between border-b border-border/20 pb-2 last:border-0 last:pb-0"
-                    >
-                      <div>
-                        <p className="font-medium">{title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {quantity} шт.
-                        </p>
-                      </div>
-                      <p className="font-semibold">{price * quantity} ₽</p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <OrderItemsCard items={parsedItems} orderWord={labels.orderWord} />
 
-        {(catalog?.emergency_phone || catalog?.emergency_telegram) && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Связь с продавцом</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              {catalog.emergency_phone && (
-                <p>
-                  Телефон:{' '}
-                  <a
-                    href={`tel:${catalog.emergency_phone}`}
-                    className="underline"
-                  >
-                    {catalog.emergency_phone}
-                  </a>
-                </p>
-              )}
-              {catalog.emergency_telegram && (
-                <p>
-                  Telegram:{' '}
-                  {sellerTelegramLink ? (
-                    <a
-                      href={sellerTelegramLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline"
-                    >
-                      {catalog.emergency_telegram}
-                    </a>
-                  ) : (
-                    <span>{catalog.emergency_telegram}</span>
-                  )}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        <SellerContactsCard
+          title="Связь с продавцом"
+          phone={catalog?.emergency_phone}
+          telegram={catalog?.emergency_telegram}
+          telegramLink={sellerTelegramLink}
+        />
 
         {[
           'created',
@@ -465,87 +295,15 @@ export function OrderStatusPage() {
           </Card>
         )}
 
-        {activeOrders.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Активные заказы</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {activeOrders.map(item => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => navigate(`/order/${item.id}`, { state: null })}
-                  className="w-full text-left rounded-xl border p-3 hover:bg-secondary/40"
-                >
-                  <p className="font-medium">№{item.orderNumber}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Статус: {STATUS_META[item.status]?.label || item.status}
-                  </p>
-                </button>
-              ))}
-            </CardContent>
-          </Card>
-        )}
+        <ActiveOrdersCard
+          activeOrders={activeOrders}
+          onOpenOrder={(id) => navigate(`/order/${id}`, { state: null })}
+        />
 
-        {['created', 'submitted', 'payment_reported', 'new'].includes(status) &&
-          selectedAction && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock3 className="w-5 h-5" />
-                  Дальнейшие действия
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm text-muted-foreground">
-                {selectedAction.kind === 'payment_on_delivery' && (
-                  <p>Оплата производится при получении.</p>
-                )}
-                {selectedAction.kind === 'payment_in_chat' && (
-                  <>
-                    <p>
-                      Свяжитесь с продавцом в Telegram для подтверждения оплаты.
-                    </p>
-                    {selectedAction.telegramUrl ? (
-                      <a
-                        href={selectedAction.telegramUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex h-10 items-center px-4 rounded-xl bg-primary text-primary-foreground"
-                      >
-                        Открыть Telegram
-                      </a>
-                    ) : (
-                      <p>Ссылка Telegram не указана.</p>
-                    )}
-                  </>
-                )}
-                {selectedAction.kind === 'light_sbp' && (
-                  <>
-                    {selectedAction.details.bank && (
-                      <p>Банк: {selectedAction.details.bank}</p>
-                    )}
-                    {selectedAction.details.name && (
-                      <p>Имя: {selectedAction.details.name}</p>
-                    )}
-                    {selectedAction.details.phone && (
-                      <p>Телефон: {selectedAction.details.phone}</p>
-                    )}
-                    {selectedAction.details.sbp_link && (
-                      <a
-                        href={selectedAction.details.sbp_link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex h-10 items-center px-4 rounded-xl bg-primary text-primary-foreground"
-                      >
-                        Перейти к оплате СБП
-                      </a>
-                    )}
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          )}
+        <OrderNextActionsCard
+          status={status}
+          selectedAction={selectedAction}
+        />
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 glass-card rounded-none border-x-0 border-b-0 p-4 pb-8">

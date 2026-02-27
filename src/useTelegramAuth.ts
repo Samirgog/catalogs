@@ -3,6 +3,7 @@ import useSWR from 'swr';
 import { useUserStore } from './userStore';
 import { telegramAuthService } from './telegramAuthService';
 import type { AuthResponse } from './types';
+import { getTelegramWebApp } from '@/lib/telegram';
 
 // SWR fetcher function for Telegram auth
 const authFetcher = async (initData: string): Promise<AuthResponse> => {
@@ -18,7 +19,7 @@ export const useTelegramAuth = (initData?: string) => {
   const { user, userEntry, isAuthenticated, isLoading, error, setUser, setUserEntry, setLoading, setError, logout } = useUserStore();
   
   // Auto-detect Telegram WebApp initData if not provided
-  const detectedInitData = initData || ((window as any).Telegram?.WebApp?.initData ?? '');
+  const detectedInitData = initData || (getTelegramWebApp()?.initData ?? '');
 
   // SWR key - only authenticate if we have initData
   const shouldAuthenticate = !!detectedInitData && !isAuthenticated && !user;

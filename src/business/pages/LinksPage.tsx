@@ -5,14 +5,54 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Copy, Download, Share2, QrCode, AlertCircle } from 'lucide-react';
-import QRCode from 'qrcode';
-import { jsPDF } from 'jspdf';
 import { useQRLinks } from '../hooks/useQR';
 import { catalogService } from '../services/catalogs';
 import type { QRLink, Catalog } from '@/types';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
+import { useSectionTutorial } from '../tutorial/useSectionTutorial';
+import { TourOverlay } from '../tutorial/TourOverlay';
+import type { TutorialStep } from '../tutorial/types';
+import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
+
+const linksTutorialSteps: TutorialStep[] = [
+  {
+    id: 'qr',
+    target: '[data-tour="links-qr-card"]',
+    title: 'QR-код каталога',
+    description: 'Клиенты могут открыть каталог сканированием этого QR-кода.',
+  },
+  {
+    id: 'tables',
+    target: '[data-tour="links-table-qr"]',
+    title: 'QR для столиков',
+    description: 'Для кафе и ресторанов можно сгенерировать отдельные QR-коды по номерам столиков.',
+  },
+  {
+    id: 'link',
+    target: '[data-tour="links-direct-link"]',
+    title: 'Прямая ссылка',
+    description: 'Скопируйте ссылку и отправьте ее клиенту в мессенджере или соцсетях.',
+  },
+];
+
+let qrCodeModulePromise: Promise<typeof import('qrcode')> | null = null;
+let jsPdfModulePromise: Promise<typeof import('jspdf')> | null = null;
+
+const loadQrCodeModule = () => {
+  if (!qrCodeModulePromise) {
+    qrCodeModulePromise = import('qrcode');
+  }
+  return qrCodeModulePromise;
+};
+
+const loadJsPdfModule = () => {
+  if (!jsPdfModulePromise) {
+    jsPdfModulePromise = import('jspdf');
+  }
+  return jsPdfModulePromise;
+};
 
 interface LinkData {
   url: string;
@@ -35,6 +75,14 @@ export function LinksPage() {
   const [copySuccess, setCopySuccess] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [tablesCount, setTablesCount] = useState('10');
+  const tutorial = useSectionTutorial('links', linksTutorialSteps, {
+    enabled: !isGenerating && !qrLoading && Boolean(linkData),
+  });
+
+  useEffect(() => {
+    if (!catalogId) return;
+    localStorage.setItem('business-current-catalog-id', catalogId);
+  }, [catalogId]);
 
   const saveBlobToDevice = async (blob: Blob, fileName: string, successText: string) => {
     const file = new File([blob], fileName, {
@@ -128,7 +176,8 @@ export function LinksPage() {
         // Generate QR code image
         const catalogUrl = `https://t.me/catalogs_test_1_bot?startapp=${qrLink.slug}`;
         
-        const qrCodeDataUrl = await QRCode.toDataURL(catalogUrl, { width: 300 });
+        const qrCodeModule = await loadQrCodeModule();
+        const qrCodeDataUrl = await qrCodeModule.toDataURL(catalogUrl, { width: 300 });
         
         if (isMounted) {
           setLinkData({
@@ -192,8 +241,7 @@ export function LinksPage() {
             url: linkData.url
           });
           toast.success('Ссылка отправлена');
-        } catch (err) {
-          console.log('Error sharing:', err);
+        } catch {
           toast.error('Не удалось поделиться ссылкой');
         }
       } else {
@@ -205,12 +253,14 @@ export function LinksPage() {
 
   const handleDownloadTableQrs = async () => {
     if (!linkData?.qrLink?.slug) return;
+    const qrCodeModule = await loadQrCodeModule();
+    const { jsPDF } = await loadJsPdfModule();
     const count = Math.min(100, Math.max(1, Number(tablesCount || 1)));
     const rows: Array<{ table: number; qr: string; url: string }> = [];
 
     for (let i = 1; i <= count; i += 1) {
       const url = `https://t.me/catalogs_test_1_bot?startapp=${linkData.qrLink.slug}&table=${i}`;
-      const qr = await QRCode.toDataURL(url, { width: 240 });
+      const qr = await qrCodeModule.toDataURL(url, { width: 240 });
       rows.push({ table: i, qr, url });
     }
 
@@ -308,14 +358,19 @@ export function LinksPage() {
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
-        <h1 className="text-xl font-bold">Ссылка и QR-код</h1>
-        <p className="text-sm text-muted-foreground">{catalog.title}</p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold">Ссылка и QR-код</h1>
+            <p className="text-sm text-muted-foreground">{catalog.title}</p>
+          </div>
+          <BusinessTutorialLauncher />
+        </div>
       </div>
 
       <div className="p-4 space-y-4">
         {linkData && (
           <>
-            <Card>
+            <Card data-tour="links-qr-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <QrCode className="w-5 h-5" />
@@ -348,7 +403,7 @@ export function LinksPage() {
             </Card>
 
             {catalog.type === 'goods' && catalog.subtype === 'cafe_restaurant' && (
-              <Card>
+              <Card data-tour="links-table-qr">
                 <CardHeader>
                   <CardTitle>QR-коды для столиков</CardTitle>
                 </CardHeader>
@@ -381,7 +436,7 @@ export function LinksPage() {
               </Card>
             )}
 
-            <Card>
+            <Card data-tour="links-direct-link">
               <CardHeader>
                 <CardTitle>Прямая ссылка</CardTitle>
               </CardHeader>
@@ -419,6 +474,15 @@ export function LinksPage() {
           </>
         )}
       </div>
+      <TourOverlay
+        open={tutorial.open}
+        steps={catalog?.type === 'goods' && catalog?.subtype === 'cafe_restaurant'
+          ? linksTutorialSteps
+          : linksTutorialSteps.filter((step) => step.id !== 'tables')}
+        sectionTitle="Ссылки и QR"
+        onClose={tutorial.closeAndMarkSeen}
+        onComplete={tutorial.complete}
+      />
     </div>
   );
 }

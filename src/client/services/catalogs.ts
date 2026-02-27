@@ -1,7 +1,11 @@
 import { clientSupabase } from '../../lib/supabase';
 import type { Catalog } from '../../types';
 
-const normalizeCatalog = (catalog: any): Catalog => {
+type CatalogWithFulfillment = Catalog & {
+  catalog_fulfillment_methods?: Catalog['fulfillment_methods'];
+};
+
+const normalizeCatalog = (catalog: CatalogWithFulfillment | null): Catalog | null => {
   if (!catalog) return catalog;
   return {
     ...catalog,
@@ -62,7 +66,7 @@ export const clientCatalogService = {
       .single();
 
     if (catalogError) throw catalogError;
-    return normalizeCatalog(catalog);
+    return normalizeCatalog(catalog as CatalogWithFulfillment);
   },
 
   // Get all active catalogs for a place
@@ -90,9 +94,12 @@ export const clientCatalogService = {
     // Extract catalogs from the joined data
     const catalogs: Catalog[] = [];
     for (const placeCatalog of data) {
-      if (placeCatalog.catalogs) {
+      const rawCatalog = Array.isArray(placeCatalog.catalogs)
+        ? placeCatalog.catalogs[0]
+        : placeCatalog.catalogs;
+      if (rawCatalog) {
         catalogs.push(
-          normalizeCatalog(placeCatalog.catalogs as unknown as Catalog)
+          normalizeCatalog(rawCatalog as CatalogWithFulfillment) as Catalog
         );
       }
     }

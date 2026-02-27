@@ -6,12 +6,13 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Pencil, Copy, Trash2 } from 'lucide-react';
+import type { Category, Item } from '@/types';
 
 interface ItemActionsPopoverProps {
-  category: any;
-  item: any;
-  onEdit: (category: any, item: any) => void;
-  onDuplicate: (categoryId: string, item: any) => void;
+  category: Category;
+  item: Item;
+  onEdit: (category: Category, item: Item) => void;
+  onDuplicate: (categoryId: string, item: Item) => void;
   onDelete: (categoryId: string, itemId: string) => void;
 }
 

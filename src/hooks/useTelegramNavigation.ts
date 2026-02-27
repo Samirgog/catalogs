@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getTelegramWebApp } from '@/lib/telegram';
 
 /**
  * Hook for Telegram WebApp navigation integration
@@ -15,31 +16,29 @@ export const useTelegramNavigation = (backPath?: string) => {
     } else {
       navigate('/');
     }
-  }, [navigate]);
+  }, [navigate, backPath]);
 
   useEffect(() => {
     // Check if we're in Telegram WebApp environment
-    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-      const WebApp = (window as any).Telegram.WebApp;
+    const webApp = getTelegramWebApp();
+    if (webApp) {
       
       // Initialize WebApp if not already done
-      if (!WebApp.isExpanded) {
-        WebApp.expand();
+      if (!webApp.isExpanded) {
+        webApp.expand();
       }
       
       // Show back button
-      WebApp.BackButton.show();
+      webApp.BackButton.show();
       
       // Attach event listener
-      WebApp.BackButton.onClick(handleBackButton);
-
-      console.log('Telegram back button initialized');
+      webApp.BackButton.onClick(handleBackButton);
 
       // Cleanup function
       return () => {
         try {
-          WebApp.BackButton.offClick(handleBackButton);
-          WebApp.BackButton.hide();
+          webApp.BackButton.offClick(handleBackButton);
+          webApp.BackButton.hide();
         } catch (e) {
           console.warn('Error cleaning up Telegram back button:', e);
         }
@@ -51,12 +50,12 @@ export const useTelegramNavigation = (backPath?: string) => {
    * Programmatically show/hide back button
    */
   const setShowBackButton = useCallback((show: boolean) => {
-    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
-      const WebApp = (window as any).Telegram.WebApp;
+    const webApp = getTelegramWebApp();
+    if (webApp) {
       if (show) {
-        WebApp.BackButton.show();
+        webApp.BackButton.show();
       } else {
-        WebApp.BackButton.hide();
+        webApp.BackButton.hide();
       }
     }
   }, []);
