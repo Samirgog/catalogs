@@ -91,7 +91,7 @@ export function CatalogsPage() {
             {catalogs.length === 0 && (
               <Card className="p-6 text-center space-y-3">
                 <div className="flex justify-center">
-                  <EmptyLottie src="/empty_ghost.lottie" className="w-44 h-44" />
+                  <EmptyLottie src={`${import.meta.env.BASE_URL}empty_ghost.lottie`} className="w-44 h-44" />
                 </div>
                 <h3 className="text-lg font-semibold">Каталогов пока нет</h3>
                 <p className="text-sm text-muted-foreground">

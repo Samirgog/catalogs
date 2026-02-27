@@ -166,8 +166,6 @@ export function LinksPage() {
       const link = document.createElement('a');
       link.href = objectUrl;
       link.download = `qr-code-${catalogId}.png`;
-      link.rel = 'noopener';
-      link.target = '_blank';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -211,18 +209,58 @@ export function LinksPage() {
 
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-    rows.forEach((row, index) => {
+    for (let index = 0; index < rows.length; index += 1) {
+      const row = rows[index];
       if (index > 0) {
         doc.addPage('a4', 'portrait');
       }
-      doc.setFontSize(22);
-      doc.text(`Столик ${row.table}`, 105, 28, { align: 'center' });
-      doc.addImage(row.qr, 'PNG', 45, 40, 120, 120);
-      doc.setFontSize(11);
-      doc.text(row.url, 105, 168, { align: 'center', maxWidth: 180 });
-    });
 
-    doc.save(`table-qrs-${catalogId}.pdf`);
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = 1240;
+      pageCanvas.height = 1754;
+      const ctx = pageCanvas.getContext('2d');
+      if (!ctx) {
+        toast.error('Не удалось подготовить PDF');
+        return;
+      }
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+
+      ctx.fillStyle = '#111827';
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 72px Arial, sans-serif';
+      ctx.fillText(`Столик: ${row.table}`, pageCanvas.width / 2, 140);
+
+      const qrImg = new Image();
+      await new Promise<void>((resolve, reject) => {
+        qrImg.onload = () => resolve();
+        qrImg.onerror = () => reject(new Error('QR image load failed'));
+        qrImg.src = row.qr;
+      });
+
+      const qrSize = 760;
+      const qrX = (pageCanvas.width - qrSize) / 2;
+      const qrY = 220;
+      ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
+      ctx.fillStyle = '#4b5563';
+      ctx.font = '30px Arial, sans-serif';
+      ctx.fillText(row.url, pageCanvas.width / 2, qrY + qrSize + 80);
+
+      const pageDataUrl = pageCanvas.toDataURL('image/png');
+      doc.addImage(pageDataUrl, 'PNG', 0, 0, 210, 297);
+    }
+
+    const blob = doc.output('blob');
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = `table-qrs-${catalogId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(objectUrl);
     toast.success('PDF с QR-кодами столиков скачан');
   };
 

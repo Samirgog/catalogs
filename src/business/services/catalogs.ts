@@ -64,13 +64,29 @@ export const catalogService = {
       }
     };
 
+    const tryDeleteCatalog = async () => businessSupabase
+      .from('catalogs')
+      .delete()
+      .eq('id', id)
+      .select('id');
+
+    const { data: directDeleted, error: directDeleteError } = await tryDeleteCatalog();
+    if (!directDeleteError && (directDeleted?.length ?? 0) > 0) {
+      return;
+    }
+
+    const isFkError = directDeleteError?.code === '23503';
+    if (directDeleteError && !isFkError) {
+      throw new Error(`Ошибка удаления каталога: ${directDeleteError.message || 'unknown error'}`);
+    }
+
     const { data: categories, error: categoriesError } = await businessSupabase
       .from('categories')
       .select('id')
       .eq('catalog_id', id);
     assertNoError(categoriesError, 'Ошибка загрузки категорий');
 
-    const categoryIds = (categories ?? []).map(row => row.id);
+    const categoryIds = (categories ?? []).map((row) => row.id);
     if (categoryIds.length > 0) {
       const { error: itemsDeleteError } = await businessSupabase
         .from('items')
@@ -85,60 +101,30 @@ export const catalogService = {
       assertNoError(categoriesDeleteError, 'Ошибка удаления категорий');
     }
 
-    const { error: actionsDeleteError } = await businessSupabase
-      .from('actions')
-      .delete()
-      .eq('catalog_id', id);
-    assertNoError(actionsDeleteError, 'Ошибка удаления способов оплаты');
+    const [actionsDelete, fulfillmentDelete, qrDelete, placeCatalogDelete, staffMembersDelete, staffCodesDelete, notificationsDelete, ordersDelete] = await Promise.all([
+      businessSupabase.from('actions').delete().eq('catalog_id', id),
+      businessSupabase.from('catalog_fulfillment_methods').delete().eq('catalog_id', id),
+      businessSupabase.from('qr_links').delete().eq('target_type', 'catalog').eq('target_id', id),
+      businessSupabase.from('place_catalogs').delete().eq('catalog_id', id),
+      businessSupabase.from('catalog_staff_members').delete().eq('catalog_id', id),
+      businessSupabase.from('catalog_staff_codes').delete().eq('catalog_id', id),
+      businessSupabase.from('order_notifications').delete().eq('catalog_id', id),
+      businessSupabase.from('orders').delete().eq('catalog_id', id),
+    ]);
+    assertNoError(actionsDelete.error, 'Ошибка удаления способов оплаты');
+    assertNoError(fulfillmentDelete.error, 'Ошибка удаления способов получения');
+    assertNoError(qrDelete.error, 'Ошибка удаления QR-ссылок');
+    assertNoError(placeCatalogDelete.error, 'Ошибка удаления связей с фудкортом');
+    assertNoError(staffMembersDelete.error, 'Ошибка удаления сотрудников');
+    assertNoError(staffCodesDelete.error, 'Ошибка удаления кодов сотрудников');
+    assertNoError(notificationsDelete.error, 'Ошибка удаления уведомлений');
+    assertNoError(ordersDelete.error, 'Ошибка удаления заказов');
 
-    const { error: fulfillmentDeleteError } = await businessSupabase
-      .from('catalog_fulfillment_methods')
-      .delete()
-      .eq('catalog_id', id);
-    assertNoError(fulfillmentDeleteError, 'Ошибка удаления способов получения');
-
-    const { error: qrDeleteError } = await businessSupabase
-      .from('qr_links')
-      .delete()
-      .eq('target_type', 'catalog')
-      .eq('target_id', id);
-    assertNoError(qrDeleteError, 'Ошибка удаления QR-ссылок');
-
-    const { error: placeCatalogDeleteError } = await businessSupabase
-      .from('place_catalogs')
-      .delete()
-      .eq('catalog_id', id);
-    assertNoError(placeCatalogDeleteError, 'Ошибка удаления связей с фудкортом');
-
-    const { error: staffMembersDeleteError } = await businessSupabase
-      .from('catalog_staff_members')
-      .delete()
-      .eq('catalog_id', id);
-    assertNoError(staffMembersDeleteError, 'Ошибка удаления сотрудников');
-
-    const { error: staffCodesDeleteError } = await businessSupabase
-      .from('catalog_staff_codes')
-      .delete()
-      .eq('catalog_id', id);
-    assertNoError(staffCodesDeleteError, 'Ошибка удаления кодов сотрудников');
-
-    const { error: notificationsDeleteError } = await businessSupabase
-      .from('order_notifications')
-      .delete()
-      .eq('catalog_id', id);
-    assertNoError(notificationsDeleteError, 'Ошибка удаления уведомлений');
-
-    const { error: ordersDeleteError } = await businessSupabase
-      .from('orders')
-      .delete()
-      .eq('catalog_id', id);
-    assertNoError(ordersDeleteError, 'Ошибка удаления заказов');
-
-    const { error: catalogDeleteError } = await businessSupabase
-      .from('catalogs')
-      .delete()
-      .eq('id', id);
-    assertNoError(catalogDeleteError, 'Ошибка удаления каталога');
+    const { data: deletedAfterCleanup, error: deleteAfterCleanupError } = await tryDeleteCatalog();
+    assertNoError(deleteAfterCleanupError, 'Ошибка удаления каталога');
+    if (!deletedAfterCleanup || deletedAfterCleanup.length === 0) {
+      throw new Error('Каталог не был удален: проверьте политики доступа (RLS) и связи в БД');
+    }
 
     const { data: existingCatalog, error: existingError } = await businessSupabase
       .from('catalogs')

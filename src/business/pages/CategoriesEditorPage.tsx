@@ -239,7 +239,7 @@ function CategoriesEditorView({
         {categories.length === 0 && (
           <div className="mt-8 glass-card rounded-xl p-6 text-center space-y-2">
             <div className="flex justify-center">
-              <EmptyLottie src="/empty_ghost.lottie" className="w-40 h-40" />
+              <EmptyLottie src={`${import.meta.env.BASE_URL}empty_ghost.lottie`} className="w-40 h-40" />
             </div>
             <p className="font-medium">Категорий пока нет</p>
             <p className="text-sm text-muted-foreground">
