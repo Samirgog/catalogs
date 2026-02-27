@@ -36,6 +36,39 @@ export function LinksPage() {
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [tablesCount, setTablesCount] = useState('10');
 
+  const saveBlobToDevice = async (blob: Blob, fileName: string, successText: string) => {
+    const file = new File([blob], fileName, {
+      type: blob.type || 'application/octet-stream',
+    });
+
+    try {
+      const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
+      if (nav.share && nav.canShare?.({ files: [file] })) {
+        await nav.share({
+          files: [file],
+          title: fileName,
+        });
+        toast.success(successText);
+        return;
+      }
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        console.error('Share failed, trying download fallback', error);
+      }
+    }
+
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = fileName;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    toast.success(successText);
+  };
+
   useEffect(() => {
     if (catalogError) toast.error(catalogError);
   }, [catalogError]);
@@ -144,33 +177,7 @@ export function LinksPage() {
     try {
       const response = await fetch(linkData.qrCodeDataUrl);
       const blob = await response.blob();
-      const file = new File([blob], `qr-code-${catalogId}.png`, {
-        type: 'image/png',
-      });
-
-      if (
-        navigator.share &&
-        (navigator as Navigator & { canShare?: (data: ShareData) => boolean })
-          .canShare?.({ files: [file] })
-      ) {
-        await navigator.share({
-          files: [file],
-          title: 'QR-код каталога',
-          text: 'Сохраните QR-код',
-        });
-        toast.success('QR-код открыт в системном меню');
-        return;
-      }
-
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = `qr-code-${catalogId}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(objectUrl);
-      toast.success('QR-код скачан');
+      await saveBlobToDevice(blob, `qr-code-${catalogId}.png`, 'QR-код сохранен');
     } catch {
       toast.error('Не удалось скачать QR-код');
     }
@@ -253,15 +260,7 @@ export function LinksPage() {
     }
 
     const blob = doc.output('blob');
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = objectUrl;
-    link.download = `table-qrs-${catalogId}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(objectUrl);
-    toast.success('PDF с QR-кодами столиков скачан');
+    await saveBlobToDevice(blob, `table-qrs-${catalogId}.pdf`, 'PDF с QR-кодами столиков сохранен');
   };
 
   if (isGenerating || qrLoading) {
@@ -375,7 +374,7 @@ export function LinksPage() {
                     Сформировать QR для столиков
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Будет скачан HTML-файл для печати с отдельным QR для каждого
+                    Будет сформирован PDF-файл для печати с отдельным QR для каждого
                     столика.
                   </p>
                 </CardContent>
