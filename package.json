@@ -16,6 +16,7 @@
     "bot:orders": "node scripts/order-notifier-bot.js"
   },
   "dependencies": {
+    "@lottiefiles/dotlottie-react": "^0.18.3",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-popover": "^1.1.15",
@@ -28,6 +29,7 @@
     "@types/qrcode": "^1.5.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "jspdf": "^4.2.0",
     "lucide-react": "^0.563.0",
     "qrcode": "^1.5.4",
     "react": "^19.2.0",

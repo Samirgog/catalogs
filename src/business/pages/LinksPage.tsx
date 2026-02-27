@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Copy, Download, Share2, QrCode, AlertCircle } from 'lucide-react';
 import QRCode from 'qrcode';
+import { jsPDF } from 'jspdf';
 import { useQRLinks } from '../hooks/useQR';
 import { catalogService } from '../services/catalogs';
 import type { QRLink, Catalog } from '@/types';
@@ -199,7 +200,7 @@ export function LinksPage() {
 
   const handleDownloadTableQrs = async () => {
     if (!linkData?.qrLink?.slug) return;
-    const count = Math.max(1, Number(tablesCount || 1));
+    const count = Math.min(100, Math.max(1, Number(tablesCount || 1)));
     const rows: Array<{ table: number; qr: string; url: string }> = [];
 
     for (let i = 1; i <= count; i += 1) {
@@ -208,76 +209,21 @@ export function LinksPage() {
       rows.push({ table: i, qr, url });
     }
 
-    const columns = 2;
-    const rowHeight = 320;
-    const cardWidth = 420;
-    const rowsCount = Math.ceil(rows.length / columns);
-    const canvas = document.createElement('canvas');
-    canvas.width = cardWidth * columns;
-    canvas.height = rowHeight * rowsCount + 80;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      toast.error('Не удалось подготовить файл QR');
-      return;
-    }
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#111111';
-    ctx.font = 'bold 28px Arial';
-    ctx.fillText('QR-коды столиков', 20, 44);
-
-    for (let i = 0; i < rows.length; i += 1) {
-      const col = i % columns;
-      const row = Math.floor(i / columns);
-      const x = col * cardWidth + 20;
-      const y = row * rowHeight + 70;
-      const img = new Image();
-      img.src = rows[i].qr;
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise(resolve => {
-        img.onload = resolve;
-      });
-      ctx.strokeStyle = '#d4d4d8';
-      ctx.strokeRect(x, y, cardWidth - 40, rowHeight - 20);
-      ctx.fillStyle = '#111111';
-      ctx.font = 'bold 22px Arial';
-      ctx.fillText(`Столик ${rows[i].table}`, x + 16, y + 34);
-      ctx.drawImage(img, x + 16, y + 48, 180, 180);
-      ctx.fillStyle = '#555';
-      ctx.font = '12px Arial';
-      ctx.fillText(rows[i].url.slice(0, 55), x + 16, y + 250);
-    }
-
-    canvas.toBlob(async blob => {
-      if (!blob) {
-        toast.error('Не удалось подготовить файл QR');
-        return;
+    rows.forEach((row, index) => {
+      if (index > 0) {
+        doc.addPage('a4', 'portrait');
       }
-      const file = new File([blob], `table-qrs-${catalogId}.png`, {
-        type: 'image/png',
-      });
-      if (
-        navigator.share &&
-        (navigator as Navigator & { canShare?: (data: ShareData) => boolean })
-          .canShare?.({ files: [file] })
-      ) {
-        await navigator.share({
-          files: [file],
-          title: 'QR-коды столиков',
-        });
-        toast.success('QR-коды столиков готовы');
-        return;
-      }
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `table-qrs-${catalogId}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
-      toast.success('QR-коды столиков скачаны');
-    }, 'image/png');
+      doc.setFontSize(22);
+      doc.text(`Столик ${row.table}`, 105, 28, { align: 'center' });
+      doc.addImage(row.qr, 'PNG', 45, 40, 120, 120);
+      doc.setFontSize(11);
+      doc.text(row.url, 105, 168, { align: 'center', maxWidth: 180 });
+    });
+
+    doc.save(`table-qrs-${catalogId}.pdf`);
+    toast.success('PDF с QR-кодами столиков скачан');
   };
 
   if (isGenerating || qrLoading) {
@@ -376,8 +322,15 @@ export function LinksPage() {
                       id="tables-count"
                       type="number"
                       min={1}
+                      max={100}
                       value={tablesCount}
-                      onChange={e => setTablesCount(e.target.value)}
+                      onChange={e =>
+                        setTablesCount(
+                          String(
+                            Math.min(100, Math.max(1, Number(e.target.value || 1)))
+                          )
+                        )
+                      }
                     />
                   </div>
                   <Button className="w-full" onClick={handleDownloadTableQrs}>

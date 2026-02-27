@@ -144,6 +144,7 @@ export function CatalogEditorPage() {
   const [foodcourtOptions, setFoodcourtOptions] = useState<Place[]>([]);
   const [selectedFoodcourtId, setSelectedFoodcourtId] = useState('');
   const [isSavingCatalog, setIsSavingCatalog] = useState(false);
+  const [isDeletingCatalog, setIsDeletingCatalog] = useState(false);
   const [isBindingFoodcourt, setIsBindingFoodcourt] = useState(false);
   const addressSuggestions = useAddressSuggestions(formData.address);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
@@ -372,12 +373,15 @@ export function CatalogEditorPage() {
     if (!window.confirm('Удалить каталог полностью?')) return;
 
     try {
+      setIsDeletingCatalog(true);
       await deleteCatalog(targetId);
       sessionStorage.removeItem(draftKey);
       toast.success('Каталог удален');
       navigate('/catalogs');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Не удалось удалить каталог');
+    } finally {
+      setIsDeletingCatalog(false);
     }
   };
 
@@ -444,6 +448,14 @@ export function CatalogEditorPage() {
 
   return (
     <div className="min-h-screen bg-background pb-28">
+      {isDeletingCatalog && (
+        <div className="fixed inset-0 z-[90] bg-background/70 backdrop-blur-sm flex items-center justify-center">
+          <div className="glass-card p-4 flex items-center gap-2">
+            <Spinner />
+            <span>Удаляем каталог...</span>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
         <h1 className="text-2xl font-bold">
