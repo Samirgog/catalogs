@@ -5,7 +5,7 @@ import { useCartStore } from '../stores/cart';
 import { CatalogHeader, CategorySection, CategoryTabs } from '../components';
 import { type CatalogType } from '../../types';
 import { useCatalog } from '../hooks/useCatalogs';
-import { getCurrentOrder } from '../utils/currentOrder';
+import { getCurrentOrdersByCatalog } from '../utils/currentOrder';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
 import { useTelegramNavigation } from '@/hooks/useTelegramNavigation';
@@ -23,14 +23,8 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
   const { setShowBackButton } = useTelegramNavigation('/foodcourt');
   const { catalog, isLoading, isError } = useCatalog(catalogId);
   const { getTotalItems, getTotalPrice } = useCartStore();
-  const [currentOrderId] = useState<string | null>(
-    () => {
-      const current = getCurrentOrder();
-      if (!current) return null;
-      if (current.catalogId !== catalogId) return null;
-      return current.id;
-    }
-  );
+  const [ordersCount, setOrdersCount] = useState(0);
+  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
   const businessType: CatalogType = catalog?.type ?? 'goods';
   const formatTime = (value?: string) => {
@@ -61,6 +55,17 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
     localStorage.setItem('client-current-catalog-id', catalogId);
   }, []);
 
+  useEffect(() => {
+    const syncOrders = () => {
+      const refs = getCurrentOrdersByCatalog(catalogId);
+      setOrdersCount(refs.length);
+      setLastOrderId(refs[0]?.id || null);
+    };
+    syncOrders();
+    const interval = window.setInterval(syncOrders, 3000);
+    return () => window.clearInterval(interval);
+  }, [catalogId]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -85,8 +90,8 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
   };
 
   const handleGoToCurrentOrder = () => {
-    if (!currentOrderId) return;
-    navigate(`/order/${currentOrderId}`);
+    if (!lastOrderId) return;
+    navigate(`/order/${lastOrderId}`);
   };
 
   return (
@@ -143,7 +148,7 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
         </div>
       )}
 
-      {currentOrderId && (
+      {ordersCount > 0 && lastOrderId && (
         <button
           onClick={handleGoToCurrentOrder}
           className={`fixed right-4 z-50 rounded-2xl h-14 px-4 bg-primary text-primary-foreground shadow-lg flex items-center justify-center gap-2 ${
@@ -151,10 +156,10 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
               ? 'bottom-24'
               : 'bottom-4'
           }`}
-          aria-label="Открыть текущий заказ"
+          aria-label="Открыть заказы"
         >
           <Receipt size={22} />
-          <span className="text-sm font-medium">Заказ</span>
+          <span className="text-sm font-medium">Заказы</span>
         </button>
       )}
     </div>

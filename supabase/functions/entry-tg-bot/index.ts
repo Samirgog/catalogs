@@ -1,7 +1,6 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
-const MINI_APP_URL = Deno.env.get('MINI_APP_URL') || 'https://catalogs-app.example.com';
 const SUPPORT_URL =
   Deno.env.get('SUPPORT_TELEGRAM_URL') || 'https://t.me/catalogs_support_bot';
 
@@ -25,16 +24,9 @@ async function tg(method: string, body: unknown) {
 }
 
 const menuKeyboard = {
-  keyboard: [
-    [{ text: 'Открыть админку' }],
-    [{ text: 'Справка' }, { text: 'Поддержка' }],
-  ],
+  keyboard: [[{ text: 'Справка' }, { text: 'Поддержка' }]],
   resize_keyboard: true,
   is_persistent: true,
-};
-
-const adminInlineKeyboard = {
-  inline_keyboard: [[{ text: 'Открыть админку', web_app: { url: `${MINI_APP_URL}?role=admin` } }]],
 };
 
 function helpText() {
@@ -56,11 +48,6 @@ async function sendMainMenu(chatId: number) {
     text: helpText(),
     reply_markup: menuKeyboard,
   });
-  await tg('sendMessage', {
-    chat_id: chatId,
-    text: 'Вход в админку:',
-    reply_markup: adminInlineKeyboard,
-  });
 }
 
 serve(async (req) => {
@@ -74,7 +61,7 @@ serve(async (req) => {
     const chatId = Number((message.chat as Record<string, unknown>)?.id);
     const text = String(message.text || '').trim();
 
-    if (text.startsWith('/start') || text === 'Открыть админку') {
+    if (text.startsWith('/start')) {
       await sendMainMenu(chatId);
       return new Response('OK');
     }

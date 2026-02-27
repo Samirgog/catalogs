@@ -7,7 +7,6 @@ import { useOrder, useUpdateOrderStatus } from '../hooks/useOrders';
 import { useCatalog } from '../hooks/useCatalogs';
 import type { ClientActionOption } from '../utils/actionOptions';
 import {
-  clearOrderFromHistory,
   getCurrentOrdersByCatalog,
   clearCurrentOrder,
   getReadableOrderNumber,
@@ -47,6 +46,9 @@ export function OrderStatusPage() {
   const [activeOrders, setActiveOrders] = useState<
     Array<{ id: string; orderNumber: string; status: string }>
   >([]);
+  const [archiveOrders, setArchiveOrders] = useState<
+    Array<{ id: string; orderNumber: string; status: string }>
+  >([]);
   useAutoBackButton('/catalog');
 
   useEffect(() => {
@@ -83,17 +85,11 @@ export function OrderStatusPage() {
 
   useEffect(() => {
     if (!displayedOrder) return;
-    if (
-      displayedOrder.status === 'completed' ||
-      displayedOrder.status === 'cancelled' ||
-      displayedOrder.status === 'rejected' ||
-      displayedOrder.status === 'ready'
-    ) {
+    if (TERMINAL_STATUSES.has(displayedOrder.status)) {
       clearCurrentOrder();
-      clearOrderFromHistory(displayedOrder.id);
-      return;
+    } else {
+      setCurrentOrder(displayedOrder);
     }
-    setCurrentOrder(displayedOrder);
   }, [displayedOrder]);
 
   useEffect(() => {
@@ -107,10 +103,6 @@ export function OrderStatusPage() {
           try {
             const full = await clientOrderService.getById(ref.id);
             if (!full) return null;
-            if (TERMINAL_STATUSES.has(full.status)) {
-              clearOrderFromHistory(full.id);
-              return null;
-            }
             return {
               id: full.id,
               orderNumber: getReadableOrderNumber(full),
@@ -128,7 +120,10 @@ export function OrderStatusPage() {
           (value, index, arr) =>
             arr.findIndex(item => item?.id === value?.id) === index
         ) as Array<{ id: string; orderNumber: string; status: string }>;
-      setActiveOrders(unique);
+      const active = unique.filter((item) => !TERMINAL_STATUSES.has(item.status));
+      const archive = unique.filter((item) => TERMINAL_STATUSES.has(item.status));
+      setActiveOrders(active);
+      setArchiveOrders(archive);
     };
 
     void load();
@@ -297,6 +292,7 @@ export function OrderStatusPage() {
 
         <ActiveOrdersCard
           activeOrders={activeOrders}
+          archiveOrders={archiveOrders}
           onOpenOrder={(id) => navigate(`/order/${id}`, { state: null })}
         />
 

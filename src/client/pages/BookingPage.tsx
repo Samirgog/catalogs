@@ -402,7 +402,7 @@ export function BookingPage({ catalogId }: Props) {
           options={fulfillmentOptions}
           selected={selectedFulfillment}
           onChange={setSelectedFulfillment}
-          className="relative z-40"
+          className="relative z-0"
           copy={{
             pickup: {
               title: 'Самовывоз',
