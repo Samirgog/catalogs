@@ -508,6 +508,14 @@ export function LinksPage() {
                       <Copy className="w-4 h-4 mr-2" />
                       {copySuccess ? 'Скопировано!' : 'Копировать'}
                     </Button>
+                    <Button
+                      onClick={handleShare}
+                      variant="outline"
+                      className="flex-shrink-0"
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Поделиться
+                    </Button>
                   </div>
                 </div>
 
