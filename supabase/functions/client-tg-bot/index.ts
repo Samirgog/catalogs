@@ -127,7 +127,7 @@ async function findCatalogsByName(query: string) {
 
   const { data: catalogs } = await supabase
     .from('catalogs')
-    .select('id,title,address')
+    .select('id,title,address,banner_url')
     .eq('is_active', true)
     .ilike('title', `%${value}%`)
     .order('updated_at', { ascending: false })
@@ -153,6 +153,7 @@ async function findCatalogsByName(query: string) {
     id: String(catalog.id),
     title: String(catalog.title || ''),
     address: String(catalog.address || ''),
+    bannerUrl: catalog.banner_url ? String(catalog.banner_url) : '',
     slug: slugByCatalog.get(String(catalog.id)) || `catalog_${catalog.id}`,
   }));
 }
@@ -166,6 +167,7 @@ async function answerInlineQuery(inlineQuery: Record<string, unknown>) {
     id: catalog.id,
     title: catalog.title,
     description: catalog.address || 'Каталог',
+    ...(catalog.bannerUrl ? { thumbnail_url: catalog.bannerUrl } : {}),
     input_message_content: {
       message_text: `Каталог: ${catalog.title}`,
     },

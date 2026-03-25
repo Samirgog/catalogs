@@ -1,11 +1,12 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 
-const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
+const BOT_TOKEN =
+  Deno.env.get('TELEGRAM_BOT_TOKEN_ENTRY') || Deno.env.get('TELEGRAM_BOT_TOKEN');
 const SUPPORT_URL =
   Deno.env.get('SUPPORT_TELEGRAM_URL') || 'https://t.me/catalogs_support_bot';
 
 if (!BOT_TOKEN) {
-  throw new Error('Missing TELEGRAM_BOT_TOKEN');
+  throw new Error('Missing TELEGRAM_BOT_TOKEN_ENTRY');
 }
 
 const TG_API = `https://api.telegram.org/bot${BOT_TOKEN}`;

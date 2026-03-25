@@ -36,31 +36,36 @@ const catalogEditorTutorialSteps: TutorialStep[] = [
     id: 'banner',
     target: '[data-tour="catalog-editor-banner"]',
     title: 'Баннер каталога',
-    description: 'Загрузите изображение. Оно будет отображаться в шапке каталога у клиентов.',
+    description:
+      'Загрузите изображение. Оно будет отображаться в шапке каталога у клиентов.',
   },
   {
     id: 'title',
     target: '[data-tour="catalog-editor-title"]',
     title: 'Название каталога',
-    description: 'Укажите понятное название, по которому вас смогут быстро найти.',
+    description:
+      'Укажите понятное название, по которому вас смогут быстро найти.',
   },
   {
     id: 'type',
     target: '[data-tour="catalog-editor-type-subtype"]',
     title: 'Тип и подтип бизнеса',
-    description: 'От выбора зависит логика оформления заказа и доступные способы получения.',
+    description:
+      'От выбора зависит логика оформления заказа и доступные способы получения.',
   },
   {
     id: 'actions',
     target: '[data-tour="catalog-editor-nav-actions"]',
     title: 'Переход к настройкам',
-    description: 'Здесь открываются категории, способы оплаты, выдачи, сотрудники и ссылки.',
+    description:
+      'Здесь открываются категории, способы оплаты, выдачи, сотрудники и ссылки.',
   },
   {
     id: 'save',
     target: '[data-tour="catalog-editor-save"]',
     title: 'Сохранение',
-    description: 'Перед выходом из раздела нажмите «Сохранить», чтобы изменения не потерялись.',
+    description:
+      'Перед выходом из раздела нажмите «Сохранить», чтобы изменения не потерялись.',
   },
 ];
 
@@ -101,9 +106,13 @@ export function CatalogEditorPage() {
   const [isBindingFoodcourt, setIsBindingFoodcourt] = useState(false);
   const addressSuggestions = useAddressSuggestions(formData.address);
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
-  const tutorial = useSectionTutorial('catalog_editor', catalogEditorTutorialSteps, {
-    enabled: !isLoading,
-  });
+  const tutorial = useSectionTutorial(
+    'catalog_editor',
+    catalogEditorTutorialSteps,
+    {
+      enabled: !isLoading,
+    }
+  );
 
   useEffect(() => {
     try {
@@ -126,7 +135,9 @@ export function CatalogEditorPage() {
         is_active: fetchedCatalog.is_active,
         banner_url: fetchedCatalog.banner_url || '',
         address: fetchedCatalog.address || '',
-        subtype: fetchedCatalog.subtype || (fetchedCatalog.type === 'goods' ? 'shop' : 'salon'),
+        subtype:
+          fetchedCatalog.subtype ||
+          (fetchedCatalog.type === 'goods' ? 'shop' : 'salon'),
         is_open_24_7: Boolean(fetchedCatalog.is_open_24_7),
         work_start: fetchedCatalog.work_start || '',
         work_end: fetchedCatalog.work_end || '',
@@ -210,7 +221,10 @@ export function CatalogEditorPage() {
     if (isSavingCatalog) return '';
     try {
       setIsSavingCatalog(true);
-      const syncValidationError = getSyncValidationError(formData, strictValidation);
+      const syncValidationError = getSyncValidationError(
+        formData,
+        strictValidation
+      );
       if (syncValidationError) {
         toast.error(syncValidationError);
         return;
@@ -312,7 +326,9 @@ export function CatalogEditorPage() {
       toast.success('Каталог удален');
       navigate('/catalogs');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Не удалось удалить каталог');
+      toast.error(
+        err instanceof Error ? err.message : 'Не удалось удалить каталог'
+      );
     } finally {
       setIsDeletingCatalog(false);
     }
@@ -397,7 +413,8 @@ export function CatalogEditorPage() {
       setIsBindingFoodcourt(true);
       await placesService.attachToFoodcourt(catalogId, selectedFoodcourtId);
       const linked =
-        foodcourtOptions.find((place) => place.id === selectedFoodcourtId) || null;
+        foodcourtOptions.find(place => place.id === selectedFoodcourtId) ||
+        null;
       setFoodcourtPlace(linked);
       toast.success('Фудкорт успешно привязан');
     } catch {
@@ -424,7 +441,7 @@ export function CatalogEditorPage() {
       `Здравствуйте! Не нашел фудкорт в списке.\nКаталог: ${formData.title || 'Без названия'}\nID: ${catalogId || 'new'}`
     );
     const supportUsername = (
-      import.meta.env.VITE_SUPPORT_TELEGRAM || 'catalogs_support_bot'
+      import.meta.env.VITE_SUPPORT_TELEGRAM || 'samir_gafaroff'
     ).replace('@', '');
     window.open(`https://t.me/${supportUsername}?text=${text}`, '_blank');
   };
@@ -476,8 +493,8 @@ export function CatalogEditorPage() {
           showAddressSuggestions={showAddressSuggestions}
           setShowAddressSuggestions={setShowAddressSuggestions}
           addressOptions={addressSuggestions.suggestions}
-          onAddressSelect={(value) =>
-            setFormData((prev) => ({
+          onAddressSelect={value =>
+            setFormData(prev => ({
               ...prev,
               address: toShortAddress(value),
             }))
@@ -487,40 +504,41 @@ export function CatalogEditorPage() {
         <TypeSubtypeSection
           type={formData.type}
           subtype={formData.subtype}
-          onTypeChange={(value) =>
-            setFormData((prev) => ({
+          onTypeChange={value =>
+            setFormData(prev => ({
               ...prev,
               type: value,
               subtype: (value === 'goods' ? 'shop' : 'salon') as CatalogSubtype,
             }))
           }
-          onSubtypeChange={(value) =>
-            setFormData((prev) => ({ ...prev, subtype: value }))
+          onSubtypeChange={value =>
+            setFormData(prev => ({ ...prev, subtype: value }))
           }
         />
 
-        {formData.type === 'goods' && formData.subtype === 'cafe_restaurant' && (
-          <FoodcourtSection
-            enabled={foodcourtEnabled}
-            loading={foodcourtLoading}
-            selectedFoodcourtId={selectedFoodcourtId}
-            foodcourtOptions={foodcourtOptions}
-            currentFoodcourt={foodcourtPlace}
-            isBindingFoodcourt={isBindingFoodcourt}
-            canAttach={Boolean(catalogId && selectedFoodcourtId)}
-            onEnabledChange={(checked) => {
-              void handleFoodcourtToggle(checked);
-            }}
-            onSelectedFoodcourtChange={setSelectedFoodcourtId}
-            onAttach={() => {
-              void handleAttachFoodcourt();
-            }}
-            onDetach={() => {
-              void handleDetachFoodcourt();
-            }}
-            onSupportClick={handleFoodcourtSupport}
-          />
-        )}
+        {formData.type === 'goods' &&
+          formData.subtype === 'cafe_restaurant' && (
+            <FoodcourtSection
+              enabled={foodcourtEnabled}
+              loading={foodcourtLoading}
+              selectedFoodcourtId={selectedFoodcourtId}
+              foodcourtOptions={foodcourtOptions}
+              currentFoodcourt={foodcourtPlace}
+              isBindingFoodcourt={isBindingFoodcourt}
+              canAttach={Boolean(catalogId && selectedFoodcourtId)}
+              onEnabledChange={checked => {
+                void handleFoodcourtToggle(checked);
+              }}
+              onSelectedFoodcourtChange={setSelectedFoodcourtId}
+              onAttach={() => {
+                void handleAttachFoodcourt();
+              }}
+              onDetach={() => {
+                void handleDetachFoodcourt();
+              }}
+              onSupportClick={handleFoodcourtSupport}
+            />
+          )}
 
         <NavActionButtons
           isSavingCatalog={isSavingCatalog}

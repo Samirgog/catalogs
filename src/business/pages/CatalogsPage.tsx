@@ -20,13 +20,15 @@ const catalogsTutorialBaseSteps: TutorialStep[] = [
     id: 'header',
     target: '[data-tour="catalogs-header"]',
     title: 'Ваши каталоги',
-    description: 'Здесь отображаются все созданные каталоги и их текущий статус.',
+    description:
+      'Здесь отображаются все созданные каталоги и их текущий статус.',
   },
   {
     id: 'create',
     target: '[data-tour="catalogs-create"]',
     title: 'Создание нового каталога',
-    description: 'Нажмите кнопку, чтобы создать новый каталог товаров или услуг.',
+    description:
+      'Нажмите кнопку, чтобы создать новый каталог товаров или услуг.',
   },
   {
     id: 'support',
@@ -41,12 +43,8 @@ export function CatalogsPage() {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
   const tgUser = getTelegramUser();
-  const telegramPhoto =
-    tgUser?.photo_url || '';
-  const avatarText =
-    user?.first_name?.[0] ||
-    user?.username?.[0] ||
-    'U';
+  const telegramPhoto = tgUser?.photo_url || '';
+  const avatarText = user?.first_name?.[0] || user?.username?.[0] || 'U';
   const tutorialSteps: TutorialStep[] = catalogs.length
     ? [
         ...catalogsTutorialBaseSteps.slice(0, 1),
@@ -54,7 +52,8 @@ export function CatalogsPage() {
           id: 'card',
           target: '[data-tour="catalogs-card"]',
           title: 'Карточка каталога',
-          description: 'Откройте карточку, чтобы перейти к настройкам конкретного каталога.',
+          description:
+            'Откройте карточку, чтобы перейти к настройкам конкретного каталога.',
         },
         ...catalogsTutorialBaseSteps.slice(1),
       ]
@@ -64,7 +63,8 @@ export function CatalogsPage() {
           id: 'empty',
           target: '[data-tour="catalogs-empty"]',
           title: 'Пустой список',
-          description: 'Сейчас каталогов нет. Создайте первый, чтобы начать работу.',
+          description:
+            'Сейчас каталогов нет. Создайте первый, чтобы начать работу.',
         },
         ...catalogsTutorialBaseSteps.slice(1),
       ];
@@ -76,29 +76,38 @@ export function CatalogsPage() {
     if (!error) return;
     toast.error(error);
   }, [error]);
-  
+
   const handleEditCatalog = (catalogId: string) => {
     navigate(`/catalogs/${catalogId}/edit`);
   };
-  
+
   const handleCreateCatalog = () => {
     navigate('/catalogs/new');
   };
 
   const handleSupport = () => {
-    const supportUsername = (import.meta.env.VITE_SUPPORT_TELEGRAM || 'catalogs_support_bot').replace('@', '');
-    const text = encodeURIComponent('Здравствуйте! Нужна помощь по настройке каталога.');
+    const supportUsername = (
+      import.meta.env.VITE_SUPPORT_TELEGRAM || 'samir_gafaroff'
+    ).replace('@', '');
+    const text = encodeURIComponent(
+      'Здравствуйте! Нужна помощь по настройке каталога.'
+    );
     window.open(`https://t.me/${supportUsername}?text=${text}`, '_blank');
   };
-  
+
   return (
     <div className="min-h-screen bg-background pb-28">
       {/* Header */}
-      <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0" data-tour="catalogs-header">
+      <div
+        className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0"
+        data-tour="catalogs-header"
+      >
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold">Каталоги</h1>
-            <p className="text-sm text-muted-foreground">Управление каталогами</p>
+            <p className="text-sm text-muted-foreground">
+              Управление каталогами
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <BusinessTutorialLauncher />
@@ -110,13 +119,15 @@ export function CatalogsPage() {
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
-                <span className="text-lg font-bold uppercase">{avatarText}</span>
+                <span className="text-lg font-bold uppercase">
+                  {avatarText}
+                </span>
               </div>
             )}
           </div>
         </div>
       </div>
-      
+
       <div className="p-4">
         {loading && (
           <div className="text-center py-8">
@@ -126,12 +137,12 @@ export function CatalogsPage() {
             </div>
           </div>
         )}
-        
+
         {error && (
           <div className="text-center py-8 text-destructive">
             <div className="text-lg">Ошибка загрузки: {error}</div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="mt-4"
               onClick={() => window.location.reload()}
             >
@@ -139,13 +150,19 @@ export function CatalogsPage() {
             </Button>
           </div>
         )}
-        
+
         {!loading && !error && (
           <div className="space-y-4">
             {catalogs.length === 0 && (
-              <Card className="p-6 text-center space-y-3" data-tour="catalogs-empty">
+              <Card
+                className="p-6 text-center space-y-3"
+                data-tour="catalogs-empty"
+              >
                 <div className="flex justify-center">
-                  <EmptyLottie src={`${import.meta.env.BASE_URL}empty_ghost.lottie`} className="w-44 h-44" />
+                  <EmptyLottie
+                    src={`${import.meta.env.BASE_URL}empty_ghost.lottie`}
+                    className="w-44 h-44"
+                  />
                 </div>
                 <h3 className="text-lg font-semibold">Каталогов пока нет</h3>
                 <p className="text-sm text-muted-foreground">
@@ -154,67 +171,69 @@ export function CatalogsPage() {
               </Card>
             )}
             {catalogs.map((catalog, index) => (
-            <Card 
-              key={catalog.id} 
-              className="overflow-hidden cursor-pointer"
-              data-tour={index === 0 ? 'catalogs-card' : undefined}
-              onClick={() => handleEditCatalog(catalog.id)}
-            >
-              <div className="relative h-36 overflow-hidden">
-                {catalog.banner_url ? (
-                  <img 
-                    src={catalog.banner_url} 
-                    alt={catalog.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-primary/60 to-primary flex items-center justify-center">
-                    <span className="text-white font-medium text-5xl">{catalog.title.charAt(0)}</span>
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
-                <Badge 
-                  variant={catalog.is_active ? 'default' : 'secondary'} 
-                  className={`absolute top-3 right-3 ${catalog.is_active ? 'bg-green-500/90 backdrop-blur-sm' : 'bg-secondary/80 backdrop-blur-sm'}`}
-                >
-                  {catalog.is_active ? 'Активный' : 'Черновик'}
-                </Badge>
-              </div>
-              
-              <div className="p-4">
-                <CardHeader className="p-0 pb-2">
-                  <CardTitle className="text-lg">
-                    {catalog.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="flex justify-between items-center">
-                    <div className="text-sm text-muted-foreground">
-                      {new Date(catalog.updated_at).toLocaleDateString('ru-RU')}
+              <Card
+                key={catalog.id}
+                className="overflow-hidden cursor-pointer"
+                data-tour={index === 0 ? 'catalogs-card' : undefined}
+                onClick={() => handleEditCatalog(catalog.id)}
+              >
+                <div className="relative h-36 overflow-hidden">
+                  {catalog.banner_url ? (
+                    <img
+                      src={catalog.banner_url}
+                      alt={catalog.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-primary/60 to-primary flex items-center justify-center">
+                      <span className="text-white font-medium text-5xl">
+                        {catalog.title.charAt(0)}
+                      </span>
                     </div>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="h-9 w-9"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditCatalog(catalog.id);
-                      }}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
-      
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
+                  <Badge
+                    variant={catalog.is_active ? 'default' : 'secondary'}
+                    className={`absolute top-3 right-3 ${catalog.is_active ? 'bg-green-500/90 backdrop-blur-sm' : 'bg-secondary/80 backdrop-blur-sm'}`}
+                  >
+                    {catalog.is_active ? 'Активный' : 'Черновик'}
+                  </Badge>
+                </div>
+
+                <div className="p-4">
+                  <CardHeader className="p-0 pb-2">
+                    <CardTitle className="text-lg">{catalog.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="flex justify-between items-center">
+                      <div className="text-sm text-muted-foreground">
+                        {new Date(catalog.updated_at).toLocaleDateString(
+                          'ru-RU'
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-9 w-9"
+                        onClick={e => {
+                          e.stopPropagation();
+                          handleEditCatalog(catalog.id);
+                        }}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Floating Action Button */}
       <div className="fixed bottom-6 left-4 right-4">
-        <Button 
+        <Button
           data-tour="catalogs-create"
           className="w-full h-14 text-base"
           onClick={handleCreateCatalog}
