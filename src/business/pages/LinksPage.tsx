@@ -79,7 +79,7 @@ export function LinksPage() {
   const [linkData, setLinkData] = useState<LinkData | null>(null);
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [isGenerating, setIsGenerating] = useState(true);
-  const [copySuccess, setCopySuccess] = useState(false);
+  // const [copySuccess, setCopySuccess] = useState(false);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [tablesCount, setTablesCount] = useState('10');
   const clientBotUsername = (
@@ -236,9 +236,9 @@ export function LinksPage() {
     if (linkData?.url) {
       try {
         await navigator.clipboard.writeText(linkData.url);
-        setCopySuccess(true);
+        // setCopySuccess(true);
         toast.success('Ссылка скопирована');
-        setTimeout(() => setCopySuccess(false), 2000);
+        // setTimeout(() => setCopySuccess(false), 2000);
       } catch (err) {
         console.error('Failed to copy:', err);
         toast.error('Не удалось скопировать ссылку');
@@ -506,7 +506,6 @@ export function LinksPage() {
                       className="flex-shrink-0"
                     >
                       <Copy className="w-4 h-4 mr-2" />
-                      {copySuccess ? 'Скопировано!' : 'Копировать'}
                     </Button>
                     <Button
                       onClick={handleShare}
@@ -514,7 +513,6 @@ export function LinksPage() {
                       className="flex-shrink-0"
                     >
                       <Share2 className="w-4 h-4 mr-2" />
-                      Поделиться
                     </Button>
                   </div>
                 </div>
