@@ -6,7 +6,6 @@ import { useTelegramNavigation } from '@/hooks/useTelegramNavigation';
 import { useCatalogsByPlace, usePlace } from '../hooks/useCatalogs';
 import { getCurrentOrders } from '../utils/currentOrder';
 import { FloatingOrdersButton } from '../components/FloatingOrdersButton';
-import { getTelegramWebApp } from '@/lib/telegram';
 
 type Props = {
   placeId: string;
@@ -39,10 +38,6 @@ export function FoodcourtCatalogsPage({ placeId }: Props) {
     return () => window.clearInterval(interval);
   }, []);
 
-  const handleCloseApp = () => {
-    getTelegramWebApp()?.close?.();
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -60,18 +55,13 @@ export function FoodcourtCatalogsPage({ placeId }: Props) {
       <div className="sticky top-0 z-20 overflow-hidden border-x-0 border-t-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 px-4 py-5 text-white shadow-lg">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">{place?.name || 'Пространство'}</h1>
+            <h1 className="text-2xl font-bold">
+              {place?.name || 'Пространство'}
+            </h1>
             {place?.address && (
               <p className="mt-1 text-sm text-white/80">{place.address}</p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={handleCloseApp}
-            className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm text-white/90 backdrop-blur"
-          >
-            Закрыть
-          </button>
         </div>
       </div>
 
@@ -105,7 +95,9 @@ export function FoodcourtCatalogsPage({ placeId }: Props) {
               <CardContent className="p-4">
                 <p className="font-semibold">{catalog.title}</p>
                 {catalog.address && (
-                  <p className="text-xs text-muted-foreground mt-1">{catalog.address}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {catalog.address}
+                  </p>
                 )}
               </CardContent>
             </Card>
