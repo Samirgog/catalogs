@@ -13,6 +13,47 @@ import { FormValidator, ErrorHandler, ValidationError } from './CategoriesEditor
 import type { ItemFormData } from '@/types';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
+import { TourOverlay } from '../tutorial/TourOverlay';
+import { useSectionTutorial } from '../tutorial/useSectionTutorial';
+import type { TutorialStep } from '../tutorial/types';
+
+const itemEditorTutorialSteps: TutorialStep[] = [
+  {
+    id: 'item-title',
+    target: '[data-tour="item-editor-title"]',
+    title: 'Название позиции',
+    description:
+      'Укажите название товара или услуги так, как его увидит клиент в каталоге.',
+  },
+  {
+    id: 'item-short-description',
+    target: '[data-tour="item-editor-short-description"]',
+    title: 'Краткое описание',
+    description:
+      'Этот текст будет виден на карточке позиции в каталоге.',
+  },
+  {
+    id: 'item-detailed-description',
+    target: '[data-tour="item-editor-detailed-description"]',
+    title: 'Детальное описание',
+    description:
+      'Здесь можно подробно рассказать о составе, преимуществах или условиях оказания услуги.',
+  },
+  {
+    id: 'item-image',
+    target: '[data-tour="item-editor-image"]',
+    title: 'Изображение',
+    description:
+      'Добавьте фотографию, чтобы карточка выглядела заметнее и понятнее.',
+  },
+  {
+    id: 'item-save',
+    target: '[data-tour="item-editor-save"]',
+    title: 'Сохранение',
+    description:
+      'Когда заполните форму, нажмите кнопку сохранения внизу экрана.',
+  },
+];
 
 export function ItemEditorPage() {
   const { catalogId, categoryId, itemId } = useParams<{ 
@@ -73,6 +114,9 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [priorityInput, setPriorityInput] = useState('1');
+  const tutorial = useSectionTutorial('item_editor', itemEditorTutorialSteps, {
+    enabled: !isLoading,
+  });
 
   // Load existing item data if editing
   useEffect(() => {
@@ -182,7 +226,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
           <h1 className="text-xl font-bold">
             {itemId ? 'Редактировать товар' : 'Создать товар'}
           </h1>
-          <BusinessTutorialLauncher />
+          <BusinessTutorialLauncher currentSection="item_editor" />
         </div>
       </div>
 
@@ -194,6 +238,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
               Название
             </Label>
             <Input
+              data-tour="item-editor-title"
               id="item-title"
               value={formData.title}
               onChange={(e) => setFormData({...formData, title: e.target.value})}
@@ -207,6 +252,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
               Описание
             </Label>
             <Textarea
+              data-tour="item-editor-short-description"
               id="item-description"
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -220,6 +266,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
               Детальное описание
             </Label>
             <Textarea
+              data-tour="item-editor-detailed-description"
               id="item-detailed-description"
               value={formData.detailed_description}
               onChange={(e) =>
@@ -249,7 +296,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
             <Label htmlFor="item-image" className="block mb-2 text-sm font-medium">
               Изображение товара
             </Label>
-            <div className="space-y-4">
+            <div className="space-y-4" data-tour="item-editor-image">
               {formData.image_url || previewUrl ? (
                 <div className="relative rounded-xl overflow-hidden">
                   <img 
@@ -349,11 +396,23 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
       </div>
 
       <div className="fixed bottom-6 left-4 right-4 z-50">
-        <Button onClick={handleSubmit} disabled={isLoading} className="w-full h-12 gap-2">
+        <Button
+          data-tour="item-editor-save"
+          onClick={handleSubmit}
+          disabled={isLoading}
+          className="w-full h-12 gap-2"
+        >
           <Check className="w-4 h-4" />
           {isLoading ? 'Сохранение...' : 'Сохранить'}
         </Button>
       </div>
+      <TourOverlay
+        open={tutorial.open}
+        steps={itemEditorTutorialSteps}
+        sectionTitle="Редактор позиции"
+        onClose={tutorial.closeAndMarkSeen}
+        onComplete={tutorial.complete}
+      />
     </div>
   );
 }

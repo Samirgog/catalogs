@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { CircleHelp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,13 +12,11 @@ import {
 } from '@/components/ui/drawer';
 import { setForcedTutorialSection } from './storage';
 import type { TutorialSectionId } from './types';
-import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 type SectionOption = {
   id: TutorialSectionId;
   title: string;
-  resolvePath: (catalogId?: string) => string;
   requiresCatalog?: boolean;
 };
 
@@ -26,30 +24,30 @@ const sectionOptions: SectionOption[] = [
   {
     id: 'catalogs',
     title: 'Список каталогов',
-    resolvePath: () => '/catalogs',
   },
   {
     id: 'catalog_editor',
     title: 'Редактор каталога',
-    resolvePath: (catalogId) => `/catalogs/${catalogId}/edit`,
     requiresCatalog: true,
   },
   {
     id: 'categories_editor',
     title: 'Категории и товары',
-    resolvePath: (catalogId) => `/categories/editor/${catalogId}`,
+    requiresCatalog: true,
+  },
+  {
+    id: 'item_editor',
+    title: 'Редактор товара или услуги',
     requiresCatalog: true,
   },
   {
     id: 'staff',
     title: 'Сотрудники и уведомления',
-    resolvePath: (catalogId) => `/staff/${catalogId}`,
     requiresCatalog: true,
   },
   {
     id: 'links',
     title: 'Ссылки и QR',
-    resolvePath: (catalogId) => `/catalogs/${catalogId}/links`,
     requiresCatalog: true,
   },
 ];
@@ -59,6 +57,7 @@ const resolveCatalogIdFromPath = (path: string) => {
     /\/catalogs\/([^/]+)\/edit/,
     /\/catalogs\/([^/]+)\/links/,
     /\/categories\/editor\/([^/]+)/,
+    /\/categories\/([^/]+)\/item-editor\/[^/]+(?:\/[^/]+)?/,
     /\/staff\/([^/]+)/,
     /\/actions\/editor\/([^/]+)/,
     /\/catalogs\/([^/]+)\/fulfillment/,
@@ -72,10 +71,13 @@ const resolveCatalogIdFromPath = (path: string) => {
   return null;
 };
 
-export function BusinessTutorialLauncher() {
+type Props = {
+  currentSection: TutorialSectionId;
+};
+
+export function BusinessTutorialLauncher({ currentSection }: Props) {
   const [open, setOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
   const catalogId = useMemo(() => {
     return (
       resolveCatalogIdFromPath(location.pathname) ||
@@ -83,19 +85,16 @@ export function BusinessTutorialLauncher() {
     );
   }, [location.pathname]);
 
-  const startSection = (section: SectionOption) => {
-    if (section.requiresCatalog && !catalogId) {
-      toast.error('Сначала откройте нужный каталог');
-      return;
-    }
+  const currentOption = sectionOptions.find(
+    (section) => section.id === currentSection
+  );
 
-    setForcedTutorialSection(section.id);
-    const nextPath = section.resolvePath(catalogId ?? undefined);
-    if (location.pathname !== nextPath) {
-      navigate(nextPath);
-    }
+  const startSection = (sectionId: TutorialSectionId) => {
+    setForcedTutorialSection(sectionId);
     setOpen(false);
   };
+
+  if (!currentOption) return null;
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
@@ -113,24 +112,21 @@ export function BusinessTutorialLauncher() {
         <DrawerHeader>
           <DrawerTitle>Помощь по интерфейсу</DrawerTitle>
           <DrawerDescription>
-            Выберите раздел, по которому хотите посмотреть подсказки.
+            Подсказки доступны для текущего экрана.
           </DrawerDescription>
         </DrawerHeader>
         <div className="space-y-2 px-4 pb-6 overflow-auto">
-          {sectionOptions.map((section) => (
-            <Button
-              key={section.id}
-              variant="outline"
-              className="w-full justify-start"
-              disabled={Boolean(section.requiresCatalog && !catalogId)}
-              onClick={() => startSection(section)}
-            >
-              {section.title}
-            </Button>
-          ))}
-          {!catalogId && (
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            disabled={Boolean(currentOption.requiresCatalog && !catalogId)}
+            onClick={() => startSection(currentOption.id)}
+          >
+            {currentOption.title}
+          </Button>
+          {currentOption.requiresCatalog && !catalogId && (
             <p className="text-xs text-muted-foreground">
-              Чтобы запустить подсказки по разделам, сначала откройте любой каталог.
+              Чтобы запустить подсказки, сначала откройте каталог.
             </p>
           )}
         </div>

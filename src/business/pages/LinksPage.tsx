@@ -15,6 +15,7 @@ import { useSectionTutorial } from '../tutorial/useSectionTutorial';
 import { TourOverlay } from '../tutorial/TourOverlay';
 import type { TutorialStep } from '../tutorial/types';
 import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
+import { showRequestError } from '../utils/request-feedback';
 
 const linksTutorialSteps: TutorialStep[] = [
   {
@@ -142,11 +143,21 @@ export function LinksPage() {
   };
 
   useEffect(() => {
-    if (catalogError) toast.error(catalogError);
+    if (catalogError) {
+      showRequestError(catalogError, {
+        retryLabel: 'Обновить',
+        onRetry: () => window.location.reload(),
+      });
+    }
   }, [catalogError]);
 
   useEffect(() => {
-    if (qrError) toast.error(qrError);
+    if (qrError) {
+      showRequestError(qrError, {
+        retryLabel: 'Обновить',
+        onRetry: () => window.location.reload(),
+      });
+    }
   }, [qrError]);
 
   // Fetch catalog data
@@ -400,7 +411,7 @@ export function LinksPage() {
             <h1 className="text-xl font-bold">Ссылка и QR-код</h1>
             <p className="text-sm text-muted-foreground">{catalog.title}</p>
           </div>
-          <BusinessTutorialLauncher />
+          <BusinessTutorialLauncher currentSection="links" />
         </div>
       </div>
 

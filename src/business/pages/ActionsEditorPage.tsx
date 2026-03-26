@@ -11,8 +11,8 @@ import { useActions } from '../hooks/useActions';
 import type { Action, ActionType } from '../../types';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
-import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
 import { usePaymentGateway } from '../hooks/usePaymentGateway';
+import { showRequestError } from '../utils/request-feedback';
 
 type ActionsFormState = {
   paymentOnDeliveryEnabled: boolean;
@@ -134,7 +134,10 @@ export function ActionsEditorPage() {
 
   useEffect(() => {
     if (!error) return;
-    toast.error(error);
+    showRequestError(error, {
+      onRetry: () => window.location.reload(),
+      retryLabel: 'Обновить',
+    });
   }, [error]);
 
   const patchFormState = (patch: Partial<ActionsFormState>) => {
@@ -259,7 +262,6 @@ export function ActionsEditorPage() {
           <h1 className="text-2xl font-bold">
             Настройка способов оплаты и действий
           </h1>
-          <BusinessTutorialLauncher />
         </div>
       </div>
 

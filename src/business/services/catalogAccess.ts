@@ -6,6 +6,26 @@ const generateInviteCode = () =>
 
 export const catalogAccessService = {
   async getCollaborators(catalogId: string): Promise<CatalogUserAccess[]> {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    if (supabaseUrl) {
+      try {
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/catalog-access-collaborators`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ catalogId }),
+          }
+        );
+
+        if (response.ok) {
+          return (await response.json()) as CatalogUserAccess[];
+        }
+      } catch {
+        // Fallback to direct querying below.
+      }
+    }
+
     const { data, error } = await businessSupabase
       .from('catalog_user_access')
       .select('*')

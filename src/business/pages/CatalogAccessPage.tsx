@@ -8,11 +8,12 @@ import { useCatalogAccess } from '../hooks/useCatalogAccess';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
+import { showRequestError } from '../utils/request-feedback';
 
 export function CatalogAccessPage() {
   const { catalogId } = useParams<{ catalogId: string }>();
   const navigate = useNavigate();
-  const { userId } = useCurrentUser();
+  const { userId, user } = useCurrentUser();
   useAutoBackButton(catalogId ? `/catalogs/${catalogId}/edit` : '/catalogs');
 
   const {
@@ -21,6 +22,7 @@ export function CatalogAccessPage() {
     loading,
     error,
     generateInvite,
+    refetch,
     revokeAccess,
   } = useCatalogAccess(catalogId || '');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -28,8 +30,12 @@ export function CatalogAccessPage() {
 
   useEffect(() => {
     if (!error) return;
-    toast.error(error);
-  }, [error]);
+    showRequestError(error, {
+      onRetry: () => {
+        void refetch();
+      },
+    });
+  }, [error, refetch]);
 
   const handleGenerate = async () => {
     if (!catalogId || !userId) return;
@@ -75,6 +81,19 @@ export function CatalogAccessPage() {
     if (fullName) return fullName;
     if (user.username) return `@${user.username}`;
     return 'Пользователь';
+  };
+
+  const getCollaboratorSubtitle = (item: (typeof collaborators)[number]) => {
+    const parts = [item.role === 'owner' ? 'Владелец' : 'Редактор'];
+    if (item.user?.username) {
+      parts.push(`@${item.user.username}`);
+    }
+    if (!item.user && item.user_id === userId) {
+      parts.push(
+        user?.username ? `@${user.username}` : 'Текущий пользователь'
+      );
+    }
+    return parts.join(' · ');
   };
 
   return (
@@ -145,8 +164,7 @@ export function CatalogAccessPage() {
                       {getCollaboratorName(item.user)}
                     </p>
                     <p className="text-xs text-muted-foreground break-words">
-                      {item.role === 'owner' ? 'Владелец' : 'Редактор'}
-                      {item.user?.username ? ` · @${item.user.username}` : ''}
+                      {getCollaboratorSubtitle(item)}
                     </p>
                   </div>
                   {item.role !== 'owner' && (

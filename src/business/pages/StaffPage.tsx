@@ -12,6 +12,7 @@ import { useSectionTutorial } from '../tutorial/useSectionTutorial';
 import { TourOverlay } from '../tutorial/TourOverlay';
 import type { TutorialStep } from '../tutorial/types';
 import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
+import { showRequestError } from '../utils/request-feedback';
 
 const staffTutorialSteps: TutorialStep[] = [
   {
@@ -90,8 +91,13 @@ export function StaffPage() {
       setLocalMessage(
         err instanceof Error ? err.message : 'Не удалось сгенерировать код.'
       );
-      toast.error(
-        err instanceof Error ? err.message : 'Не удалось сгенерировать код.'
+      showRequestError(
+        err instanceof Error ? err.message : 'Не удалось сгенерировать код.',
+        {
+          onRetry: () => {
+            void refetch();
+          },
+        }
       );
     } finally {
       setIsGenerating(false);
@@ -121,8 +127,13 @@ export function StaffPage() {
       setLocalMessage(
         err instanceof Error ? err.message : 'Не удалось обновить сотрудника.'
       );
-      toast.error(
-        err instanceof Error ? err.message : 'Не удалось обновить сотрудника.'
+      showRequestError(
+        err instanceof Error ? err.message : 'Не удалось обновить сотрудника.',
+        {
+          onRetry: () => {
+            void refetch();
+          },
+        }
       );
     }
   };
@@ -153,7 +164,7 @@ export function StaffPage() {
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">Сотрудники и уведомления</h1>
-          <BusinessTutorialLauncher />
+          <BusinessTutorialLauncher currentSection="staff" />
         </div>
       </div>
 

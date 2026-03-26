@@ -30,6 +30,7 @@ import { TourOverlay } from '../tutorial/TourOverlay';
 import { useSectionTutorial } from '../tutorial/useSectionTutorial';
 import type { TutorialStep } from '../tutorial/types';
 import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
+import { showRequestError } from '../utils/request-feedback';
 
 const catalogEditorTutorialSteps: TutorialStep[] = [
   {
@@ -273,7 +274,15 @@ export function CatalogEditorPage() {
       return savedCatalogId || '';
     } catch (err) {
       console.error('Error saving catalog:', err);
-      toast.error('Ошибка сохранения каталога. Попробуйте еще раз.');
+      showRequestError(
+        err instanceof Error
+          ? err.message
+          : 'Ошибка сохранения каталога. Попробуйте еще раз.',
+        {
+          retryLabel: 'Обновить',
+          onRetry: () => window.location.reload(),
+        }
+      );
       return '';
     } finally {
       setIsSavingCatalog(false);
@@ -330,8 +339,12 @@ export function CatalogEditorPage() {
       toast.success('Каталог удален');
       navigate('/catalogs');
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Не удалось удалить каталог'
+      showRequestError(
+        err instanceof Error ? err.message : 'Не удалось удалить каталог',
+        {
+          retryLabel: 'Обновить',
+          onRetry: () => window.location.reload(),
+        }
       );
     } finally {
       setIsDeletingCatalog(false);
@@ -474,7 +487,7 @@ export function CatalogEditorPage() {
           <h1 className="text-2xl font-bold">
             {isEditing ? 'Редактировать каталог' : 'Создать каталог'}
           </h1>
-          <BusinessTutorialLauncher />
+          <BusinessTutorialLauncher currentSection="catalog_editor" />
         </div>
       </div>
 

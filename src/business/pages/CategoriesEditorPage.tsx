@@ -241,7 +241,7 @@ function CategoriesEditorView({
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">Редактор каталога</h1>
-          <BusinessTutorialLauncher />
+          <BusinessTutorialLauncher currentSection="categories_editor" />
         </div>
       </div>
 

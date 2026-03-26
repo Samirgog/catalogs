@@ -17,6 +17,7 @@ import type { TutorialStep } from '../tutorial/types';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { catalogAccessService } from '../services/catalogAccess';
+import { showRequestError } from '../utils/request-feedback';
 
 const catalogsTutorialBaseSteps: TutorialStep[] = [
   {
@@ -25,6 +26,13 @@ const catalogsTutorialBaseSteps: TutorialStep[] = [
     title: 'Ваши каталоги',
     description:
       'Здесь отображаются все созданные каталоги и их текущий статус.',
+  },
+  {
+    id: 'join',
+    target: '[data-tour="catalogs-join"]',
+    title: 'Подключение по коду',
+    description:
+      'Если вам выдали код доступа к каталогу, введите его здесь и подключите каталог в свой список.',
   },
   {
     id: 'create',
@@ -79,7 +87,10 @@ export function CatalogsPage() {
 
   useEffect(() => {
     if (!error) return;
-    toast.error(error);
+    showRequestError(error, {
+      retryLabel: 'Обновить',
+      onRetry: () => window.location.reload(),
+    });
   }, [error]);
 
   const handleEditCatalog = (catalogId: string) => {
@@ -109,7 +120,14 @@ export function CatalogsPage() {
       await refetch();
       toast.success('Каталог подключен');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Не удалось подключить каталог');
+      showRequestError(
+        err instanceof Error ? err.message : 'Не удалось подключить каталог',
+        {
+          onRetry: () => {
+            void refetch();
+          },
+        }
+      );
     } finally {
       setIsJoining(false);
     }
@@ -130,7 +148,7 @@ export function CatalogsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <BusinessTutorialLauncher />
+            <BusinessTutorialLauncher currentSection="catalogs" />
             {telegramPhoto ? (
               <img
                 src={telegramPhoto}
@@ -173,23 +191,36 @@ export function CatalogsPage() {
 
         {!loading && !error && (
           <div className="space-y-4">
-            <Card>
+            <Card
+              data-tour="catalogs-join"
+              className="overflow-hidden border-primary/15 bg-gradient-to-br from-white/80 via-white/60 to-primary/5"
+            >
               <CardHeader>
                 <CardTitle>Подключить каталог по коду</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Если владелец дал вам код доступа, введите его здесь.
                 </p>
-                <div className="flex gap-2">
-                  <Input
-                    value={inviteCode}
-                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                    placeholder="Например: A1B2C3"
-                  />
-                  <Button onClick={handleJoinByCode} disabled={isJoining || !inviteCode.trim()}>
-                    Подключить
-                  </Button>
+                <div className="glass-card rounded-2xl p-3 sm:p-4">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                      placeholder="Например: A1B2C3"
+                      className="h-12 tracking-[0.25em] text-center sm:text-left font-medium uppercase"
+                    />
+                    <Button
+                      className="h-12 sm:px-6"
+                      onClick={handleJoinByCode}
+                      disabled={isJoining || !inviteCode.trim()}
+                    >
+                      {isJoining ? 'Подключаем...' : 'Подключить'}
+                    </Button>
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Код не чувствителен к регистру. После подключения каталог появится в списке ниже.
+                  </p>
                 </div>
               </CardContent>
             </Card>

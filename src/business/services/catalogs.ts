@@ -127,7 +127,7 @@ export const catalogService = {
       assertNoError(categoriesDeleteError, 'Ошибка удаления категорий');
     }
 
-    const [actionsDelete, fulfillmentDelete, qrDelete, placeCatalogDelete, staffMembersDelete, staffCodesDelete, notificationsDelete, ordersDelete, accessDelete, inviteDelete, gatewayDelete] = await Promise.all([
+    const [actionsDelete, fulfillmentDelete, qrDelete, placeCatalogDelete, staffMembersDelete, staffCodesDelete, notificationsDelete, clientNotificationsDelete, ordersDelete, accessDelete, inviteDelete, gatewayDelete] = await Promise.all([
       businessSupabase.from('actions').delete().eq('catalog_id', id),
       businessSupabase.from('catalog_fulfillment_methods').delete().eq('catalog_id', id),
       businessSupabase.from('qr_links').delete().eq('target_type', 'catalog').eq('target_id', id),
@@ -135,6 +135,7 @@ export const catalogService = {
       businessSupabase.from('catalog_staff_members').delete().eq('catalog_id', id),
       businessSupabase.from('catalog_staff_codes').delete().eq('catalog_id', id),
       businessSupabase.from('order_notifications').delete().eq('catalog_id', id),
+      businessSupabase.from('client_order_notifications').delete().eq('catalog_id', id),
       businessSupabase.from('orders').delete().eq('catalog_id', id),
       businessSupabase.from('catalog_user_access').delete().eq('catalog_id', id),
       businessSupabase.from('catalog_access_invites').delete().eq('catalog_id', id),
@@ -147,6 +148,7 @@ export const catalogService = {
     assertNoError(staffMembersDelete.error, 'Ошибка удаления сотрудников');
     assertNoError(staffCodesDelete.error, 'Ошибка удаления кодов сотрудников');
     assertNoError(notificationsDelete.error, 'Ошибка удаления уведомлений');
+    assertNoError(clientNotificationsDelete.error, 'Ошибка удаления клиентских уведомлений');
     assertNoError(ordersDelete.error, 'Ошибка удаления заказов');
     assertNoError(accessDelete.error, 'Ошибка удаления доступов к каталогу');
     assertNoError(inviteDelete.error, 'Ошибка удаления инвайтов каталога');

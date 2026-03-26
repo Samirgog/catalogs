@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { showRequestError } from '@/business/utils/request-feedback';
 
 export class ErrorHandler {
   static handle(
@@ -16,7 +17,10 @@ export class ErrorHandler {
     defaultMessage: string = 'Операция не выполнена'
   ): void {
     const message = this.handle(error, defaultMessage);
-    toast.error(message, { id: 'categories-editor-toast', duration: 2200 });
+    showRequestError(message, {
+      retryLabel: 'Обновить',
+      onRetry: () => window.location.reload(),
+    });
   }
 
   static showSuccess(message: string): void {
