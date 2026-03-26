@@ -37,9 +37,9 @@ type TelegramUser = {
 };
 
 type Entry =
-  | { type: 'admin' }
-  | { type: 'catalog'; catalogId: string }
-  | { type: 'place'; placeId: string };
+  | { type: 'admin'; tableNumber?: string }
+  | { type: 'catalog'; catalogId: string; tableNumber?: string }
+  | { type: 'place'; placeId: string; tableNumber?: string };
 
 const buildDataCheckString = (initData: string) => {
   const urlParams = new URLSearchParams(initData);
@@ -67,21 +67,27 @@ const parseEntry = (startParamRaw: string | null): Entry => {
   const startParam = (startParamRaw || '').trim();
   if (!startParam) return { type: 'admin' };
 
-  if (startParam.startsWith('catalog_')) {
+  const tableMatch = startParam.match(/__table_(.+)$/);
+  const tableNumber = tableMatch?.[1]?.trim() || undefined;
+  const baseParam = tableMatch ? startParam.replace(/__table_.+$/, '') : startParam;
+
+  if (baseParam.startsWith('catalog_')) {
     return {
       type: 'catalog',
-      catalogId: startParam.replace('catalog_', ''),
+      catalogId: baseParam.replace('catalog_', ''),
+      tableNumber,
     };
   }
 
-  if (startParam.startsWith('place_')) {
+  if (baseParam.startsWith('place_')) {
     return {
       type: 'place',
-      placeId: startParam.replace('place_', ''),
+      placeId: baseParam.replace('place_', ''),
+      tableNumber,
     };
   }
 
-  return { type: 'admin' };
+  return { type: 'admin', tableNumber };
 };
 
 function validateTelegramInitData(initData: string): { user: TelegramUser; entry: Entry } {

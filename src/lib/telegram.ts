@@ -20,6 +20,7 @@ export type TelegramWebApp = {
   initData?: string;
   initDataUnsafe?: {
     user?: TelegramUser;
+    start_param?: string;
   };
   themeParams?: TelegramThemeParams;
   colorScheme?: 'light' | 'dark';

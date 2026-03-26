@@ -1,9 +1,11 @@
+import { Receipt } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { useCatalogsByPlace } from '../hooks/useCatalogs';
+import { getCurrentOrders } from '../utils/currentOrder';
 
 type Props = {
   placeId: string;
@@ -12,8 +14,19 @@ type Props = {
 export function FoodcourtCatalogsPage({ placeId }: Props) {
   const navigate = useNavigate();
   useAutoBackButton('/');
+  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
   const { catalogs, isLoading, isError } = useCatalogsByPlace(placeId || null);
+
+  useEffect(() => {
+    const syncOrders = () => {
+      const orders = getCurrentOrders();
+      setLastOrderId(orders[0]?.id || null);
+    };
+    syncOrders();
+    const interval = window.setInterval(syncOrders, 3000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   if (isLoading) {
     return (
@@ -71,9 +84,16 @@ export function FoodcourtCatalogsPage({ placeId }: Props) {
         ))}
       </div>
 
-      <div className="fixed bottom-6 left-4 right-4">
-        <Button className="w-full h-12" onClick={() => navigate('/')}>Назад</Button>
-      </div>
+      {lastOrderId && (
+        <button
+          onClick={() => navigate(`/order/${lastOrderId}`)}
+          className="fixed right-4 bottom-4 z-50 rounded-2xl h-14 px-4 bg-primary text-primary-foreground shadow-lg flex items-center justify-center gap-2"
+          aria-label="Открыть заказы"
+        >
+          <Receipt size={22} />
+          <span className="text-sm font-medium">Заказы</span>
+        </button>
+      )}
     </div>
   );
 }

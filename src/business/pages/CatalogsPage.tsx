@@ -98,6 +98,7 @@ export function CatalogsPage() {
   });
   const [inviteCode, setInviteCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [isJoinDrawerOpen, setIsJoinDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (!error) return;
@@ -131,6 +132,7 @@ export function CatalogsPage() {
       setIsJoining(true);
       await catalogAccessService.acceptInvite(inviteCode, user.id);
       setInviteCode('');
+      setIsJoinDrawerOpen(false);
       await refetch();
       toast.success('Каталог подключен');
     } catch (err) {
@@ -213,7 +215,11 @@ export function CatalogsPage() {
                     Подключите каталог в свой список.
                   </p>
                 </div>
-                <Drawer>
+                <Drawer
+                  open={isJoinDrawerOpen}
+                  onOpenChange={setIsJoinDrawerOpen}
+                  dismissible={false}
+                >
                   <DrawerTrigger asChild>
                     <Button variant="outline" className="shrink-0">
                       <KeyRound className="w-4 h-4 mr-2" />
@@ -227,12 +233,13 @@ export function CatalogsPage() {
                         Введите код, который выдал владелец каталога.
                       </DrawerDescription>
                     </DrawerHeader>
-                    <div className="px-4 pb-6 space-y-3">
+                    <div className="px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] space-y-3">
                       <Input
                         value={inviteCode}
                         onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                         placeholder="Например: A1B2C3"
                         className="h-12 tracking-[0.18em] text-center sm:text-left font-medium uppercase"
+                        autoFocus
                       />
                       <Button
                         className="w-full h-12"
@@ -240,6 +247,13 @@ export function CatalogsPage() {
                         disabled={isJoining || !inviteCode.trim()}
                       >
                         {isJoining ? 'Подключаем...' : 'Подключить каталог'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setIsJoinDrawerOpen(false)}
+                      >
+                        Закрыть
                       </Button>
                     </div>
                   </DrawerContent>

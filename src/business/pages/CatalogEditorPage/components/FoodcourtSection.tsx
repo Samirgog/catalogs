@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Spinner } from '@/components/ui/spinner';
 import { Switch } from '@/components/ui/switch';
 import type { Place } from '@/types';
@@ -38,7 +37,7 @@ export function FoodcourtSection({
   onSupportClick,
 }: Props) {
   const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
 
   const selectedPlace = useMemo(
     () => foodcourtOptions.find((place) => place.id === selectedFoodcourtId) || currentFoodcourt,
@@ -89,22 +88,21 @@ export function FoodcourtSection({
               <div className="space-y-3">
                 <div className="space-y-2">
                   <Label>Выберите фудкорт</Label>
-                  <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                      <div>
-                        <Input
-                          value={query}
-                          onFocus={() => setOpen(true)}
-                          onChange={(e) => {
-                            setQuery(e.target.value);
-                            if (!open) setOpen(true);
-                          }}
-                          placeholder="Введите название или адрес"
-                        />
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2" align="start">
-                      <div className="max-h-64 overflow-y-auto space-y-1">
+                  <div className="space-y-2">
+                    <Input
+                      value={query}
+                      onFocus={() => setShowOptions(true)}
+                      onChange={(e) => {
+                        setQuery(e.target.value);
+                        if (!showOptions) setShowOptions(true);
+                      }}
+                      onBlur={() => {
+                        window.setTimeout(() => setShowOptions(false), 120);
+                      }}
+                      placeholder="Введите название или адрес"
+                    />
+                    {showOptions && (
+                      <div className="rounded-xl border bg-popover text-popover-foreground shadow-md p-2 max-h-64 overflow-y-auto space-y-1">
                         {filteredOptions.length === 0 ? (
                           <p className="px-2 py-1 text-sm text-muted-foreground">
                             Ничего не найдено
@@ -120,7 +118,7 @@ export function FoodcourtSection({
                                 setQuery(
                                   [place.name, place.address].filter(Boolean).join(' · ')
                                 );
-                                setOpen(false);
+                                setShowOptions(false);
                               }}
                             >
                               <p className="text-sm font-medium">{place.name}</p>
@@ -133,8 +131,8 @@ export function FoodcourtSection({
                           ))
                         )}
                       </div>
-                    </PopoverContent>
-                  </Popover>
+                    )}
+                  </div>
                 </div>
                 <Button
                   variant="outline"

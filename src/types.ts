@@ -14,10 +14,12 @@ export type UserEntry = {
   type: 'admin' | 'catalog';
   catalogId?: string;
   placeId?: string;
+  tableNumber?: string;
 } | {
   type: 'place';
   placeId?: string;
   catalogId?: string;
+  tableNumber?: string;
 } | null;
 
 export type AuthResponse = {

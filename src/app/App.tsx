@@ -79,6 +79,11 @@ export function App() {
     void login();
   }, [login]);
 
+  useEffect(() => {
+    if (!userEntry?.tableNumber) return;
+    localStorage.setItem('client-table-number', userEntry.tableNumber);
+  }, [userEntry]);
+
   if (!userEntry || isLoading || !isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen">

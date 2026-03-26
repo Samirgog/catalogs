@@ -89,10 +89,11 @@ export function LinksPage() {
   const clientBotAppShortName =
     import.meta.env.VITE_CLIENT_BOT_APP_SHORT_NAME || 'vclickapp';
   const buildClientMiniAppLink = (payload: string, table?: number) => {
+    const startParam = table ? `${payload}__table_${table}` : payload;
     if (clientBotAppShortName) {
-      return `https://t.me/${clientBotUsername}/${clientBotAppShortName}?startapp=${encodeURIComponent(payload)}${table ? `&table=${table}` : ''}`;
+      return `https://t.me/${clientBotUsername}/${clientBotAppShortName}?startapp=${encodeURIComponent(startParam)}`;
     }
-    return `https://t.me/${clientBotUsername}?startapp=${encodeURIComponent(payload)}${table ? `&table=${table}` : ''}`;
+    return `https://t.me/${clientBotUsername}?startapp=${encodeURIComponent(startParam)}`;
   };
   const tutorial = useSectionTutorial('links', linksTutorialSteps, {
     enabled: !isGenerating && !qrLoading && Boolean(linkData),
