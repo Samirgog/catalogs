@@ -78,3 +78,26 @@ export const useCatalogsByPlace = (placeId: string | null) => {
     mutate
   };
 };
+
+export const usePlace = (placeId: string | null) => {
+  const { data, error, isLoading, isValidating, mutate } = useSWR(
+    placeId ? ['place', placeId] : null,
+    async () => {
+      if (!placeId) return null;
+      return await clientCatalogService.getPlaceById(placeId);
+    },
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    }
+  );
+
+  return {
+    place: data ?? null,
+    isLoading,
+    isError: !!error,
+    error,
+    isValidating,
+    mutate,
+  };
+};

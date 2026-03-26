@@ -29,6 +29,7 @@ export type TelegramWebApp = {
   expand: () => void;
   disableVerticalSwipes?: () => void;
   enableClosingConfirmation?: () => void;
+  close?: () => void;
   setHeaderColor?: (color: string) => void;
   setBackgroundColor?: (color: string) => void;
   BackButton: {

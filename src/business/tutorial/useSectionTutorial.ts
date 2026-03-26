@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useCurrentUser } from '@/useTelegramAuth';
-import { consumeForcedTutorialSection, isTutorialSeen, markTutorialSeen } from './storage';
+import {
+  consumeForcedTutorialSection,
+  isTutorialDismissedThisSession,
+  isTutorialSeen,
+  markTutorialSeen,
+} from './storage';
 import type { TutorialSectionId, TutorialStep } from './types';
 
 type Options = {
@@ -32,7 +37,12 @@ export const useSectionTutorial = (
       return;
     }
 
-    if (isTutorialSeen(String(userKey), sectionId)) return;
+    if (
+      isTutorialSeen(String(userKey), sectionId) ||
+      isTutorialDismissedThisSession(String(userKey), sectionId)
+    ) {
+      return;
+    }
     const timerId = window.setTimeout(() => setOpen(true), 280);
     return () => window.clearTimeout(timerId);
   }, [canAutoStart, sectionId, userKey]);

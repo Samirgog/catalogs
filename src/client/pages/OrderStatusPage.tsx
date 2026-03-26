@@ -50,7 +50,8 @@ export function OrderStatusPage() {
   const [archiveOrders, setArchiveOrders] = useState<
     Array<{ id: string; orderNumber: string; status: string }>
   >([]);
-  useAutoBackButton('/catalog');
+  const currentPlaceId = localStorage.getItem('client-current-place-id') || '';
+  useAutoBackButton(currentPlaceId ? '/foodcourt' : '/catalog');
 
   useEffect(() => {
     if (!orderId) return;
@@ -209,6 +210,14 @@ export function OrderStatusPage() {
     );
   };
 
+  const handleGoBackToCatalog = () => {
+    if (currentPlaceId) {
+      navigate('/foodcourt');
+      return;
+    }
+    navigate('/catalog');
+  };
+
   if (!orderId) {
     return (
       <div className="p-4">
@@ -351,7 +360,7 @@ export function OrderStatusPage() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 glass-card rounded-none border-x-0 border-b-0 p-4 pb-8">
-        <Button className="w-full h-12" onClick={() => navigate('/catalog')}>
+        <Button className="w-full h-12" onClick={handleGoBackToCatalog}>
           В каталог
         </Button>
       </div>

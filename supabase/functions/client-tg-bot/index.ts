@@ -35,7 +35,7 @@ async function tg(method: string, body: unknown) {
 
 const menuKeyboard = {
   keyboard: [
-    [{ text: 'Найти каталог' }],
+    [{ text: 'Найти каталог или пространство' }],
     [{ text: 'Как открыть каталог' }],
     [{ text: 'Поддержка' }],
   ],
@@ -67,7 +67,7 @@ function supportText() {
     'Через него можно открыть каталог продавца, выбрать нужные товары или услуги и оформить заказ.',
     '',
     'Если продавец отправил вам ссылку или QR-код, просто откройте их — каталог загрузится автоматически.',
-    'Если вы не сохранили ссылку, можно воспользоваться поиском по названию каталога.',
+    'Если вы не сохранили ссылку, можно воспользоваться поиском по названию каталога или пространства.',
     '',
     'После оформления заказа сюда могут приходить уведомления о его статусе.',
   ].join('\n');
@@ -176,13 +176,47 @@ async function findCatalogsByName(query: string) {
   }));
 }
 
+async function findPlacesByName(query: string) {
+  const value = query.trim();
+  if (!value) return [];
+
+  const { data: places } = await supabase
+    .from('places')
+    .select('id,name,address,type')
+    .ilike('name', `%${value}%`)
+    .order('updated_at', { ascending: false })
+    .limit(10);
+
+  const { data: placesByAddress } = await supabase
+    .from('places')
+    .select('id,name,address,type')
+    .ilike('address', `%${value}%`)
+    .order('updated_at', { ascending: false })
+    .limit(10);
+
+  const merged = [...(places || []), ...(placesByAddress || [])];
+  const unique = merged.filter(
+    (place, index, arr) =>
+      arr.findIndex((item) => String(item.id) === String(place.id)) === index
+  );
+
+  return unique.map((place) => ({
+    id: String(place.id),
+    title: String(place.name || ''),
+    address: String(place.address || ''),
+    slug: `place_${place.id}`,
+    type: String(place.type || ''),
+  }));
+}
+
 async function answerInlineQuery(inlineQuery: Record<string, unknown>) {
   const query = String(inlineQuery.query || '');
   const catalogs = await findCatalogsByName(query);
+  const places = await findPlacesByName(query);
 
-  const results = catalogs.map((catalog) => ({
+  const catalogResults = catalogs.map((catalog) => ({
     type: 'article',
-    id: catalog.id,
+    id: `catalog:${catalog.id}`,
     title: catalog.title,
     description: catalog.address || 'Каталог',
     ...(catalog.bannerUrl ? { thumbnail_url: catalog.bannerUrl } : {}),
@@ -192,11 +226,22 @@ async function answerInlineQuery(inlineQuery: Record<string, unknown>) {
     reply_markup: catalogInline(catalog.slug),
   }));
 
+  const placeResults = places.map((place) => ({
+    type: 'article',
+    id: `place:${place.id}`,
+    title: place.title,
+    description: place.address || 'Пространство',
+    input_message_content: {
+      message_text: `Пространство: ${place.title}`,
+    },
+    reply_markup: catalogInline(place.slug),
+  }));
+
   await tg('answerInlineQuery', {
     inline_query_id: inlineQuery.id,
     cache_time: 3,
     is_personal: true,
-    results,
+    results: [...placeResults, ...catalogResults].slice(0, 25),
   });
 }
 
@@ -225,14 +270,18 @@ serve(async (req) => {
       return new Response('OK');
     }
 
-    if (text === 'Найти каталог') {
+    if (text === 'Найти каталог' || text === 'Найти каталог или пространство') {
       await tg('sendMessage', {
         chat_id: chatId,
-        text: 'Введите название каталога в поле ввода, Telegram покажет подходящие варианты.',
+        text: 'Введите название каталога или пространства в поле ввода, Telegram покажет подходящие варианты.',
         reply_markup: {
           inline_keyboard: [[{ text: 'Начать поиск', switch_inline_query_current_chat: '' }]],
         },
       });
+      return new Response('OK');
+    }
+
+    if (text.startsWith('Каталог:') || text.startsWith('Пространство:')) {
       return new Response('OK');
     }
 
@@ -258,7 +307,7 @@ serve(async (req) => {
 
     await tg('sendMessage', {
       chat_id: chatId,
-      text: 'Используйте ссылку/QR от продавца или команду /start.',
+      text: 'Откройте ссылку или QR от продавца, либо воспользуйтесь поиском выше.',
       reply_markup: menuKeyboard,
     });
     return new Response('OK');

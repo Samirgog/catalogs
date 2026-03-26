@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Receipt, ShoppingCart } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useCartStore } from '../stores/cart';
 import { CatalogHeader, CategorySection, CategoryTabs } from '../components';
@@ -9,6 +9,7 @@ import { getCurrentOrdersByCatalog } from '../utils/currentOrder';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
 import { useTelegramNavigation } from '@/hooks/useTelegramNavigation';
+import { FloatingOrdersButton } from '../components/FloatingOrdersButton';
 
 type Props = {
   catalogId: string;
@@ -43,6 +44,14 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
     setShowBackButton(fromFoodcourt);
     return () => setShowBackButton(false);
   }, [fromFoodcourt, setShowBackButton]);
+
+  useEffect(() => {
+    if (!fromFoodcourt) return;
+    const state = location.state as { placeId?: string } | null;
+    if (state?.placeId) {
+      localStorage.setItem('client-current-place-id', state.placeId);
+    }
+  }, [fromFoodcourt, location.state]);
 
   useEffect(() => {
     const direct = new URLSearchParams(window.location.search).get('table');
@@ -149,18 +158,15 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
       )}
 
       {ordersCount > 0 && lastOrderId && (
-        <button
+        <FloatingOrdersButton
+          count={ordersCount}
           onClick={handleGoToCurrentOrder}
-          className={`fixed right-4 z-50 rounded-2xl h-14 px-4 bg-primary text-primary-foreground shadow-lg flex items-center justify-center gap-2 ${
+          className={
             businessType === 'goods' && itemsCount > 0
               ? 'bottom-24'
               : 'bottom-4'
-          }`}
-          aria-label="Открыть заказы"
-        >
-          <Receipt size={22} />
-          <span className="text-sm font-medium">Заказы</span>
-        </button>
+          }
+        />
       )}
     </div>
   );

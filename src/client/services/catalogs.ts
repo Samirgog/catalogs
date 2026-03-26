@@ -1,5 +1,5 @@
 import { clientSupabase } from '../../lib/supabase';
-import type { Catalog } from '../../types';
+import type { Catalog, Place } from '../../types';
 
 type CatalogWithFulfillment = Catalog & {
   catalog_fulfillment_methods?: Catalog['fulfillment_methods'];
@@ -105,5 +105,16 @@ export const clientCatalogService = {
     }
     
     return catalogs;
-  }
+  },
+
+  async getPlaceById(placeId: string): Promise<Place | null> {
+    const { data, error } = await clientSupabase
+      .from('places')
+      .select('*')
+      .eq('id', placeId)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
 };
