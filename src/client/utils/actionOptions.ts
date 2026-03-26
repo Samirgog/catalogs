@@ -27,6 +27,12 @@ export type ClientActionOption =
       label: string;
       description: string;
       details: SbpDetails;
+    }
+  | {
+      id: string;
+      kind: 'online_yookassa';
+      label: string;
+      description: string;
     };
 
 const getString = (value: unknown): string =>
@@ -116,6 +122,17 @@ export const getClientActionOptions = (
           phone: getString(details.phone),
           sbp_link: getString(details.sbp_link),
         },
+      });
+      continue;
+    }
+
+    if (action.type === 'pay' && paymentType === 'online_yookassa') {
+      options.push({
+        id: action.id,
+        kind: 'online_yookassa',
+        label: getString(config.label) || 'Онлайн-оплата картой / СБП',
+        description:
+          'Безопасная онлайн-оплата через ЮKassa. Поддерживаются карта и доступные способы банка.',
       });
     }
   }

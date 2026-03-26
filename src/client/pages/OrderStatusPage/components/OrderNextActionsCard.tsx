@@ -59,6 +59,12 @@ export function OrderNextActionsCard({ status, selectedAction }: Props) {
             )}
           </>
         )}
+        {selectedAction.kind === 'online_yookassa' && (
+          <p>
+            Оплата выполняется на защищенной странице ЮKassa. Если платеж еще не
+            завершен, вернитесь к заказу и продолжите оплату.
+          </p>
+        )}
       </CardContent>
     </Card>
   );

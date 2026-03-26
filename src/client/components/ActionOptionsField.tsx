@@ -64,6 +64,12 @@ export function ActionOptionsField({
                         </p>
                       </div>
                     )}
+                    {selectedValue === option.id &&
+                      option.kind === 'online_yookassa' && (
+                        <div className="mt-3 text-sm text-muted-foreground">
+                          После нажатия вы перейдете на защищенную страницу оплаты.
+                        </div>
+                      )}
                   </div>
                 </div>
               </Label>

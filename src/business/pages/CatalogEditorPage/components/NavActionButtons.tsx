@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { FolderOpen, Link, Settings, Truck, Users } from 'lucide-react';
+import { FolderOpen, KeyRound, Link, Settings, Truck, Users } from 'lucide-react';
 
 type Props = {
   isSavingCatalog: boolean;
@@ -8,6 +8,7 @@ type Props = {
   onConfigureFulfillment: () => void;
   onGenerateLink: () => void;
   onConfigureStaff: () => void;
+  onConfigureAccess: () => void;
 };
 
 export function NavActionButtons({
@@ -17,6 +18,7 @@ export function NavActionButtons({
   onConfigureFulfillment,
   onGenerateLink,
   onConfigureStaff,
+  onConfigureAccess,
 }: Props) {
   return (
     <div className="space-y-3" data-tour="catalog-editor-nav-actions">
@@ -55,6 +57,15 @@ export function NavActionButtons({
       >
         <Link className="w-4 h-4 mr-2" />
         Получить ссылку и QR-код
+      </Button>
+      <Button
+        variant="outline"
+        className="w-full h-12 justify-start"
+        onClick={onConfigureAccess}
+        disabled={isSavingCatalog}
+      >
+        <KeyRound className="w-4 h-4 mr-2" />
+        Доступ к каталогу
       </Button>
       <Button
         variant="outline"

@@ -35,6 +35,9 @@ const LinksPage = lazy(() =>
 const StaffPage = lazy(() =>
   import('../business/pages').then((module) => ({ default: module.StaffPage })),
 );
+const CatalogAccessPage = lazy(() =>
+  import('../business/pages').then((module) => ({ default: module.CatalogAccessPage })),
+);
 const FulfillmentMethodsPage = lazy(() =>
   import('../business/pages').then((module) => ({ default: module.FulfillmentMethodsPage })),
 );
@@ -200,6 +203,7 @@ function AnimatedAppRoutes({
               element={<ActionsEditorPage />}
             />
             <Route path="/staff/:catalogId" element={<StaffPage />} />
+            <Route path="/catalogs/:catalogId/access" element={<CatalogAccessPage />} />
             <Route
               path="/catalogs/:catalogId/fulfillment"
               element={<FulfillmentMethodsPage />}

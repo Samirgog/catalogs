@@ -307,6 +307,10 @@ export function CatalogEditorPage() {
     void navigateWithSave(id => `/staff/${id}`);
   };
 
+  const handleConfigureAccess = () => {
+    void navigateWithSave(id => `/catalogs/${id}/access`);
+  };
+
   const handleConfigureFulfillment = () => {
     void navigateWithSave(id => `/catalogs/${id}/fulfillment`);
   };
@@ -547,6 +551,7 @@ export function CatalogEditorPage() {
           onConfigureFulfillment={handleConfigureFulfillment}
           onGenerateLink={handleGenerateLink}
           onConfigureStaff={handleConfigureStaff}
+          onConfigureAccess={handleConfigureAccess}
         />
 
         <DangerZoneCard

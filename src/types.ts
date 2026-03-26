@@ -85,6 +85,12 @@ export type Item = {
 
 export type ActionType = 'order' | 'pay' | 'book' | 'chat';
 
+export type PaymentMethod =
+  | 'payment_on_delivery'
+  | 'payment_in_chat'
+  | 'light_sbp'
+  | 'online_yookassa';
+
 export type Action = {
   id: string;
   catalog_id: string;
@@ -115,7 +121,12 @@ export type Order = {
   customer_phone?: string;
   customer_comment?: string;
   fulfillment_method?: FulfillmentMethodType;
-  payment_method?: 'payment_on_delivery' | 'payment_in_chat' | 'light_sbp';
+  payment_method?: PaymentMethod;
+  payment_provider?: 'yookassa';
+  payment_external_id?: string;
+  payment_status?: 'pending' | 'waiting_for_capture' | 'succeeded' | 'canceled';
+  payment_confirmation_url?: string;
+  payment_details?: Record<string, unknown>;
   delivery_address?: string;
   items: Record<string, unknown>[];
   total_price: number;
@@ -229,4 +240,50 @@ export type ActionFormData = {
   type: ActionType;
   is_enabled?: boolean;
   config?: Record<string, unknown>;
+};
+
+export type CatalogPaymentGateway = {
+  id: string;
+  catalog_id: string;
+  provider: 'yookassa';
+  is_enabled: boolean;
+  shop_id: string;
+  secret_key: string;
+  success_return_url?: string;
+  fail_return_url?: string;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CatalogPaymentGatewayFormData = {
+  provider: 'yookassa';
+  is_enabled?: boolean;
+  shop_id: string;
+  secret_key: string;
+  success_return_url?: string;
+  fail_return_url?: string;
+};
+
+export type CatalogAccessInvite = {
+  id: string;
+  catalog_id: string;
+  code: string;
+  role: 'editor';
+  created_by: string;
+  expires_at?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CatalogUserAccess = {
+  id: string;
+  catalog_id: string;
+  user_id: string;
+  role: 'owner' | 'editor';
+  granted_by?: string;
+  created_at: string;
+  updated_at: string;
+  user?: Pick<User, 'id' | 'first_name' | 'last_name' | 'username'> | null;
 };

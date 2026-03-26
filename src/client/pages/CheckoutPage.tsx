@@ -41,6 +41,7 @@ import {
   persistFulfillmentDraft,
   validateFulfillmentInput,
 } from '../utils/orderForm';
+import { clientPaymentService } from '../services/payments';
 
 type Props = {
   catalogId: string;
@@ -171,6 +172,20 @@ export function CheckoutPage({ catalogId }: Props) {
         clearCart();
         toast.success('Переход в Telegram');
         window.location.href = link;
+        return;
+      }
+
+      if (selectedAction.kind === 'online_yookassa') {
+        const updatedOrder = await updateOrder(order.id, orderPayload);
+        persistFulfillmentDraft({
+          selectedFulfillment,
+          deliveryAddress,
+          tableNumber,
+        });
+        setCurrentOrder(updatedOrder);
+        const payment = await clientPaymentService.createYookassaPayment(order.id);
+        clearCart();
+        window.location.href = payment.confirmationUrl;
         return;
       }
 

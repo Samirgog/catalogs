@@ -55,6 +55,8 @@ function formatOrderText(order: Record<string, unknown>) {
   const paymentLabel =
     paymentMethod === 'light_sbp'
       ? 'Упрощенная СБП'
+      : paymentMethod === 'online_yookassa'
+        ? 'Онлайн через ЮKassa'
       : paymentMethod === 'payment_in_chat'
         ? 'Через Telegram-чат'
         : paymentMethod === 'payment_on_delivery'

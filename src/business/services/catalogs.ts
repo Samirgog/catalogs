@@ -6,14 +6,39 @@ import type { PostgrestError } from '@supabase/supabase-js';
 export const catalogService = {
   // Get all catalogs for current user
   async getAll(userId: string): Promise<Catalog[]> {
-    const { data, error } = await businessSupabase
+    const { data: owned, error: ownedError } = await businessSupabase
       .from('catalogs')
       .select('*')
       .eq('owner_id', userId)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
+    if (ownedError) throw ownedError;
+
+    const { data: accessRows, error: accessError } = await businessSupabase
+      .from('catalog_user_access')
+      .select('catalog_id')
+      .eq('user_id', userId);
+
+    if (accessError) throw accessError;
+
+    const sharedIds = (accessRows || []).map((row) => row.catalog_id);
+    if (!sharedIds.length) {
+      return owned || [];
+    }
+
+    const { data: shared, error: sharedError } = await businessSupabase
+      .from('catalogs')
+      .select('*')
+      .in('id', sharedIds)
+      .order('created_at', { ascending: false });
+
+    if (sharedError) throw sharedError;
+
+    const merged = [...(owned || []), ...(shared || [])];
+    return merged.filter(
+      (catalog, index, arr) =>
+        arr.findIndex((item) => item.id === catalog.id) === index
+    );
   },
 
   // Get catalog by ID
@@ -102,7 +127,7 @@ export const catalogService = {
       assertNoError(categoriesDeleteError, 'Ошибка удаления категорий');
     }
 
-    const [actionsDelete, fulfillmentDelete, qrDelete, placeCatalogDelete, staffMembersDelete, staffCodesDelete, notificationsDelete, ordersDelete] = await Promise.all([
+    const [actionsDelete, fulfillmentDelete, qrDelete, placeCatalogDelete, staffMembersDelete, staffCodesDelete, notificationsDelete, ordersDelete, accessDelete, inviteDelete, gatewayDelete] = await Promise.all([
       businessSupabase.from('actions').delete().eq('catalog_id', id),
       businessSupabase.from('catalog_fulfillment_methods').delete().eq('catalog_id', id),
       businessSupabase.from('qr_links').delete().eq('target_type', 'catalog').eq('target_id', id),
@@ -111,6 +136,9 @@ export const catalogService = {
       businessSupabase.from('catalog_staff_codes').delete().eq('catalog_id', id),
       businessSupabase.from('order_notifications').delete().eq('catalog_id', id),
       businessSupabase.from('orders').delete().eq('catalog_id', id),
+      businessSupabase.from('catalog_user_access').delete().eq('catalog_id', id),
+      businessSupabase.from('catalog_access_invites').delete().eq('catalog_id', id),
+      businessSupabase.from('catalog_payment_gateways').delete().eq('catalog_id', id),
     ]);
     assertNoError(actionsDelete.error, 'Ошибка удаления способов оплаты');
     assertNoError(fulfillmentDelete.error, 'Ошибка удаления способов получения');
@@ -120,6 +148,9 @@ export const catalogService = {
     assertNoError(staffCodesDelete.error, 'Ошибка удаления кодов сотрудников');
     assertNoError(notificationsDelete.error, 'Ошибка удаления уведомлений');
     assertNoError(ordersDelete.error, 'Ошибка удаления заказов');
+    assertNoError(accessDelete.error, 'Ошибка удаления доступов к каталогу');
+    assertNoError(inviteDelete.error, 'Ошибка удаления инвайтов каталога');
+    assertNoError(gatewayDelete.error, 'Ошибка удаления платежных настроек');
 
     const { data: deletedAfterCleanup, error: deleteAfterCleanupError } = await tryDeleteCatalog();
     assertNoError(deleteAfterCleanupError, 'Ошибка удаления каталога');

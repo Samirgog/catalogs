@@ -25,6 +25,7 @@ import { OrderStatusSummaryCard } from './OrderStatusPage/components/OrderStatus
 import { OrderItemsCard } from './OrderStatusPage/components/OrderItemsCard';
 import { ActiveOrdersCard } from './OrderStatusPage/components/ActiveOrdersCard';
 import { OrderNextActionsCard } from './OrderStatusPage/components/OrderNextActionsCard';
+import { clientPaymentService } from '../services/payments';
 
 type LocationState = {
   action?: ClientActionOption;
@@ -169,6 +170,45 @@ export function OrderStatusPage() {
     }
   };
 
+  const handleContinueOnlinePayment = async () => {
+    if (!displayedOrder) return;
+    try {
+      const confirmationUrl =
+        displayedOrder.payment_confirmation_url ||
+        (await clientPaymentService.createYookassaPayment(displayedOrder.id))
+          .confirmationUrl;
+      window.location.href = confirmationUrl;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Не удалось открыть оплату');
+    }
+  };
+
+  const handleSyncOnlinePayment = async () => {
+    if (!displayedOrder) return;
+    try {
+      await clientPaymentService.syncYookassaPayment(displayedOrder.id);
+      await mutate();
+      toast.success('Статус оплаты обновлен');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Не удалось обновить оплату');
+    }
+  };
+
+  const handleContinueOrderFlow = () => {
+    if (!displayedOrder || !catalog) return;
+
+    if (displayedOrder.payment_method === 'online_yookassa') {
+      void handleContinueOnlinePayment();
+      return;
+    }
+
+    navigate(
+      catalog.type === 'services'
+        ? `/booking/${displayedOrder.id}`
+        : `/checkout/${displayedOrder.id}`
+    );
+  };
+
   if (!orderId) {
     return (
       <div className="p-4">
@@ -274,18 +314,26 @@ export function OrderStatusPage() {
           </Card>
         )}
 
-        {status === 'created' && catalog?.type === 'goods' && (
+        {status === 'created' && catalog && (
           <Card>
             <CardHeader>
               <CardTitle>Продолжить оформление</CardTitle>
             </CardHeader>
             <CardContent>
-              <Button
-                className="w-full"
-                onClick={() => navigate(`/checkout/${displayedOrder.id}`)}
-              >
-                Перейти к оплате
-              </Button>
+              {displayedOrder.payment_method === 'online_yookassa' ? (
+                <div className="space-y-2">
+                  <Button className="w-full" onClick={handleContinueOrderFlow}>
+                    Перейти к онлайн-оплате
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={handleSyncOnlinePayment}>
+                    Проверить оплату
+                  </Button>
+                </div>
+              ) : (
+                <Button className="w-full" onClick={handleContinueOrderFlow}>
+                  Перейти к оплате
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}

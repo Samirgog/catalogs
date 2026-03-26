@@ -38,6 +38,7 @@ import {
   persistFulfillmentDraft,
   validateFulfillmentInput,
 } from '../utils/orderForm';
+import { clientPaymentService } from '../services/payments';
 
 type Props = {
   catalogId: string;
@@ -218,6 +219,31 @@ export function BookingPage({ catalogId }: Props) {
 
       if (selectedAction.kind === 'light_sbp') {
         await createOrderAndOpenStatus(true);
+        return;
+      }
+
+      if (selectedAction.kind === 'online_yookassa') {
+        const updatedOrder = await updateOrder(
+          order.id,
+          buildOrderUpdatePayload({
+            selectedFulfillment,
+            deliveryAddress,
+            tableNumber,
+            customerName,
+            customerPhone,
+            customerComment,
+            paymentMethod: selectedAction.kind,
+          })
+        );
+        persistFulfillmentDraft({
+          selectedFulfillment,
+          deliveryAddress,
+          tableNumber,
+        });
+        setCurrentOrder(updatedOrder);
+        const payment = await clientPaymentService.createYookassaPayment(order.id);
+        clearSelectedItem();
+        window.location.href = payment.confirmationUrl;
         return;
       }
 

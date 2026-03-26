@@ -14,6 +14,9 @@ import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
 import { TourOverlay } from '../tutorial/TourOverlay';
 import { useSectionTutorial } from '../tutorial/useSectionTutorial';
 import type { TutorialStep } from '../tutorial/types';
+import { Input } from '@/components/ui/input';
+import { useState } from 'react';
+import { catalogAccessService } from '../services/catalogAccess';
 
 const catalogsTutorialBaseSteps: TutorialStep[] = [
   {
@@ -39,7 +42,7 @@ const catalogsTutorialBaseSteps: TutorialStep[] = [
 ];
 
 export function CatalogsPage() {
-  const { catalogs, loading, error } = useCatalogs();
+  const { catalogs, loading, error, refetch } = useCatalogs();
   const navigate = useNavigate();
   const { user } = useCurrentUser();
   const tgUser = getTelegramUser();
@@ -71,6 +74,8 @@ export function CatalogsPage() {
   const tutorial = useSectionTutorial('catalogs', tutorialSteps, {
     enabled: !loading && !error,
   });
+  const [inviteCode, setInviteCode] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
 
   useEffect(() => {
     if (!error) return;
@@ -93,6 +98,21 @@ export function CatalogsPage() {
       'Здравствуйте! Нужна помощь по настройке каталога.'
     );
     window.open(`https://t.me/${supportUsername}?text=${text}`, '_blank');
+  };
+
+  const handleJoinByCode = async () => {
+    if (!inviteCode.trim() || !user?.id) return;
+    try {
+      setIsJoining(true);
+      await catalogAccessService.acceptInvite(inviteCode, user.id);
+      setInviteCode('');
+      await refetch();
+      toast.success('Каталог подключен');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Не удалось подключить каталог');
+    } finally {
+      setIsJoining(false);
+    }
   };
 
   return (
@@ -153,6 +173,26 @@ export function CatalogsPage() {
 
         {!loading && !error && (
           <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Подключить каталог по коду</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Если владелец дал вам код доступа, введите его здесь.
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                    placeholder="Например: A1B2C3"
+                  />
+                  <Button onClick={handleJoinByCode} disabled={isJoining || !inviteCode.trim()}>
+                    Подключить
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
             {catalogs.length === 0 && (
               <Card
                 className="p-6 text-center space-y-3"

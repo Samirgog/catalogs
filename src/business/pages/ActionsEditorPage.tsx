@@ -12,6 +12,7 @@ import type { Action, ActionType } from '../../types';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
 import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
+import { usePaymentGateway } from '../hooks/usePaymentGateway';
 
 type ActionsFormState = {
   paymentOnDeliveryEnabled: boolean;
@@ -22,12 +23,13 @@ type ActionsFormState = {
   sbpName: string;
   sbpPhone: string;
   sbpLink: string;
+  yookassaEnabled: boolean;
+  yookassaShopId: string;
+  yookassaSecretKey: string;
 };
 
 const DELIVERY_TYPES: ActionType[] = ['order'];
 const TELEGRAM_TYPES: ActionType[] = ['chat', 'book'];
-const SBP_TYPES: ActionType[] = ['pay'];
-
 const getString = (value: unknown): string =>
   typeof value === 'string' ? value : '';
 
@@ -56,10 +58,25 @@ const findByTypes = (
   return undefined;
 };
 
-const mapActionsToFormState = (actions: Action[]): ActionsFormState => {
+const findByPaymentType = (actions: Action[], paymentType: string) =>
+  actions.find(
+    (action) =>
+      action.type === 'pay' &&
+      getString(asConfig(action).paymentType) === paymentType
+  );
+
+const mapActionsToFormState = (
+  actions: Action[],
+  gateway?: {
+    is_enabled: boolean;
+    shop_id: string;
+    secret_key: string;
+  } | null
+): ActionsFormState => {
   const deliveryAction = findByTypes(actions, DELIVERY_TYPES);
   const telegramAction = findByTypes(actions, TELEGRAM_TYPES);
-  const sbpAction = findByTypes(actions, SBP_TYPES);
+  const sbpAction = findByPaymentType(actions, 'light_sbp');
+  const yookassaAction = findByPaymentType(actions, 'online_yookassa');
 
   const telegramConfig = asConfig(telegramAction);
   const sbpConfig = asConfig(sbpAction);
@@ -90,6 +107,9 @@ const mapActionsToFormState = (actions: Action[]): ActionsFormState => {
       getString(sbpDetails.sbp_link) ||
       getString(sbpConfig.sbp_link) ||
       getString(sbpConfig.link),
+    yookassaEnabled: gateway?.is_enabled ?? Boolean(yookassaAction?.is_enabled),
+    yookassaShopId: gateway?.shop_id ?? '',
+    yookassaSecretKey: gateway?.secret_key ?? '',
   };
 };
 
@@ -100,10 +120,16 @@ export function ActionsEditorPage() {
   const { actions, createAction, updateAction, loading, error } = useActions(
     catalogId || ''
   );
+  const { gateway, saveGateway, loading: gatewayLoading } = usePaymentGateway(
+    catalogId || ''
+  );
   const [draft, setDraft] = useState<ActionsFormState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const initialState = useMemo(() => mapActionsToFormState(actions), [actions]);
+  const initialState = useMemo(
+    () => mapActionsToFormState(actions, gateway),
+    [actions, gateway]
+  );
   const formState = draft ?? initialState;
 
   useEffect(() => {
@@ -119,13 +145,11 @@ export function ActionsEditorPage() {
   };
 
   const upsertAction = async (
-    existingTypes: readonly ActionType[],
+    existingAction: Action | undefined,
     nextType: ActionType,
     isEnabled: boolean,
     config: Record<string, unknown>
   ) => {
-    const existingAction = findByTypes(actions, existingTypes);
-
     if (existingAction) {
       await updateAction(existingAction.id, {
         type: nextType,
@@ -150,24 +174,33 @@ export function ActionsEditorPage() {
       if (
         !formState.paymentOnDeliveryEnabled &&
         !formState.telegramContactEnabled &&
-        !formState.sbpEnabled
+        !formState.sbpEnabled &&
+        !formState.yookassaEnabled
       ) {
         toast.error('Нужно включить хотя бы один способ оплаты');
         return;
       }
 
+      if (
+        formState.yookassaEnabled &&
+        (!formState.yookassaShopId.trim() || !formState.yookassaSecretKey.trim())
+      ) {
+        toast.error('Для ЮKassa заполните shopId и secret key');
+        return;
+      }
+
       await Promise.all([
         upsertAction(
-          DELIVERY_TYPES,
+          findByTypes(actions, DELIVERY_TYPES),
           'order',
           formState.paymentOnDeliveryEnabled,
           { paymentType: 'payment_on_delivery' }
         ),
-        upsertAction(TELEGRAM_TYPES, 'chat', formState.telegramContactEnabled, {
+        upsertAction(findByTypes(actions, TELEGRAM_TYPES), 'chat', formState.telegramContactEnabled, {
           paymentType: 'payment_in_chat',
           telegramUrl: formState.telegramUrl.trim(),
         }),
-        upsertAction(SBP_TYPES, 'pay', formState.sbpEnabled, {
+        upsertAction(findByPaymentType(actions, 'light_sbp'), 'pay', formState.sbpEnabled, {
           paymentType: 'light_sbp',
           details: {
             bank: formState.sbpBank.trim(),
@@ -176,7 +209,28 @@ export function ActionsEditorPage() {
             sbp_link: formState.sbpLink.trim(),
           },
         }),
+        upsertAction(findByPaymentType(actions, 'online_yookassa'), 'pay', formState.yookassaEnabled, {
+          paymentType: 'online_yookassa',
+          provider: 'yookassa',
+          label: 'Онлайн-оплата картой / СБП',
+        }),
       ]);
+
+      if (formState.yookassaEnabled) {
+        await saveGateway({
+          provider: 'yookassa',
+          is_enabled: true,
+          shop_id: formState.yookassaShopId.trim(),
+          secret_key: formState.yookassaSecretKey.trim(),
+        });
+      } else if (gateway) {
+        await saveGateway({
+          provider: 'yookassa',
+          is_enabled: false,
+          shop_id: formState.yookassaShopId.trim() || gateway.shop_id,
+          secret_key: formState.yookassaSecretKey.trim() || gateway.secret_key,
+        });
+      }
 
       toast.success('Изменения сохранены');
     } catch (err) {
@@ -210,7 +264,7 @@ export function ActionsEditorPage() {
       </div>
 
       <div className="p-4 space-y-4">
-        {loading && actions.length === 0 && (
+        {(loading || gatewayLoading) && actions.length === 0 && (
           <div className="fixed inset-0 bg-background/70 backdrop-blur-sm z-40 flex items-center justify-center">
             <div className="glass-card p-4 flex items-center gap-2">
               <Spinner />
@@ -329,6 +383,55 @@ export function ActionsEditorPage() {
                   value={formState.sbpLink}
                   onChange={e => patchFormState({ sbpLink: e.target.value })}
                   placeholder="https://qr.nspk.ru/..."
+                />
+              </div>
+            </CardContent>
+          )}
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between gap-4">
+              <span>Онлайн-оплата через ЮKassa</span>
+              <Switch
+                checked={formState.yookassaEnabled}
+                onCheckedChange={(checked) =>
+                  patchFormState({ yookassaEnabled: checked })
+                }
+              />
+            </CardTitle>
+          </CardHeader>
+          {formState.yookassaEnabled && (
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Клиент сможет оплатить заказ банковской картой, через SberPay и
+                доступные онлайн-способы оплаты ЮKassa.
+              </p>
+              <div>
+                <Label htmlFor="yookassa-shop-id" className="block mb-2">
+                  Shop ID
+                </Label>
+                <Input
+                  id="yookassa-shop-id"
+                  value={formState.yookassaShopId}
+                  onChange={(e) =>
+                    patchFormState({ yookassaShopId: e.target.value })
+                  }
+                  placeholder="123456"
+                />
+              </div>
+              <div>
+                <Label htmlFor="yookassa-secret-key" className="block mb-2">
+                  Secret key
+                </Label>
+                <Input
+                  id="yookassa-secret-key"
+                  type="password"
+                  value={formState.yookassaSecretKey}
+                  onChange={(e) =>
+                    patchFormState({ yookassaSecretKey: e.target.value })
+                  }
+                  placeholder="live_xxxxxxxxxxxxx"
                 />
               </div>
             </CardContent>
