@@ -50,6 +50,11 @@ export const STATUS_META: Record<string, StatusMeta> = {
     className: 'text-slate-700 bg-slate-200',
     description: 'Заказ завершен.',
   },
+  cancelled: {
+    label: 'Отменен',
+    className: 'text-slate-700 bg-slate-200',
+    description: 'Заказ отменен.',
+  },
 };
 
 export const TERMINAL_STATUSES = new Set([
