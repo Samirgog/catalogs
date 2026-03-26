@@ -122,8 +122,8 @@ export function OrderStatusPage() {
           (value, index, arr) =>
             arr.findIndex(item => item?.id === value?.id) === index
         ) as Array<{ id: string; orderNumber: string; status: string }>;
-      const active = unique.filter((item) => !TERMINAL_STATUSES.has(item.status));
-      const archive = unique.filter((item) => TERMINAL_STATUSES.has(item.status));
+      const active = unique.filter(item => !TERMINAL_STATUSES.has(item.status));
+      const archive = unique.filter(item => TERMINAL_STATUSES.has(item.status));
       setActiveOrders(active);
       setArchiveOrders(archive);
     };
@@ -180,7 +180,9 @@ export function OrderStatusPage() {
           .confirmationUrl;
       window.location.href = confirmationUrl;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Не удалось открыть оплату');
+      toast.error(
+        err instanceof Error ? err.message : 'Не удалось открыть оплату'
+      );
     }
   };
 
@@ -191,7 +193,9 @@ export function OrderStatusPage() {
       await mutate();
       toast.success('Статус оплаты обновлен');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Не удалось обновить оплату');
+      toast.error(
+        err instanceof Error ? err.message : 'Не удалось обновить оплату'
+      );
     }
   };
 
@@ -309,7 +313,7 @@ export function OrderStatusPage() {
         ].includes(status) && (
           <Card>
             <CardHeader>
-              <CardTitle>Управление {labels.orderWord.toLowerCase()}</CardTitle>
+              <CardTitle>Управлять</CardTitle>
             </CardHeader>
             <CardContent>
               <Button
@@ -334,7 +338,11 @@ export function OrderStatusPage() {
                   <Button className="w-full" onClick={handleContinueOrderFlow}>
                     Перейти к онлайн-оплате
                   </Button>
-                  <Button variant="outline" className="w-full" onClick={handleSyncOnlinePayment}>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleSyncOnlinePayment}
+                  >
                     Проверить оплату
                   </Button>
                 </div>
@@ -350,13 +358,10 @@ export function OrderStatusPage() {
         <ActiveOrdersCard
           activeOrders={activeOrders}
           archiveOrders={archiveOrders}
-          onOpenOrder={(id) => navigate(`/order/${id}`, { state: null })}
+          onOpenOrder={id => navigate(`/order/${id}`, { state: null })}
         />
 
-        <OrderNextActionsCard
-          status={status}
-          selectedAction={selectedAction}
-        />
+        <OrderNextActionsCard status={status} selectedAction={selectedAction} />
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 glass-card rounded-none border-x-0 border-b-0 p-4 pb-8">

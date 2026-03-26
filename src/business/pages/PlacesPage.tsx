@@ -50,8 +50,12 @@ export function PlacesPage() {
   const [saving, setSaving] = useState(false);
   const [editingPlaceId, setEditingPlaceId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(initialForm);
-  const [tablesCountByPlace, setTablesCountByPlace] = useState<Record<string, string>>({});
-  const [qrPreviewByPlace, setQrPreviewByPlace] = useState<Record<string, string>>({});
+  const [tablesCountByPlace, setTablesCountByPlace] = useState<
+    Record<string, string>
+  >({});
+  const [qrPreviewByPlace, setQrPreviewByPlace] = useState<
+    Record<string, string>
+  >({});
   const clientBotUsername = (
     import.meta.env.VITE_CLIENT_BOT_USERNAME || 'v_click_bot'
   ).replace('@', '');
@@ -59,7 +63,9 @@ export function PlacesPage() {
     import.meta.env.VITE_CLIENT_BOT_APP_SHORT_NAME || 'vclickapp';
 
   const buildPlaceLink = (placeId: string, table?: number) => {
-    const payload = table ? `place_${placeId}__table_${table}` : `place_${placeId}`;
+    const payload = table
+      ? `place_${placeId}__table_${table}`
+      : `place_${placeId}`;
     if (clientBotAppShortName) {
       return `https://t.me/${clientBotUsername}/${clientBotAppShortName}?startapp=${encodeURIComponent(payload)}`;
     }
@@ -109,7 +115,11 @@ export function PlacesPage() {
       const data = await placesService.listAll();
       setPlaces(data);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Не удалось загрузить пространства');
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось загрузить пространства'
+      );
     } finally {
       setLoading(false);
     }
@@ -138,7 +148,9 @@ export function PlacesPage() {
           address: form.address.trim(),
           type: form.type,
         });
-        setPlaces((prev) => prev.map((place) => (place.id === updated.id ? updated : place)));
+        setPlaces(prev =>
+          prev.map(place => (place.id === updated.id ? updated : place))
+        );
         toast.success('Пространство обновлено');
       } else {
         const created = await placesService.create({
@@ -146,12 +158,16 @@ export function PlacesPage() {
           address: form.address.trim(),
           type: form.type,
         });
-        setPlaces((prev) => [created, ...prev]);
+        setPlaces(prev => [created, ...prev]);
         toast.success('Пространство создано');
       }
       resetForm();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Не удалось сохранить пространство');
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Не удалось сохранить пространство'
+      );
     } finally {
       setSaving(false);
     }
@@ -168,7 +184,8 @@ export function PlacesPage() {
 
   const ensurePlaceQrLink = async (placeId: string) => {
     const existing = await qrService.getByPlaceId(placeId);
-    const persisted = existing.find((link) => link.slug === `place_${placeId}`) || existing[0];
+    const persisted =
+      existing.find(link => link.slug === `place_${placeId}`) || existing[0];
     if (persisted) return persisted;
     return qrService.generateForPlace(placeId, `place_${placeId}`);
   };
@@ -209,7 +226,7 @@ export function PlacesPage() {
         width: 512,
         margin: 2,
       });
-      setQrPreviewByPlace((prev) => ({ ...prev, [place.id]: dataUrl }));
+      setQrPreviewByPlace(prev => ({ ...prev, [place.id]: dataUrl }));
       const response = await fetch(dataUrl);
       const blob = await response.blob();
       await saveBlobToDevice(blob, `place-${place.id}.png`, 'QR-код сохранен');
@@ -227,7 +244,7 @@ export function PlacesPage() {
         width: 512,
         margin: 2,
       });
-      setQrPreviewByPlace((prev) => ({ ...prev, [place.id]: dataUrl }));
+      setQrPreviewByPlace(prev => ({ ...prev, [place.id]: dataUrl }));
     } catch {
       toast.error('Не удалось подготовить QR-код');
     }
@@ -310,7 +327,8 @@ export function PlacesPage() {
   };
 
   const title = useMemo(
-    () => (editingPlaceId ? 'Редактирование пространства' : 'Новое пространство'),
+    () =>
+      editingPlaceId ? 'Редактирование пространства' : 'Новое пространство',
     [editingPlaceId]
   );
 
@@ -321,7 +339,7 @@ export function PlacesPage() {
           <div>
             <h1 className="text-2xl font-bold">Пространства</h1>
             <p className="text-sm text-muted-foreground">
-              Управление фудкортами и ссылками на них
+              Управление пространствами и ссылками на них
             </p>
           </div>
         </div>
@@ -338,7 +356,9 @@ export function PlacesPage() {
               <Input
                 id="place-name"
                 value={form.name}
-                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                onChange={e =>
+                  setForm(prev => ({ ...prev, name: e.target.value }))
+                }
                 placeholder="Например, Фудкорт Центральный"
               />
             </div>
@@ -347,14 +367,20 @@ export function PlacesPage() {
               <Input
                 id="place-address"
                 value={form.address}
-                onChange={(e) => setForm((prev) => ({ ...prev, address: e.target.value }))}
+                onChange={e =>
+                  setForm(prev => ({ ...prev, address: e.target.value }))
+                }
                 placeholder="Город, улица, дом"
               />
             </div>
             <div className="flex gap-2">
               <Button className="flex-1" onClick={handleSave} disabled={saving}>
                 <Save className="w-4 h-4 mr-2" />
-                {saving ? 'Сохраняем...' : editingPlaceId ? 'Сохранить' : 'Создать'}
+                {saving
+                  ? 'Сохраняем...'
+                  : editingPlaceId
+                    ? 'Сохранить'
+                    : 'Создать'}
               </Button>
               {editingPlaceId && (
                 <Button variant="outline" onClick={resetForm}>
@@ -372,7 +398,7 @@ export function PlacesPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {places.map((place) => (
+            {places.map(place => (
               <Card key={place.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between gap-3">
@@ -382,7 +408,11 @@ export function PlacesPage() {
                         {place.address || 'Адрес не указан'}
                       </p>
                     </div>
-                    <Button variant="outline" size="icon" onClick={() => handleEdit(place)}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleEdit(place)}
+                    >
                       <Edit className="w-4 h-4" />
                     </Button>
                   </div>
@@ -390,19 +420,37 @@ export function PlacesPage() {
                 <CardContent className="space-y-3">
                   <div className="glass-card rounded-xl p-3">
                     <p className="text-xs text-muted-foreground">Ссылка</p>
-                    <p className="text-sm break-all mt-1">{buildPlaceLink(place.id)}</p>
+                    <p className="text-sm break-all mt-1">
+                      {buildPlaceLink(place.id)}
+                    </p>
                   </div>
                   <div className="grid grid-cols-4 gap-2">
-                    <Button variant="outline" size="icon" onClick={() => handleCopyLink(place.id)}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleCopyLink(place.id)}
+                    >
                       <Copy className="w-4 h-4" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={() => handleShare(place.id, place.name)}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleShare(place.id, place.name)}
+                    >
                       <Share2 className="w-4 h-4" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={() => handleShowQr(place)}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleShowQr(place)}
+                    >
                       <QrCode className="w-4 h-4" />
                     </Button>
-                    <Button variant="outline" size="icon" onClick={() => handleDownloadQr(place)}>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleDownloadQr(place)}
+                    >
                       <Download className="w-4 h-4" />
                     </Button>
                   </div>
@@ -414,7 +462,10 @@ export function PlacesPage() {
                         className="rounded-xl border-2 border-border p-2"
                       />
                       <div className="flex gap-2 w-full">
-                        <Button className="flex-1" onClick={() => handleDownloadQr(place)}>
+                        <Button
+                          className="flex-1"
+                          onClick={() => handleDownloadQr(place)}
+                        >
                           <Download className="w-4 h-4 mr-2" />
                           Скачать
                         </Button>
@@ -431,24 +482,32 @@ export function PlacesPage() {
                   )}
                   <div className="glass-card rounded-xl p-3 space-y-3">
                     <div>
-                      <Label htmlFor={`place-tables-${place.id}`}>Количество столиков</Label>
+                      <Label htmlFor={`place-tables-${place.id}`}>
+                        Количество столиков
+                      </Label>
                       <Input
                         id={`place-tables-${place.id}`}
                         type="number"
                         min={1}
                         max={100}
                         value={tablesCountByPlace[place.id] || '10'}
-                        onChange={(e) =>
-                          setTablesCountByPlace((prev) => ({
+                        onChange={e =>
+                          setTablesCountByPlace(prev => ({
                             ...prev,
                             [place.id]: String(
-                              Math.min(100, Math.max(1, Number(e.target.value || 1)))
+                              Math.min(
+                                100,
+                                Math.max(1, Number(e.target.value || 1))
+                              )
                             ),
                           }))
                         }
                       />
                     </div>
-                    <Button className="w-full" onClick={() => handleDownloadTableQrs(place)}>
+                    <Button
+                      className="w-full"
+                      onClick={() => handleDownloadTableQrs(place)}
+                    >
                       Сформировать QR для столиков
                     </Button>
                   </div>
