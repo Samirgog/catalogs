@@ -11,6 +11,16 @@ const normalizePlace = (value: unknown): Place | null => {
 };
 
 export const placesService = {
+  async listAll(): Promise<Place[]> {
+    const { data, error } = await businessSupabase
+      .from('places')
+      .select('*')
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+    return data ?? [];
+  },
+
   async listFoodcourts(): Promise<Place[]> {
     const { data, error } = await businessSupabase
       .from('places')
@@ -88,5 +98,31 @@ export const placesService = {
       });
 
     if (error) throw error;
+  },
+
+  async create(data: Pick<Place, 'name' | 'address' | 'type'>): Promise<Place> {
+    const { data: place, error } = await businessSupabase
+      .from('places')
+      .insert(data)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return place;
+  },
+
+  async update(
+    placeId: string,
+    data: Partial<Pick<Place, 'name' | 'address' | 'type'>>
+  ): Promise<Place> {
+    const { data: place, error } = await businessSupabase
+      .from('places')
+      .update(data)
+      .eq('id', placeId)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return place;
   },
 };

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, LifeBuoy } from 'lucide-react';
+import { Plus, Edit, LifeBuoy, KeyRound, MapPinned } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCatalogs } from '../hooks/useCatalogs';
 import { toast } from 'sonner';
@@ -18,6 +18,14 @@ import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { catalogAccessService } from '../services/catalogAccess';
 import { showRequestError } from '../utils/request-feedback';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/components/ui/drawer';
 
 const catalogsTutorialBaseSteps: TutorialStep[] = [
   {
@@ -56,6 +64,12 @@ export function CatalogsPage() {
   const tgUser = getTelegramUser();
   const telegramPhoto = tgUser?.photo_url || '';
   const avatarText = user?.first_name?.[0] || user?.username?.[0] || 'U';
+  const platformAdminTelegramId = Number(
+    import.meta.env.VITE_PLATFORM_ADMIN_TELEGRAM_ID || 0
+  );
+  const isPlatformAdmin =
+    Boolean(platformAdminTelegramId) &&
+    Number(user?.telegram_id || 0) === platformAdminTelegramId;
   const tutorialSteps: TutorialStep[] = catalogs.length
     ? [
         ...catalogsTutorialBaseSteps.slice(0, 1),
@@ -191,35 +205,45 @@ export function CatalogsPage() {
 
         {!loading && !error && (
           <div className="space-y-4">
-            <Card
-              data-tour="catalogs-join"
-              className="overflow-hidden border-primary/10 bg-white/55"
-            >
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Подключить по коду</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-0">
-                <p className="text-sm text-muted-foreground">
-                  Если владелец дал вам код доступа, введите его здесь.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-2">
-                    <Input
-                      value={inviteCode}
-                      onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                      placeholder="Например: A1B2C3"
-                      className="h-11 tracking-[0.18em] text-center sm:text-left font-medium uppercase bg-white/80"
-                    />
-                    <Button
-                      className="h-11 sm:px-5"
-                      onClick={handleJoinByCode}
-                      disabled={isJoining || !inviteCode.trim()}
-                    >
-                      {isJoining ? 'Подключаем...' : 'Подключить'}
-                    </Button>
+            <Card data-tour="catalogs-join">
+              <CardContent className="p-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-medium">Есть код доступа к каталогу?</p>
+                  <p className="text-sm text-muted-foreground">
+                    Подключите каталог в свой список.
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  После подключения каталог появится в списке ниже.
-                </p>
+                <Drawer>
+                  <DrawerTrigger asChild>
+                    <Button variant="outline" className="shrink-0">
+                      <KeyRound className="w-4 h-4 mr-2" />
+                      Ввести код
+                    </Button>
+                  </DrawerTrigger>
+                  <DrawerContent>
+                    <DrawerHeader>
+                      <DrawerTitle>Подключить каталог по коду</DrawerTitle>
+                      <DrawerDescription>
+                        Введите код, который выдал владелец каталога.
+                      </DrawerDescription>
+                    </DrawerHeader>
+                    <div className="px-4 pb-6 space-y-3">
+                      <Input
+                        value={inviteCode}
+                        onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                        placeholder="Например: A1B2C3"
+                        className="h-12 tracking-[0.18em] text-center sm:text-left font-medium uppercase"
+                      />
+                      <Button
+                        className="w-full h-12"
+                        onClick={handleJoinByCode}
+                        disabled={isJoining || !inviteCode.trim()}
+                      >
+                        {isJoining ? 'Подключаем...' : 'Подключить каталог'}
+                      </Button>
+                    </div>
+                  </DrawerContent>
+                </Drawer>
               </CardContent>
             </Card>
             {catalogs.length === 0 && (
@@ -319,6 +343,16 @@ export function CatalogsPage() {
           <LifeBuoy className="w-4 h-4 mr-2" />
           Связаться с поддержкой
         </Button>
+        {isPlatformAdmin && (
+          <Button
+            variant="outline"
+            className="w-full h-12 mt-2"
+            onClick={() => navigate('/places')}
+          >
+            <MapPinned className="w-4 h-4 mr-2" />
+            Пространства
+          </Button>
+        )}
       </div>
       <TourOverlay
         open={tutorial.open}

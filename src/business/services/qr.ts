@@ -60,6 +60,17 @@ export const qrService = {
     return data || [];
   },
 
+  async getByPlaceId(placeId: string): Promise<QRLink[]> {
+    const { data, error } = await businessSupabase
+      .from('qr_links')
+      .select('*')
+      .eq('target_type', 'place')
+      .eq('target_id', placeId);
+
+    if (error) throw error;
+    return data || [];
+  },
+
   // Delete QR link
   async delete(id: string): Promise<void> {
     const { error } = await businessSupabase
