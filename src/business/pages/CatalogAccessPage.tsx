@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Copy, RefreshCcw } from 'lucide-react';
+import { Copy, RefreshCcw, UserX } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,8 +21,10 @@ export function CatalogAccessPage() {
     loading,
     error,
     generateInvite,
+    revokeAccess,
   } = useCatalogAccess(catalogId || '');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [revokingAccessId, setRevokingAccessId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!error) return;
@@ -49,6 +51,20 @@ export function CatalogAccessPage() {
       toast.success('Код скопирован');
     } catch {
       toast.error('Не удалось скопировать код');
+    }
+  };
+
+  const handleRevoke = async (accessId: string) => {
+    try {
+      setRevokingAccessId(accessId);
+      await revokeAccess(accessId);
+      toast.success('Доступ отключен');
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Не удалось отключить доступ'
+      );
+    } finally {
+      setRevokingAccessId(null);
     }
   };
 
@@ -120,14 +136,31 @@ export function CatalogAccessPage() {
               </p>
             ) : (
               collaborators.map((item) => (
-                <div key={item.id} className="glass-card rounded-xl p-3">
-                  <p className="font-medium">
-                    {getCollaboratorName(item.user)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.role === 'owner' ? 'Владелец' : 'Редактор'}
-                    {item.user?.username ? ` · @${item.user.username}` : ''}
-                  </p>
+                <div
+                  key={item.id}
+                  className="glass-card rounded-xl p-3 flex items-start justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium break-words">
+                      {getCollaboratorName(item.user)}
+                    </p>
+                    <p className="text-xs text-muted-foreground break-words">
+                      {item.role === 'owner' ? 'Владелец' : 'Редактор'}
+                      {item.user?.username ? ` · @${item.user.username}` : ''}
+                    </p>
+                  </div>
+                  {item.role !== 'owner' && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={() => handleRevoke(item.id)}
+                      disabled={revokingAccessId === item.id}
+                      aria-label="Отключить доступ"
+                    >
+                      <UserX className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               ))
             )}

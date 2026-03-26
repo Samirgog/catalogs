@@ -41,5 +41,9 @@ export const useCatalogAccess = (catalogId: string) => {
       await collaborators.mutate();
       return result;
     },
+    revokeAccess: async (accessId: string) => {
+      await catalogAccessService.revokeAccess(accessId);
+      await collaborators.mutate();
+    },
   };
 };

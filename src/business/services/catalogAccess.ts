@@ -107,4 +107,13 @@ export const catalogAccessService = {
     if (error) throw error;
     return data as CatalogUserAccess;
   },
+
+  async revokeAccess(accessId: string) {
+    const { error } = await businessSupabase
+      .from('catalog_user_access')
+      .delete()
+      .eq('id', accessId);
+
+    if (error) throw error;
+  },
 };
