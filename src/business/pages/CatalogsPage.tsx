@@ -193,35 +193,33 @@ export function CatalogsPage() {
           <div className="space-y-4">
             <Card
               data-tour="catalogs-join"
-              className="overflow-hidden border-primary/15 bg-gradient-to-br from-white/80 via-white/60 to-primary/5"
+              className="overflow-hidden border-primary/10 bg-white/55"
             >
-              <CardHeader>
-                <CardTitle>Подключить каталог по коду</CardTitle>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Подключить по коду</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 pt-0">
                 <p className="text-sm text-muted-foreground">
                   Если владелец дал вам код доступа, введите его здесь.
                 </p>
-                <div className="glass-card rounded-2xl p-3 sm:p-4">
-                  <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                     <Input
                       value={inviteCode}
                       onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                       placeholder="Например: A1B2C3"
-                      className="h-12 tracking-[0.25em] text-center sm:text-left font-medium uppercase"
+                      className="h-11 tracking-[0.18em] text-center sm:text-left font-medium uppercase bg-white/80"
                     />
                     <Button
-                      className="h-12 sm:px-6"
+                      className="h-11 sm:px-5"
                       onClick={handleJoinByCode}
                       disabled={isJoining || !inviteCode.trim()}
                     >
                       {isJoining ? 'Подключаем...' : 'Подключить'}
                     </Button>
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Код не чувствителен к регистру. После подключения каталог появится в списке ниже.
-                  </p>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  После подключения каталог появится в списке ниже.
+                </p>
               </CardContent>
             </Card>
             {catalogs.length === 0 && (

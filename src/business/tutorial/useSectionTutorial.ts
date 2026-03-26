@@ -15,7 +15,7 @@ export const useSectionTutorial = (
   const enabled = options?.enabled ?? true;
   const [open, setOpen] = useState(false);
   const { user } = useCurrentUser();
-  const userKey = user?.id || user?.telegram_id || 'anonymous';
+  const userKey = user?.id || user?.telegram_id || null;
   const hasSteps = steps.length > 0;
 
   const canAutoStart = useMemo(
@@ -49,12 +49,16 @@ export const useSectionTutorial = (
   }, [sectionId]);
 
   const closeAndMarkSeen = () => {
-    markTutorialSeen(String(userKey), sectionId);
+    if (userKey) {
+      markTutorialSeen(String(userKey), sectionId);
+    }
     setOpen(false);
   };
 
   const complete = () => {
-    markTutorialSeen(String(userKey), sectionId);
+    if (userKey) {
+      markTutorialSeen(String(userKey), sectionId);
+    }
     setOpen(false);
   };
 

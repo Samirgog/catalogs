@@ -323,7 +323,7 @@ export function ActionsEditorPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between gap-4">
-              <span>Упрощенная оплата по СБП</span>
+              <span>Переводом</span>
               <Switch
                 checked={formState.sbpEnabled}
                 onCheckedChange={checked =>
@@ -335,9 +335,8 @@ export function ActionsEditorPage() {
           {formState.sbpEnabled && (
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Ваши клиенты смогут совершить оплату по введенным вами данным
-                СБП, вы можете указать номер телефона для перевода, либо указать
-                прямую ссылку СБП на ваш счет.
+                Клиенты смогут оплатить переводом по указанным вами реквизитам:
+                по номеру телефона или по прямой ссылке СБП.
               </p>
 
               <div>

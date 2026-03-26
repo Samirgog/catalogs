@@ -44,6 +44,7 @@ export function OrderNextActionsCard({ status, selectedAction }: Props) {
         )}
         {selectedAction.kind === 'light_sbp' && (
           <>
+            <p>Оплатите переводом по реквизитам продавца.</p>
             {selectedAction.details.bank && <p>Банк: {selectedAction.details.bank}</p>}
             {selectedAction.details.name && <p>Имя: {selectedAction.details.name}</p>}
             {selectedAction.details.phone && <p>Телефон: {selectedAction.details.phone}</p>}

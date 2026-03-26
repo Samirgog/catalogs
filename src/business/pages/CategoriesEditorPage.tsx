@@ -17,12 +17,27 @@ import { isTutorialSeen } from '../tutorial/storage';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
 
-const categoriesTutorialSteps: TutorialStep[] = [
+const emptyCategoriesTutorialSteps: TutorialStep[] = [
   {
     id: 'add-category',
     target: '[data-tour="categories-add-category"]',
     title: 'Добавление категории',
     description: 'Создайте раздел каталога: например, «Напитки» или «Популярное».',
+  },
+  {
+    id: 'empty',
+    target: '[data-tour="categories-empty"]',
+    title: 'Пустой каталог',
+    description: 'После создания первой категории здесь появится список разделов и позиций.',
+  },
+];
+
+const categoriesTutorialSteps: TutorialStep[] = [
+  {
+    id: 'add-category',
+    target: '[data-tour="categories-add-category"]',
+    title: 'Добавление категории',
+    description: 'Создайте новый раздел каталога, если нужно расширить структуру.',
   },
   {
     id: 'categories-list',
@@ -142,16 +157,24 @@ function CategoriesEditorView({
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useCurrentUser();
-  const userKey = String(user?.id || user?.telegram_id || 'anonymous');
+  const userKey = user?.id || user?.telegram_id
+    ? String(user?.id || user?.telegram_id)
+    : null;
   const hasAnyItems = categories.some((category) => category.items.length > 0);
-  const isMainTutorialSeen = isTutorialSeen(userKey, 'categories_editor');
-  const mainTutorial = useSectionTutorial('categories_editor', categoriesTutorialSteps, {
+  const hasCategories = categories.length > 0;
+  const currentTutorialSteps = hasCategories
+    ? categoriesTutorialSteps
+    : emptyCategoriesTutorialSteps;
+  const isMainTutorialSeen = userKey
+    ? isTutorialSeen(userKey, 'categories_editor')
+    : false;
+  const mainTutorial = useSectionTutorial('categories_editor', currentTutorialSteps, {
     enabled: !loading,
   });
   const firstItemTutorial = useSectionTutorial(
     'categories_first_item_hint',
     firstItemTutorialStep,
-    { enabled: !loading && hasAnyItems && isMainTutorialSeen }
+    { enabled: !loading && hasAnyItems && hasCategories && isMainTutorialSeen }
   );
   const pendingCategoryId = getPendingCategoryIdFromState(
     (location.state as PendingLocationState) ?? null
@@ -241,7 +264,7 @@ function CategoriesEditorView({
       <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">Редактор каталога</h1>
-          <BusinessTutorialLauncher currentSection="categories_editor" />
+              <BusinessTutorialLauncher currentSection="categories_editor" />
         </div>
       </div>
 
@@ -292,7 +315,7 @@ function CategoriesEditorView({
         />
 
         {!loading && !error && categories.length === 0 && (
-          <div className="mt-8 glass-card rounded-xl p-6 text-center space-y-2">
+          <div className="mt-8 glass-card rounded-xl p-6 text-center space-y-2" data-tour="categories-empty">
             <div className="flex justify-center">
               <EmptyLottie src={`${import.meta.env.BASE_URL}empty_ghost.lottie`} className="w-40 h-40" />
             </div>
@@ -316,7 +339,7 @@ function CategoriesEditorView({
       </div>
       <TourOverlay
         open={mainTutorial.open}
-        steps={categoriesTutorialSteps}
+        steps={currentTutorialSteps}
         sectionTitle="Категории и товары"
         onClose={mainTutorial.closeAndMarkSeen}
         onComplete={mainTutorial.complete}

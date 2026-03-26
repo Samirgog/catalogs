@@ -114,8 +114,8 @@ export const getClientActionOptions = (
       options.push({
         id: action.id,
         kind: 'light_sbp',
-        label: 'Упрощенная оплата по СБП',
-        description: 'Оплатите переводом по данным СБП.',
+        label: 'Переводом',
+        description: 'Оплатите переводом по указанным реквизитам.',
         details: {
           bank: getString(details.bank),
           name: getString(details.name),
