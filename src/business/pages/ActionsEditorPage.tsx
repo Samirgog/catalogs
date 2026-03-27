@@ -69,8 +69,6 @@ const mapActionsToFormState = (
   actions: Action[],
   gateway?: {
     is_enabled: boolean;
-    shop_id: string;
-    secret_key: string;
   } | null
 ): ActionsFormState => {
   const deliveryAction = findByTypes(actions, DELIVERY_TYPES);
@@ -108,8 +106,8 @@ const mapActionsToFormState = (
       getString(sbpConfig.sbp_link) ||
       getString(sbpConfig.link),
     yookassaEnabled: gateway?.is_enabled ?? Boolean(yookassaAction?.is_enabled),
-    yookassaShopId: gateway?.shop_id ?? '',
-    yookassaSecretKey: gateway?.secret_key ?? '',
+    yookassaShopId: '',
+    yookassaSecretKey: '',
   };
 };
 
@@ -120,9 +118,12 @@ export function ActionsEditorPage() {
   const { actions, createAction, updateAction, loading, error } = useActions(
     catalogId || ''
   );
-  const { gateway, saveGateway, loading: gatewayLoading } = usePaymentGateway(
-    catalogId || ''
-  );
+  const {
+    gateway,
+    saveGateway,
+    setGatewayEnabled,
+    loading: gatewayLoading,
+  } = usePaymentGateway(catalogId || '');
   const [draft, setDraft] = useState<ActionsFormState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -186,9 +187,10 @@ export function ActionsEditorPage() {
 
       if (
         formState.yookassaEnabled &&
+        !gateway &&
         (!formState.yookassaShopId.trim() || !formState.yookassaSecretKey.trim())
       ) {
-        toast.error('Для ЮKassa заполните shopId и secret key');
+        toast.error('Для первичной настройки ЮKassa заполните shopId и secret key');
         return;
       }
 
@@ -219,7 +221,11 @@ export function ActionsEditorPage() {
         }),
       ]);
 
-      if (formState.yookassaEnabled) {
+      const hasCredentialUpdate = Boolean(
+        formState.yookassaShopId.trim() && formState.yookassaSecretKey.trim()
+      );
+
+      if (formState.yookassaEnabled && hasCredentialUpdate) {
         await saveGateway({
           provider: 'yookassa',
           is_enabled: true,
@@ -227,12 +233,7 @@ export function ActionsEditorPage() {
           secret_key: formState.yookassaSecretKey.trim(),
         });
       } else if (gateway) {
-        await saveGateway({
-          provider: 'yookassa',
-          is_enabled: false,
-          shop_id: formState.yookassaShopId.trim() || gateway.shop_id,
-          secret_key: formState.yookassaSecretKey.trim() || gateway.secret_key,
-        });
+        await setGatewayEnabled(formState.yookassaEnabled);
       }
 
       toast.success('Изменения сохранены');
@@ -408,6 +409,12 @@ export function ActionsEditorPage() {
                 Клиент сможет оплатить заказ банковской картой, через SberPay и
                 доступные онлайн-способы оплаты ЮKassa.
               </p>
+              {gateway?.is_configured && (
+                <p className="text-sm text-muted-foreground">
+                  ЮKassa уже настроена. Поля ниже оставьте пустыми, если не хотите
+                  менять shopId и secret key.
+                </p>
+              )}
               <div>
                 <Label htmlFor="yookassa-shop-id" className="block mb-2">
                   Shop ID
@@ -418,7 +425,11 @@ export function ActionsEditorPage() {
                   onChange={(e) =>
                     patchFormState({ yookassaShopId: e.target.value })
                   }
-                  placeholder="123456"
+                  placeholder={
+                    gateway?.is_configured
+                      ? 'Оставьте пустым, чтобы не менять'
+                      : '123456'
+                  }
                 />
               </div>
               <div>
@@ -432,7 +443,11 @@ export function ActionsEditorPage() {
                   onChange={(e) =>
                     patchFormState({ yookassaSecretKey: e.target.value })
                   }
-                  placeholder="live_xxxxxxxxxxxxx"
+                  placeholder={
+                    gateway?.is_configured
+                      ? 'Оставьте пустым, чтобы не менять'
+                      : 'live_xxxxxxxxxxxxx'
+                  }
                 />
               </div>
             </CardContent>

@@ -20,7 +20,7 @@ import { clientOrderService } from '../services/orders';
 import { parseOrderItems } from '../utils/orderItems';
 import { normalizeTelegramContactLink } from '../utils/fulfillment';
 import { SellerContactsCard } from '../components/SellerContactsCard';
-import { STATUS_META, TERMINAL_STATUSES } from './OrderStatusPage/statusMeta';
+import { TERMINAL_STATUSES, resolveStatusMeta } from './OrderStatusPage/statusMeta';
 import { OrderStatusSummaryCard } from './OrderStatusPage/components/OrderStatusSummaryCard';
 import { OrderItemsCard } from './OrderStatusPage/components/OrderItemsCard';
 import { ActiveOrdersCard } from './OrderStatusPage/components/ActiveOrdersCard';
@@ -65,11 +65,10 @@ export function OrderStatusPage() {
   );
   const labels = getFlowLabels(catalog?.type ?? 'goods', catalog?.subtype);
   const status = displayedOrder?.status ?? 'created';
-  const baseStatusMeta = STATUS_META[status] ?? {
-    label: status,
-    className: 'text-slate-700 bg-slate-200',
-    description: 'Статус заказа обновляется автоматически.',
-  };
+  const baseStatusMeta = resolveStatusMeta(
+    status,
+    displayedOrder?.fulfillment_method
+  );
   const statusMeta = {
     ...baseStatusMeta,
     description:
@@ -122,8 +121,12 @@ export function OrderStatusPage() {
           (value, index, arr) =>
             arr.findIndex(item => item?.id === value?.id) === index
         ) as Array<{ id: string; orderNumber: string; status: string }>;
-      const active = unique.filter(item => !TERMINAL_STATUSES.has(item.status));
-      const archive = unique.filter(item => TERMINAL_STATUSES.has(item.status));
+      const active = unique.filter(
+        item => !TERMINAL_STATUSES.has(item.status as never)
+      );
+      const archive = unique.filter(
+        item => TERMINAL_STATUSES.has(item.status as never)
+      );
       setActiveOrders(active);
       setArchiveOrders(archive);
     };

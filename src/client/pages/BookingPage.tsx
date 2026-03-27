@@ -415,20 +415,10 @@ export function BookingPage({ catalogId }: Props) {
           </CardContent>
         </Card>
 
-        <ActionOptionsField
-          options={actionOptions}
-          selectedValue={selectedActionValue}
-          onChange={setSelectedActionId}
-          idPrefix="booking"
-          emptyText="Владелец каталога пока не настроил способы оформления."
-          paymentPurpose={paymentPurpose}
-        />
-
         <FulfillmentOptionsField
           options={fulfillmentOptions}
           selected={selectedFulfillment}
           onChange={setSelectedFulfillment}
-          className="relative z-0"
           copy={{
             pickup: {
               title: 'Самовывоз',
@@ -471,6 +461,15 @@ export function BookingPage({ catalogId }: Props) {
         {selectedFulfillment === 'to_table' && (
           <TableNumberCard value={tableNumber} onChange={setTableNumber} />
         )}
+
+        <ActionOptionsField
+          options={actionOptions}
+          selectedValue={selectedActionValue}
+          onChange={setSelectedActionId}
+          idPrefix="booking"
+          emptyText="Владелец каталога пока не настроил способы оформления."
+          paymentPurpose={paymentPurpose}
+        />
 
         {isSbpSelected && (
           <p className="text-sm text-muted-foreground">

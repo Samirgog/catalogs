@@ -31,7 +31,7 @@ export function AddressFieldCard({
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="relative">
+        <div className="space-y-2">
           <Input
             value={value}
             onFocus={() => setShowSuggestions(true)}
@@ -40,12 +40,12 @@ export function AddressFieldCard({
             placeholder={placeholder}
           />
           {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute z-[80] mt-1 w-full rounded-xl border bg-background shadow-lg overflow-hidden">
+            <div className="overflow-hidden rounded-xl border bg-background shadow-sm">
               {suggestions.map((option) => (
                 <button
                   type="button"
                   key={option.value}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-secondary/60"
+                  className="w-full border-b border-border/40 px-3 py-3 text-left text-sm last:border-b-0 hover:bg-secondary/60"
                   onClick={() => {
                     onChange(option.value);
                     setShowSuggestions(false);

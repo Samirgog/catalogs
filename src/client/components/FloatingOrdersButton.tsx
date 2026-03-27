@@ -10,17 +10,22 @@ export function FloatingOrdersButton({ count, onClick, className = '' }: Props) 
   return (
     <button
       onClick={onClick}
-      className={`fixed right-4 z-50 h-14 rounded-[22px] border border-white/40 bg-white/72 px-4 text-foreground shadow-[0_12px_30px_rgba(15,23,42,0.14)] backdrop-blur-xl flex items-center gap-3 ${className}`}
+      className={`fixed left-1/2 z-40 flex h-12 -translate-x-1/2 items-center gap-2 rounded-full border border-border/70 bg-background/92 px-4 text-foreground shadow-[0_10px_30px_rgba(15,23,42,0.12)] backdrop-blur ${className}`}
       aria-label="Открыть заказы"
     >
-      <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-        <ReceiptText size={18} />
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <ReceiptText size={16} />
       </div>
-      <div className="text-left">
-        <div className="text-[11px] leading-none text-muted-foreground">Ваши</div>
-        <div className="text-sm font-semibold leading-tight">
-          Заказы{typeof count === 'number' ? ` · ${count}` : ''}
+      <div className="text-sm font-semibold leading-none">
+        Заказы
+      </div>
+      {typeof count === 'number' && count > 0 && (
+        <div className="rounded-full bg-primary px-2 py-1 text-xs font-semibold leading-none text-primary-foreground">
+          {count}
         </div>
+      )}
+      <div className="text-xs text-muted-foreground">
+        Открыть
       </div>
     </button>
   );

@@ -1,5 +1,12 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  ACTIVE_ORDER_STATUSES,
+  canStaffAcceptOrder,
+  getOrderStatusLabel,
+  getStaffPrimaryAction,
+  isTerminalOrderStatus,
+} from '../../../src/shared/orderStatus.ts';
 
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN_STAFF');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
@@ -29,21 +36,6 @@ const staffMenuKeyboard = {
   is_persistent: true,
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  created: 'Создан',
-  submitted: 'Оформлен',
-  payment_reported: 'Оплата отмечена клиентом',
-  accepted: 'Принят в работу',
-  rejected: 'Отклонен',
-  ready: 'Готов',
-  paid: 'Оплачен',
-  completed: 'Завершен',
-  cancelled: 'Отменен клиентом',
-};
-
-const TERMINAL_STATUSES = new Set(['rejected', 'ready', 'cancelled', 'completed']);
-const ACTIVE_ORDER_STATUSES = ['submitted', 'payment_reported', 'accepted'];
-
 async function tg(method: string, body: unknown) {
   const res = await fetch(`${TG_API}/${method}`, {
     method: 'POST',
@@ -66,8 +58,8 @@ async function sendMessage(chatId: number, text: string, extra: Record<string, u
   });
 }
 
-function statusLabel(status: string) {
-  return STATUS_LABELS[status] || status;
+function statusLabel(status: string, fulfillmentMethod?: string) {
+  return getOrderStatusLabel(status, fulfillmentMethod);
 }
 
 function orderActionKeyboard(orderId: string) {
@@ -79,9 +71,9 @@ function orderActionKeyboard(orderId: string) {
   };
 }
 
-function orderReadyKeyboard(orderId: string) {
+function primaryStatusKeyboard(orderId: string, buttonText: string, nextStatus: string) {
   return {
-    inline_keyboard: [[{ text: 'Заказ готов', callback_data: `order_ready:${orderId}` }]],
+    inline_keyboard: [[{ text: buttonText, callback_data: `order_step:${nextStatus}:${orderId}` }]],
   };
 }
 
@@ -126,7 +118,10 @@ function formatOrderText(order: Record<string, unknown>) {
 
   return [
     `🧾 <b>Заказ №${orderNo}</b>`,
-    `Статус: <b>${statusLabel(String(order.status || 'created'))}</b>`,
+    `Статус: <b>${getOrderStatusLabel(
+      String(order.status || 'created'),
+      (order.fulfillment_method as string | undefined) || undefined,
+    )}</b>`,
     `Сумма: <b>${Number(order.total_price || 0)} ₽</b>`,
     `Имя: <b>${String(order.customer_name || 'Не указано')}</b>`,
     `Телефон: <b>${String(order.customer_phone || 'Не указан')}</b>`,
@@ -291,11 +286,19 @@ async function updateOrderStatus(orderId: string, status: string) {
 async function sendOrderToChat(chatId: number, order: Record<string, unknown>) {
   const status = String(order.status || 'created');
   let replyMarkup: Record<string, unknown> | undefined;
+  const primaryAction = getStaffPrimaryAction(
+    status,
+    (order.fulfillment_method as string | undefined) || undefined
+  );
 
-  if (status === 'accepted') {
-    replyMarkup = orderReadyKeyboard(String(order.id));
-  } else if (ACTIVE_ORDER_STATUSES.includes(status)) {
+  if (canStaffAcceptOrder(status)) {
     replyMarkup = orderActionKeyboard(String(order.id));
+  } else if (primaryAction) {
+    replyMarkup = primaryStatusKeyboard(
+      String(order.id),
+      primaryAction.label,
+      primaryAction.nextStatus
+    );
   }
 
   await sendMessage(chatId, formatOrderText(order), {
@@ -477,42 +480,99 @@ async function handleCallbackQuery(callbackQuery: Record<string, unknown>) {
     });
   }
 
-  if (TERMINAL_STATUSES.has(String(order.status))) {
+  if (isTerminalOrderStatus(String(order.status))) {
     await removeInlineKeyboard(chatId, messageId);
     return tg('answerCallbackQuery', {
       callback_query_id: callbackQuery.id,
-      text: `Заказ уже в статусе "${statusLabel(String(order.status))}"`,
+      text: `Заказ уже в статусе "${statusLabel(
+        String(order.status),
+        String(order.fulfillment_method || ''),
+      )}"`,
       show_alert: true,
     });
   }
 
   if (data.startsWith('order_accept:')) {
-    if (!['submitted', 'payment_reported', 'accepted'].includes(String(order.status))) {
+    if (!canStaffAcceptOrder(String(order.status))) {
       return tg('answerCallbackQuery', {
         callback_query_id: callbackQuery.id,
-        text: `Нельзя принять в статусе "${statusLabel(String(order.status))}"`,
+        text: `Нельзя принять в статусе "${statusLabel(
+          String(order.status),
+          String(order.fulfillment_method || ''),
+        )}"`,
         show_alert: true,
       });
     }
     await updateOrderStatus(orderId, 'accepted');
+    const acceptedAction = getStaffPrimaryAction(
+      'accepted',
+      (order.fulfillment_method as string | undefined) || undefined
+    );
     await tg('editMessageReplyMarkup', {
       chat_id: chatId,
       message_id: messageId,
-      reply_markup: orderReadyKeyboard(orderId),
+      reply_markup: acceptedAction
+        ? primaryStatusKeyboard(
+            orderId,
+            acceptedAction.label,
+            acceptedAction.nextStatus
+          )
+        : { inline_keyboard: [] },
     });
   } else if (data.startsWith('order_reject:')) {
     await updateOrderStatus(orderId, 'rejected');
-    await finalizeMessage(chatId, messageId, currentText, '❌ <b>Заказ отменен</b>');
-  } else if (data.startsWith('order_ready:')) {
-    if (String(order.status) !== 'accepted') {
+    await finalizeMessage(chatId, messageId, currentText, '❌ <b>Заказ отклонен</b>');
+  } else if (data.startsWith('order_step:')) {
+    const [, nextStatus, callbackOrderId] = data.split(':');
+    if (!nextStatus || callbackOrderId !== orderId) {
       return tg('answerCallbackQuery', {
         callback_query_id: callbackQuery.id,
-        text: 'Сначала примите заказ',
+        text: 'Некорректные данные',
         show_alert: true,
       });
     }
-    await updateOrderStatus(orderId, 'ready');
-    await finalizeMessage(chatId, messageId, currentText, '✅ <b>Заказ выполнен</b>');
+
+    const primaryAction = getStaffPrimaryAction(
+      String(order.status),
+      (order.fulfillment_method as string | undefined) || undefined
+    );
+    if (!primaryAction || primaryAction.nextStatus !== nextStatus) {
+      return tg('answerCallbackQuery', {
+        callback_query_id: callbackQuery.id,
+        text: `Для статуса "${statusLabel(
+          String(order.status),
+          String(order.fulfillment_method || ''),
+        )}" это действие недоступно`,
+        show_alert: true,
+      });
+    }
+
+    await updateOrderStatus(orderId, nextStatus);
+    const followUpAction = getStaffPrimaryAction(
+      nextStatus,
+      (order.fulfillment_method as string | undefined) || undefined
+    );
+    if (followUpAction) {
+      await tg('editMessageReplyMarkup', {
+        chat_id: chatId,
+        message_id: messageId,
+        reply_markup: primaryStatusKeyboard(
+          orderId,
+          followUpAction.label,
+          followUpAction.nextStatus
+        ),
+      });
+    } else {
+      await finalizeMessage(
+        chatId,
+        messageId,
+        currentText,
+        `✅ <b>${statusLabel(
+          nextStatus,
+          String(order.fulfillment_method || ''),
+        )}</b>`
+      );
+    }
   }
 
   return tg('answerCallbackQuery', {

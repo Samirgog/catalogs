@@ -111,6 +111,8 @@ export type OrderStatus =
   | 'rejected'
   | 'ready'
   | 'paid'
+  | 'in_transit'
+  | 'delivered'
   | 'completed'
   | 'cancelled'
   | 'new';
@@ -249,11 +251,10 @@ export type CatalogPaymentGateway = {
   catalog_id: string;
   provider: 'yookassa';
   is_enabled: boolean;
-  shop_id: string;
-  secret_key: string;
+  is_configured: boolean;
+  shop_id_masked?: string;
   success_return_url?: string;
   fail_return_url?: string;
-  created_by?: string;
   created_at: string;
   updated_at: string;
 };

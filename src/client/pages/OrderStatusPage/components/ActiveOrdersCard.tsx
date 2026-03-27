@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { STATUS_META } from '../statusMeta';
+import { getOrderStatusLabel } from '@/shared/orderStatus';
 
 type ActiveOrder = {
   id: string;
@@ -37,7 +37,7 @@ export function ActiveOrdersCard({
               >
                 <p className="font-medium">№{item.orderNumber}</p>
                 <p className="text-xs text-muted-foreground">
-                  Статус: {STATUS_META[item.status]?.label || item.status}
+                  Статус: {getOrderStatusLabel(item.status)}
                 </p>
               </button>
             ))}
@@ -60,7 +60,7 @@ export function ActiveOrdersCard({
               >
                 <p className="font-medium">№{item.orderNumber}</p>
                 <p className="text-xs text-muted-foreground">
-                  Статус: {STATUS_META[item.status]?.label || item.status}
+                  Статус: {getOrderStatusLabel(item.status)}
                 </p>
               </button>
             ))}

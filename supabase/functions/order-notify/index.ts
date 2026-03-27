@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getOrderStatusLabel } from '../../../src/shared/orderStatus.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -12,20 +13,8 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !BOT_TOKEN) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const TG_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
-const STATUS_LABELS: Record<string, string> = {
-  created: 'Создан',
-  submitted: 'Оформлен',
-  payment_reported: 'Оплата отмечена клиентом',
-  accepted: 'Принят в работу',
-  rejected: 'Отклонен',
-  ready: 'Готов',
-  paid: 'Оплачен',
-  completed: 'Завершен',
-  cancelled: 'Отменен клиентом',
-};
-
-function statusLabel(status: string) {
-  return STATUS_LABELS[status] || status;
+function statusLabel(status: string, fulfillmentMethod?: string) {
+  return getOrderStatusLabel(status, fulfillmentMethod);
 }
 
 async function tg(method: string, body: unknown) {
@@ -82,7 +71,10 @@ function formatOrderText(order: Record<string, unknown>) {
 
   return [
     `🧾 <b>Заказ №${orderNo}</b>`,
-    `Статус: <b>${statusLabel(String(order.status || 'created'))}</b>`,
+    `Статус: <b>${statusLabel(
+      String(order.status || 'created'),
+      String(order.fulfillment_method || ''),
+    )}</b>`,
     `Сумма: <b>${Number(order.total_price || 0)} ₽</b>`,
     `Имя: <b>${String(order.customer_name || 'Не указано')}</b>`,
     `Телефон: <b>${String(order.customer_phone || 'Не указан')}</b>`,

@@ -13,7 +13,13 @@ export const usePaymentGateway = (catalogId: string) => {
   );
 
   const saveGateway = async (gatewayData: CatalogPaymentGatewayFormData) => {
-    const next = await paymentGatewayService.upsert(catalogId, gatewayData);
+    const next = await paymentGatewayService.saveCredentials(catalogId, gatewayData);
+    await mutate(next, { revalidate: false });
+    return next;
+  };
+
+  const setGatewayEnabled = async (isEnabled: boolean) => {
+    const next = await paymentGatewayService.setEnabled(catalogId, isEnabled);
     await mutate(next, { revalidate: false });
     return next;
   };
@@ -24,5 +30,6 @@ export const usePaymentGateway = (catalogId: string) => {
     error: error instanceof Error ? error.message : null,
     refetch: () => mutate(),
     saveGateway,
+    setGatewayEnabled,
   };
 };
