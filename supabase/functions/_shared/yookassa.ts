@@ -77,7 +77,7 @@ export async function getOrderWithGateway(orderId: string): Promise<{
 
   const { data: gateway, error: gatewayError } = await supabase
     .from('catalog_payment_gateways')
-    .select('shop_id, secret_key, shop_id_encrypted, secret_key_encrypted, is_enabled')
+    .select('shop_id_encrypted, secret_key_encrypted, is_enabled')
     .eq('catalog_id', order.catalog_id)
     .eq('provider', 'yookassa')
     .maybeSingle();
@@ -92,10 +92,10 @@ export async function getOrderWithGateway(orderId: string): Promise<{
 
   const shopId = gateway.shop_id_encrypted
     ? await decryptSecret(String(gateway.shop_id_encrypted))
-    : String(gateway.shop_id || '');
+    : '';
   const secretKey = gateway.secret_key_encrypted
     ? await decryptSecret(String(gateway.secret_key_encrypted))
-    : String(gateway.secret_key || '');
+    : '';
 
   if (!shopId || !secretKey) {
     throw new Error('ЮKassa настроена некорректно');

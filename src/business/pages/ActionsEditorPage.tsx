@@ -3,6 +3,14 @@ import { Save } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -126,6 +134,7 @@ export function ActionsEditorPage() {
   } = usePaymentGateway(catalogId || '');
   const [draft, setDraft] = useState<ActionsFormState | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGatewayDrawerOpen, setIsGatewayDrawerOpen] = useState(false);
 
   const initialState = useMemo(
     () => mapActionsToFormState(actions, gateway),
@@ -255,6 +264,13 @@ export function ActionsEditorPage() {
       </div>
     );
   }
+
+  const yookassaShopPreview =
+    gateway?.shop_id_masked || formState.yookassaShopId || 'Не задан';
+  const yookassaSecretPreview =
+    gateway?.is_configured || formState.yookassaSecretKey
+      ? '••••••••••••••••'
+      : 'Не задан';
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -409,27 +425,17 @@ export function ActionsEditorPage() {
                 Клиент сможет оплатить заказ банковской картой, через SberPay и
                 доступные онлайн-способы оплаты ЮKassa.
               </p>
-              {gateway?.is_configured && (
-                <p className="text-sm text-muted-foreground">
-                  ЮKassa уже настроена. Поля ниже оставьте пустыми, если не хотите
-                  менять shopId и secret key.
-                </p>
-              )}
               <div>
                 <Label htmlFor="yookassa-shop-id" className="block mb-2">
                   Shop ID
                 </Label>
                 <Input
                   id="yookassa-shop-id"
-                  value={formState.yookassaShopId}
-                  onChange={(e) =>
-                    patchFormState({ yookassaShopId: e.target.value })
-                  }
-                  placeholder={
-                    gateway?.is_configured
-                      ? 'Оставьте пустым, чтобы не менять'
-                      : '123456'
-                  }
+                  readOnly
+                  value={yookassaShopPreview}
+                  onClick={() => setIsGatewayDrawerOpen(true)}
+                  className="cursor-pointer"
+                  placeholder="123456"
                 />
               </div>
               <div>
@@ -438,22 +444,72 @@ export function ActionsEditorPage() {
                 </Label>
                 <Input
                   id="yookassa-secret-key"
-                  type="password"
-                  value={formState.yookassaSecretKey}
-                  onChange={(e) =>
-                    patchFormState({ yookassaSecretKey: e.target.value })
-                  }
-                  placeholder={
-                    gateway?.is_configured
-                      ? 'Оставьте пустым, чтобы не менять'
-                      : 'live_xxxxxxxxxxxxx'
-                  }
+                  readOnly
+                  type="text"
+                  value={yookassaSecretPreview}
+                  onClick={() => setIsGatewayDrawerOpen(true)}
+                  className="cursor-pointer"
+                  placeholder="live_xxxxxxxxxxxxx"
                 />
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => setIsGatewayDrawerOpen(true)}
+              >
+                {gateway?.is_configured ? 'Изменить настройки ЮKassa' : 'Настроить ЮKassa'}
+              </Button>
             </CardContent>
           )}
         </Card>
       </div>
+
+      <Drawer open={isGatewayDrawerOpen} onOpenChange={setIsGatewayDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader>
+            <DrawerTitle>Настройки ЮKassa</DrawerTitle>
+            <DrawerDescription>
+              Здесь можно обновить shopId и secret key. Сохранение произойдет общей
+              кнопкой внизу страницы.
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="space-y-4 px-4 pb-2">
+            <div>
+              <Label htmlFor="drawer-yookassa-shop-id" className="mb-2 block">
+                Shop ID
+              </Label>
+              <Input
+                id="drawer-yookassa-shop-id"
+                value={formState.yookassaShopId}
+                onChange={(e) =>
+                  patchFormState({ yookassaShopId: e.target.value })
+                }
+                placeholder={gateway?.shop_id_masked || '123456'}
+              />
+            </div>
+            <div>
+              <Label htmlFor="drawer-yookassa-secret-key" className="mb-2 block">
+                Secret key
+              </Label>
+              <Input
+                id="drawer-yookassa-secret-key"
+                type="password"
+                value={formState.yookassaSecretKey}
+                onChange={(e) =>
+                  patchFormState({ yookassaSecretKey: e.target.value })
+                }
+                placeholder={gateway?.is_configured ? 'Введите новый secret key' : 'live_xxxxxxxxxxxxx'}
+              />
+            </div>
+          </div>
+          <DrawerFooter>
+            <Button type="button" onClick={() => setIsGatewayDrawerOpen(false)}>
+              Готово
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       <div className="fixed bottom-6 left-4 right-4">
         <Button

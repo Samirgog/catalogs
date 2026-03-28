@@ -308,7 +308,7 @@ export function BookingPage({ catalogId }: Props) {
   if (!orderId) {
     return (
       <div className="min-h-screen bg-background p-4 pb-28">
-        <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center">
+        <div className="sticky top-0 z-40 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center">
           <h1 className="text-lg font-semibold ml-2 flex-1">Выбранная услуга</h1>
         </div>
         <Card className="mt-4 glass-card overflow-hidden">
@@ -363,11 +363,11 @@ export function BookingPage({ catalogId }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col pb-28 bg-background">
-      <div className="sticky top-0 z-20 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center">
+      <div className="sticky top-0 z-40 p-4 glass-card rounded-none border-x-0 border-t-0 flex items-center">
         <h1 className="text-lg font-semibold ml-2 flex-1">{labels.checkoutTitle}</h1>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="relative z-0 space-y-4 p-4">
         {error && (
           <div className="glass-card p-3 text-sm text-red-600">{error}</div>
         )}
@@ -478,7 +478,7 @@ export function BookingPage({ catalogId }: Props) {
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 glass-card rounded-none border-x-0 border-b-0 p-4 pb-8">
+      <div className="fixed bottom-0 left-0 right-0 z-40 glass-card rounded-none border-x-0 border-b-0 p-4 pb-8">
         <Button
           className="w-full h-12"
           onClick={handleSubmit}
