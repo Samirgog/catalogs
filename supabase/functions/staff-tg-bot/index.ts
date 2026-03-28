@@ -461,7 +461,12 @@ async function handleCallbackQuery(callbackQuery: Record<string, unknown>) {
   const messageId = Number((callbackQuery.message as Record<string, unknown>)?.message_id);
   const currentText = String((callbackQuery.message as Record<string, unknown>)?.text || '');
 
-  const orderId = data.split(':')[1];
+  let orderId = '';
+  if (data.startsWith('order_step:')) {
+    orderId = data.split(':')[2] || '';
+  } else {
+    orderId = data.split(':')[1] || '';
+  }
   if (!orderId) {
     return tg('answerCallbackQuery', {
       callback_query_id: callbackQuery.id,

@@ -163,7 +163,7 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
           onClick={handleGoToCurrentOrder}
           className={
             businessType === 'goods' && itemsCount > 0
-              ? 'bottom-24'
+              ? 'bottom-[5.25rem]'
               : 'bottom-4'
           }
         />

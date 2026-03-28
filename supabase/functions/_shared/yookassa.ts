@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { decryptSecret } from './crypto.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -76,7 +77,7 @@ export async function getOrderWithGateway(orderId: string): Promise<{
 
   const { data: gateway, error: gatewayError } = await supabase
     .from('catalog_payment_gateways')
-    .select('shop_id, secret_key, is_enabled')
+    .select('shop_id, secret_key, shop_id_encrypted, secret_key_encrypted, is_enabled')
     .eq('catalog_id', order.catalog_id)
     .eq('provider', 'yookassa')
     .maybeSingle();
@@ -89,9 +90,24 @@ export async function getOrderWithGateway(orderId: string): Promise<{
     throw new Error('Онлайн-оплата временно отключена');
   }
 
+  const shopId = gateway.shop_id_encrypted
+    ? await decryptSecret(String(gateway.shop_id_encrypted))
+    : String(gateway.shop_id || '');
+  const secretKey = gateway.secret_key_encrypted
+    ? await decryptSecret(String(gateway.secret_key_encrypted))
+    : String(gateway.secret_key || '');
+
+  if (!shopId || !secretKey) {
+    throw new Error('ЮKassa настроена некорректно');
+  }
+
   return {
     order: order as OrderRow,
-    gateway: gateway as GatewayRow,
+    gateway: {
+      shop_id: shopId,
+      secret_key: secretKey,
+      is_enabled: Boolean(gateway.is_enabled),
+    } as GatewayRow,
   };
 }
 
@@ -179,4 +195,3 @@ export async function updateOrderFromPayment(order: OrderRow, payment: YooKassaP
 
   return data;
 }
-

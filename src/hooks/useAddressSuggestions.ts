@@ -6,6 +6,8 @@ type AddressSuggestion = {
 };
 
 type NominatimAddress = {
+  state?: string;
+  region?: string;
   city?: string;
   town?: string;
   village?: string;
@@ -15,6 +17,9 @@ type NominatimAddress = {
   pedestrian?: string;
   street?: string;
   house_number?: string;
+  house?: string;
+  apartment?: string;
+  flat?: string;
 };
 
 type NominatimItem = {
@@ -32,16 +37,22 @@ const buildShortAddress = (item: NominatimItem): string => {
     '';
   const street =
     item.address?.road || item.address?.pedestrian || item.address?.street || '';
-  const house = item.address?.house_number || '';
+  const house = item.address?.house_number || item.address?.house || '';
+  const apartment = item.address?.apartment || item.address?.flat || '';
+  const region = item.address?.state || item.address?.region || '';
 
-  const assembled = [city, street, house].filter(Boolean).join(', ');
+  const streetPart = [street, house].filter(Boolean).join(', ');
+  const assembled = [city, streetPart, apartment].filter(Boolean).join(', ');
   if (assembled) return assembled;
+
+  const fallback = [region, city, streetPart].filter(Boolean).join(', ');
+  if (fallback) return fallback;
 
   return (item.display_name || '')
     .split(',')
     .map(part => part.trim())
     .filter(Boolean)
-    .slice(0, 3)
+    .slice(0, 4)
     .join(', ');
 };
 
@@ -78,16 +89,11 @@ export const useAddressSuggestions = (query: string) => {
         const data = (await response.json()) as NominatimItem[];
         const normalized = data
           .map(item => {
-            const label = item.display_name?.trim() || '';
             const value = buildShortAddress(item);
-            return { label, value };
+            return { label: value, value };
           })
           .filter(item => item.value)
           .slice(0, 5)
-          .map(item => ({
-            label: item.label || item.value,
-            value: item.value,
-          }));
 
         setSuggestions(normalized);
       } catch {

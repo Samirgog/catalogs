@@ -1,6 +1,5 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createHmac } from 'https://deno.land/std@0.224.0/node/crypto.ts';
 
 const BOT_TOKENS = [
   Deno.env.get('TELEGRAM_BOT_TOKEN_ENTRY'),
@@ -58,9 +57,34 @@ const buildDataCheckString = (initData: string) => {
   return { hash, dataCheckString, urlParams };
 };
 
-const calcHash = (botToken: string, dataCheckString: string) => {
-  const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest();
-  return createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+const bytesToHex = (buffer: ArrayBuffer) =>
+  Array.from(new Uint8Array(buffer))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+
+const hmacSha256 = async (key: Uint8Array, message: string) => {
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    key,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  return crypto.subtle.sign(
+    'HMAC',
+    cryptoKey,
+    new TextEncoder().encode(message)
+  );
+};
+
+const calcHash = async (botToken: string, dataCheckString: string) => {
+  const firstPass = await hmacSha256(
+    new TextEncoder().encode('WebAppData'),
+    botToken
+  );
+  const secondPass = await hmacSha256(new Uint8Array(firstPass), dataCheckString);
+  return bytesToHex(secondPass);
 };
 
 const parseEntry = (startParamRaw: string | null): Entry => {
@@ -90,10 +114,11 @@ const parseEntry = (startParamRaw: string | null): Entry => {
   return { type: 'admin', tableNumber };
 };
 
-function validateTelegramInitData(initData: string): { user: TelegramUser; entry: Entry } {
+async function validateTelegramInitData(initData: string): Promise<{ user: TelegramUser; entry: Entry }> {
   const { hash, dataCheckString, urlParams } = buildDataCheckString(initData);
 
-  const isValid = BOT_TOKENS.some((token) => calcHash(token, dataCheckString) === hash);
+  const hashes = await Promise.all(BOT_TOKENS.map((token) => calcHash(token, dataCheckString)));
+  const isValid = hashes.some((value) => value === hash);
   if (!isValid) {
     throw new Error('Invalid hash - initData validation failed');
   }
@@ -137,7 +162,7 @@ serve(async (req) => {
       });
     }
 
-    const { user, entry } = validateTelegramInitData(initData);
+    const { user, entry } = await validateTelegramInitData(initData);
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const { data: existingUser } = await supabase
