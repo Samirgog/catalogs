@@ -34,6 +34,13 @@ import { showRequestError } from '../utils/request-feedback';
 
 const catalogEditorTutorialSteps: TutorialStep[] = [
   {
+    id: 'type',
+    target: '[data-tour="catalog-editor-type-subtype"]',
+    title: 'Тип и подтип бизнеса',
+    description:
+      'От выбора зависит логика оформления заказа и доступные способы получения.',
+  },
+  {
     id: 'banner',
     target: '[data-tour="catalog-editor-banner"]',
     title: 'Баннер каталога',
@@ -46,13 +53,6 @@ const catalogEditorTutorialSteps: TutorialStep[] = [
     title: 'Название каталога',
     description:
       'Укажите понятное название, по которому вас смогут быстро найти.',
-  },
-  {
-    id: 'type',
-    target: '[data-tour="catalog-editor-type-subtype"]',
-    title: 'Тип и подтип бизнеса',
-    description:
-      'От выбора зависит логика оформления заказа и доступные способы получения.',
   },
   {
     id: 'actions',
@@ -492,6 +492,21 @@ export function CatalogEditorPage() {
       </div>
 
       <div className="p-4 space-y-4">
+        <TypeSubtypeSection
+          type={formData.type}
+          subtype={formData.subtype}
+          onTypeChange={value =>
+            setFormData(prev => ({
+              ...prev,
+              type: value,
+              subtype: (value === 'goods' ? 'shop' : 'salon') as CatalogSubtype,
+            }))
+          }
+          onSubtypeChange={value =>
+            setFormData(prev => ({ ...prev, subtype: value }))
+          }
+        />
+
         <div data-tour="catalog-editor-banner">
           <BannerSection
             bannerUrl={formData.banner_url}
@@ -515,21 +530,6 @@ export function CatalogEditorPage() {
               ...prev,
               address: toShortAddress(value),
             }))
-          }
-        />
-
-        <TypeSubtypeSection
-          type={formData.type}
-          subtype={formData.subtype}
-          onTypeChange={value =>
-            setFormData(prev => ({
-              ...prev,
-              type: value,
-              subtype: (value === 'goods' ? 'shop' : 'salon') as CatalogSubtype,
-            }))
-          }
-          onSubtypeChange={value =>
-            setFormData(prev => ({ ...prev, subtype: value }))
           }
         />
 

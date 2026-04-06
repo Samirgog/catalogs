@@ -236,7 +236,9 @@ export function CatalogsPage() {
                     <div className="px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] space-y-3">
                       <Input
                         value={inviteCode}
-                        onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                        onChange={e =>
+                          setInviteCode(e.target.value.toUpperCase())
+                        }
                         placeholder="Например: A1B2C3"
                         className="h-12 tracking-[0.18em] text-center sm:text-left font-medium uppercase"
                         autoFocus
