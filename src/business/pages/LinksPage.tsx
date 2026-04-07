@@ -98,6 +98,8 @@ export function LinksPage() {
   const tutorial = useSectionTutorial('links', linksTutorialSteps, {
     enabled: !isGenerating && !qrLoading && Boolean(linkData),
   });
+  const [hasShownCatalogErrorToast, setHasShownCatalogErrorToast] = useState(false);
+  const [hasShownQrErrorToast, setHasShownQrErrorToast] = useState(false);
 
   useEffect(() => {
     if (!catalogId) return;
@@ -144,22 +146,32 @@ export function LinksPage() {
   };
 
   useEffect(() => {
-    if (catalogError) {
+    if (catalogError && !hasShownCatalogErrorToast) {
       showRequestError(catalogError, {
         retryLabel: 'Обновить',
         onRetry: () => window.location.reload(),
+        id: 'links-catalog-error',
       });
+      setHasShownCatalogErrorToast(true);
     }
-  }, [catalogError]);
+    if (!catalogError) {
+      setHasShownCatalogErrorToast(false);
+    }
+  }, [catalogError, hasShownCatalogErrorToast]);
 
   useEffect(() => {
-    if (qrError) {
+    if (qrError && !hasShownQrErrorToast) {
       showRequestError(qrError, {
         retryLabel: 'Обновить',
         onRetry: () => window.location.reload(),
+        id: 'links-qr-error',
       });
+      setHasShownQrErrorToast(true);
     }
-  }, [qrError]);
+    if (!qrError) {
+      setHasShownQrErrorToast(false);
+    }
+  }, [qrError, hasShownQrErrorToast]);
 
   // Fetch catalog data
   useEffect(() => {
@@ -178,7 +190,7 @@ export function LinksPage() {
       }
     };
 
-    fetchCatalog();
+    void fetchCatalog();
   }, [catalogId]);
 
   // Generate or fetch QR code when catalog and QR links change
@@ -186,7 +198,7 @@ export function LinksPage() {
     let isMounted = true;
 
     const handleQRGeneration = async () => {
-      if (!catalogId || !catalog || qrLoading || !isMounted) return;
+      if (!catalogId || !catalog || qrLoading || !isMounted || catalogError || qrError) return;
 
       // Check if we already have link data for this catalog
       if (linkData && linkData.qrLink.target_id === catalogId) {
@@ -242,7 +254,7 @@ export function LinksPage() {
     return () => {
       isMounted = false;
     };
-  }, [catalogId, catalog, qrLinks, qrLoading]);
+  }, [catalogId, catalog, qrLinks, qrLoading, catalogError, qrError, linkData, generateQRForCatalog]);
 
   const handleCopyLink = async () => {
     if (linkData?.url) {

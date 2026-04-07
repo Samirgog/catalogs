@@ -1,4 +1,5 @@
 import type { AuthResponse, User } from './types';
+import { fetchWithRetry } from '@/lib/http';
 
 const AUTH_FUNCTION_URL = 'https://dqqyvnwqrfbfdleldbvq.supabase.co/functions/v1/catalogs-auth-function';
 
@@ -10,12 +11,14 @@ export const telegramAuthService = {
    */
   async authenticate(initData: string): Promise<AuthResponse> {
     try {
-      const response = await fetch(AUTH_FUNCTION_URL, {
+      const response = await fetchWithRetry(AUTH_FUNCTION_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ initData }),
+        timeoutMs: 20000,
+        retries: 2,
       });
 
       if (!response.ok) {

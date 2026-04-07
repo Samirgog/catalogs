@@ -1,4 +1,5 @@
 import { getTelegramWebApp } from '@/lib/telegram';
+import { fetchWithRetry } from '@/lib/http';
 import type {
   CatalogPaymentGateway,
   CatalogPaymentGatewayFormData,
@@ -23,13 +24,15 @@ const getInitData = () => {
 
 export const paymentGatewayService = {
   async getByCatalogId(catalogId: string): Promise<CatalogPaymentGateway | null> {
-    const response = await fetch(getFunctionUrl('payment-gateway-get'), {
+    const response = await fetchWithRetry(getFunctionUrl('payment-gateway-get'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         catalogId,
         initData: getInitData(),
       }),
+      timeoutMs: 20000,
+      retries: 2,
     });
 
     if (!response.ok) {
@@ -43,7 +46,7 @@ export const paymentGatewayService = {
     catalogId: string,
     gatewayData: CatalogPaymentGatewayFormData
   ): Promise<CatalogPaymentGateway> {
-    const response = await fetch(getFunctionUrl('payment-gateway-upsert'), {
+    const response = await fetchWithRetry(getFunctionUrl('payment-gateway-upsert'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -51,6 +54,8 @@ export const paymentGatewayService = {
         initData: getInitData(),
         gatewayData,
       }),
+      timeoutMs: 20000,
+      retries: 2,
     });
 
     if (!response.ok) {
@@ -61,7 +66,7 @@ export const paymentGatewayService = {
   },
 
   async setEnabled(catalogId: string, isEnabled: boolean): Promise<CatalogPaymentGateway> {
-    const response = await fetch(getFunctionUrl('payment-gateway-toggle'), {
+    const response = await fetchWithRetry(getFunctionUrl('payment-gateway-toggle'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -69,6 +74,8 @@ export const paymentGatewayService = {
         initData: getInitData(),
         isEnabled,
       }),
+      timeoutMs: 20000,
+      retries: 2,
     });
 
     if (!response.ok) {

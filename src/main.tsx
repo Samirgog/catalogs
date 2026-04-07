@@ -28,8 +28,6 @@ const initTelegramWebApp = () => {
         webApp.setBackgroundColor(preferred);
       }
       
-      // Enable closing confirmation
-      webApp.enableClosingConfirmation?.();
     } catch (error) {
       console.warn('Telegram WebApp initialization error:', error);
     }

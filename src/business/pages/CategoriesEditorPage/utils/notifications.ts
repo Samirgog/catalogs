@@ -14,12 +14,21 @@ export class ErrorHandler {
 
   static showError(
     error: unknown,
-    defaultMessage: string = 'Операция не выполнена'
+    defaultMessage: string = 'Операция не выполнена',
+    options?: {
+      allowReload?: boolean;
+      id?: string;
+    }
   ): void {
     const message = this.handle(error, defaultMessage);
+    if (options?.allowReload === false) {
+      toast.error(message, { id: options.id, duration: 4000 });
+      return;
+    }
     showRequestError(message, {
       retryLabel: 'Обновить',
       onRetry: () => window.location.reload(),
+      id: options?.id,
     });
   }
 

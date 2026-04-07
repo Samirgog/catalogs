@@ -1,4 +1,5 @@
 import { businessSupabase } from '../../lib/supabase';
+import { fetchWithRetry } from '@/lib/http';
 import type { CatalogAccessInvite, CatalogUserAccess, User } from '../../types';
 
 const generateInviteCode = () =>
@@ -9,12 +10,14 @@ export const catalogAccessService = {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     if (supabaseUrl) {
       try {
-        const response = await fetch(
+        const response = await fetchWithRetry(
           `${supabaseUrl}/functions/v1/catalog-access-collaborators`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ catalogId }),
+            timeoutMs: 20000,
+            retries: 2,
           }
         );
 

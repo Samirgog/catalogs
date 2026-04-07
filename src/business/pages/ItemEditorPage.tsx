@@ -12,6 +12,7 @@ import { uploadImage } from '../services/images';
 import { FormValidator, ErrorHandler, ValidationError } from './CategoriesEditorPage/utils';
 import type { ItemFormData } from '@/types';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
+import { Spinner } from '@/components/ui/spinner';
 import { BusinessTutorialLauncher } from '../tutorial/BusinessTutorialLauncher';
 import { TourOverlay } from '../tutorial/TourOverlay';
 import { useSectionTutorial } from '../tutorial/useSectionTutorial';
@@ -113,6 +114,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isImageUploading, setIsImageUploading] = useState(false);
   const [priorityInput, setPriorityInput] = useState('1');
   const tutorial = useSectionTutorial('item_editor', itemEditorTutorialSteps, {
     enabled: !isLoading,
@@ -200,7 +202,8 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
       } else {
         ErrorHandler.showError(
           error,
-          itemId ? 'Не удалось сохранить изменения' : 'Не удалось создать товар'
+          itemId ? 'Не удалось сохранить изменения' : 'Не удалось создать товар',
+          { allowReload: false, id: 'item-editor-save-error' }
         );
       }
     } finally {
@@ -304,6 +307,14 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
                     alt="Предпросмотр изображения" 
                     className="w-full h-48 object-cover"
                   />
+                  {isImageUploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
+                      <div className="flex items-center gap-2 rounded-xl bg-background px-4 py-3 shadow-sm">
+                        <Spinner className="h-4 w-4" />
+                        <span className="text-sm">Загружаем изображение...</span>
+                      </div>
+                    </div>
+                  )}
                   <Button
                     type="button"
                     variant="secondary"
@@ -325,13 +336,22 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
                   className="rounded-xl border-2 border-dashed border-border p-8 text-center cursor-pointer bg-secondary/30"
                   onClick={() => document.getElementById('item-image-file')?.click()}
                 >
-                  <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
-                  <p className="mt-2 text-sm text-foreground">
-                    Нажмите для загрузки изображения
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    PNG, JPG, GIF до 5MB
-                  </p>
+                  {isImageUploading ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <Spinner className="h-8 w-8" />
+                      <p className="text-sm text-foreground">Загружаем изображение...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="mx-auto h-10 w-10 text-muted-foreground" />
+                      <p className="mt-2 text-sm text-foreground">
+                        Нажмите для загрузки изображения
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        PNG, JPG, GIF до 5MB
+                      </p>
+                    </>
+                  )}
                 </div>
               )}
               
@@ -343,6 +363,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
                   const file = e.target.files?.[0];
                   if (file) {
                     try {
+                      setIsImageUploading(true);
                       const previewUrl = await generatePreview(file);
                       setPreviewUrl(previewUrl);
                       
@@ -359,7 +380,12 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
                       
                     } catch (err) {
                       console.error('Image upload failed:', err);
-                      ErrorHandler.showError(err, 'Failed to upload image');
+                      ErrorHandler.showError(err, 'Не удалось загрузить изображение', {
+                        allowReload: false,
+                        id: 'item-editor-image-error',
+                      });
+                    } finally {
+                      setIsImageUploading(false);
                     }
                   }
                 }}
@@ -371,6 +397,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
                   type="button"
                   variant="outline"
                   className="w-full"
+                  disabled={isImageUploading}
                   onClick={() => document.getElementById('item-image-file')?.click()}
                 >
                   <Upload className="w-4 h-4 mr-2" />
@@ -399,7 +426,7 @@ function ItemEditorView({ catalogId, categoryId, itemId }: ItemEditorViewProps) 
         <Button
           data-tour="item-editor-save"
           onClick={handleSubmit}
-          disabled={isLoading}
+          disabled={isLoading || isImageUploading}
           className="w-full h-12 gap-2"
         >
           <Check className="w-4 h-4" />

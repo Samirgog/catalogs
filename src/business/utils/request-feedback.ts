@@ -5,9 +5,11 @@ export const showRequestError = (
   options?: {
     retryLabel?: string;
     onRetry?: () => void;
+    id?: string;
   }
 ) => {
   toast.error(message, {
+    id: options?.id,
     duration: 4000,
     action: options?.onRetry
       ? {

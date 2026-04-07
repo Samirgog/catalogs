@@ -126,6 +126,7 @@ export class ItemHandlers {
       const duplicatedItem: ItemFormData = {
         title: `${originalItem.title} (Copy)`,
         description: originalItem.description || '',
+        detailed_description: originalItem.detailed_description || '',
         price: originalItem.price ?? 0,
         image_url: originalItem.image_url || '',
         is_available: originalItem.is_available ?? true,

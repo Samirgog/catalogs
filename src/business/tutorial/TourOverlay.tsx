@@ -151,6 +151,10 @@ export function TourOverlay({
       {targetRect ? (
         <>
           <div
+            className="fixed inset-0"
+            style={{ zIndex: OVERLAY_Z + 1 }}
+          />
+          <div
             className="fixed bg-black/55"
             style={{ zIndex: OVERLAY_Z, top: 0, left: 0, right: 0, height: targetRect.top }}
           />

@@ -280,6 +280,7 @@ export const useCategoriesEditorStore = create<CategoriesEditorState>((set, get)
       const duplicatedItemData: ItemFormData = {
         title: `${item.title} (копия)`,
         description: item.description || '',
+        detailed_description: item.detailed_description || '',
         price: item.price || 0,
         image_url: item.image_url || '',
         is_available: item.is_available ?? true,

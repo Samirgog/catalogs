@@ -1,4 +1,5 @@
 import { businessSupabase } from '../../lib/supabase';
+import { fetchWithRetry } from '@/lib/http';
 import type { Catalog, CatalogFormData } from '../../types';
 
 // Catalog Services
@@ -88,10 +89,12 @@ export const catalogService = {
       throw new Error('Не настроен VITE_SUPABASE_URL');
     }
 
-    const response = await fetch(`${supabaseUrl}/functions/v1/catalog-delete`, {
+    const response = await fetchWithRetry(`${supabaseUrl}/functions/v1/catalog-delete`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ catalogId: id }),
+      timeoutMs: 20000,
+      retries: 2,
     });
 
     if (!response.ok) {

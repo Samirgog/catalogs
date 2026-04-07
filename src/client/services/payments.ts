@@ -1,3 +1,5 @@
+import { fetchWithRetry } from '@/lib/http';
+
 export type CreateOnlinePaymentResult = {
   confirmationUrl: string;
   paymentId: string;
@@ -15,10 +17,12 @@ const getFunctionUrl = (name: string) => {
 
 export const clientPaymentService = {
   async createYookassaPayment(orderId: string): Promise<CreateOnlinePaymentResult> {
-    const response = await fetch(getFunctionUrl('yookassa-create-payment'), {
+    const response = await fetchWithRetry(getFunctionUrl('yookassa-create-payment'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderId }),
+      timeoutMs: 20000,
+      retries: 2,
     });
 
     if (!response.ok) {
@@ -29,10 +33,12 @@ export const clientPaymentService = {
   },
 
   async syncYookassaPayment(orderId: string) {
-    const response = await fetch(getFunctionUrl('yookassa-sync-payment'), {
+    const response = await fetchWithRetry(getFunctionUrl('yookassa-sync-payment'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ orderId }),
+      timeoutMs: 20000,
+      retries: 2,
     });
 
     if (!response.ok) {
