@@ -16,6 +16,8 @@ export const useStaff = (catalogId: string) => {
     () => staffService.getAccessCode(catalogId),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 15000,
     }
   );
@@ -30,6 +32,8 @@ export const useStaff = (catalogId: string) => {
     () => staffService.getMembers(catalogId),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 10000,
     }
   );

@@ -183,7 +183,7 @@ function CategoriesEditorView({
   // Refresh data when component mounts or comes back from editor
   useEffect(() => {
     onRefresh();
-  }, [onRefresh]);
+  }, [catalogId]);
 
 
   // State management

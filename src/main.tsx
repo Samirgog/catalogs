@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { SWRConfig } from 'swr';
 import './index.css';
 import { App } from './app';
 import { Toaster } from '@/components/ui/toaster';
@@ -43,7 +44,15 @@ if (document.readyState === 'loading') {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
-    <Toaster richColors position="top-center" />
+    <SWRConfig
+      value={{
+        shouldRetryOnError: false,
+        errorRetryCount: 0,
+        revalidateOnReconnect: true,
+      }}
+    >
+      <App />
+      <Toaster richColors position="top-center" />
+    </SWRConfig>
   </StrictMode>
 );

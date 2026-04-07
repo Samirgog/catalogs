@@ -67,6 +67,19 @@ export const itemService = {
     return data || [];
   },
 
+  async getByCategoryIds(categoryIds: string[]): Promise<Item[]> {
+    if (!categoryIds.length) return [];
+
+    const { data, error } = await businessSupabase
+      .from('items')
+      .select('*')
+      .in('category_id', categoryIds)
+      .order('position', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  },
+
   // Get item by ID
   async getById(id: string): Promise<Item | null> {
     const { data, error } = await businessSupabase

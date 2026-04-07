@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import useSWR from 'swr';
 import { paymentGatewayService } from '../services/paymentGateways';
 import type { CatalogPaymentGatewayFormData } from '../../types';
@@ -8,6 +9,8 @@ export const usePaymentGateway = (catalogId: string) => {
     () => paymentGatewayService.getByCatalogId(catalogId),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 30000,
     }
   );
@@ -28,7 +31,7 @@ export const usePaymentGateway = (catalogId: string) => {
     gateway: data ?? null,
     loading: isLoading,
     error: error instanceof Error ? error.message : null,
-    refetch: () => mutate(),
+    refetch: useCallback(() => mutate(), [mutate]),
     saveGateway,
     setGatewayEnabled,
   };

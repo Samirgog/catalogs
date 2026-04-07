@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { fulfillmentService } from '../services/fulfillment';
 import type { FulfillmentMethodType } from '../../types';
@@ -9,6 +10,8 @@ export const useFulfillmentMethods = (catalogId: string) => {
     () => fulfillmentService.getByCatalogId(catalogId),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 15000,
     }
   );
@@ -41,7 +44,7 @@ export const useFulfillmentMethods = (catalogId: string) => {
     methods: data ?? [],
     loading: isLoading,
     error: error ? (error instanceof Error ? error.message : 'Ошибка') : null,
-    refetch: () => mutate(),
+    refetch: useCallback(() => mutate(), [mutate]),
     setMethodEnabled,
   };
 };

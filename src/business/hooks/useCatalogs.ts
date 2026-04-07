@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { catalogService } from '../services/catalogs';
 import type { Catalog, CatalogFormData } from '../../types';
@@ -17,6 +18,8 @@ export const useCatalogs = () => {
     () => fetcher(user?.id || ''),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 30000, // 30 seconds
     }
   );
@@ -75,7 +78,7 @@ export const useCatalogs = () => {
     loading: isLoading,
     error: error ? (error instanceof Error ? error.message : 'Failed to fetch catalogs') : null,
     isValidating,
-    refetch: () => mutate(),
+    refetch: useCallback(() => mutate(), [mutate]),
     createCatalog,
     updateCatalog,
     deleteCatalog
@@ -89,6 +92,8 @@ export const useCatalog = (id: string) => {
     () => catalogService.getById(id),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 30000, // 30 seconds
     }
   );
@@ -130,7 +135,7 @@ export const useCatalog = (id: string) => {
     loading: isLoading,
     error: error ? (error instanceof Error ? error.message : 'Failed to fetch catalog') : null,
     isValidating,
-    refetch: () => mutate(),
+    refetch: useCallback(() => mutate(), [mutate]),
     updateCatalog,
     deleteCatalog
   };

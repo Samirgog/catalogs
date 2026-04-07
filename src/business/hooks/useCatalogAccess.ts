@@ -7,6 +7,8 @@ export const useCatalogAccess = (catalogId: string) => {
     () => catalogAccessService.getCollaborators(catalogId),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 30000,
     }
   );
@@ -16,6 +18,8 @@ export const useCatalogAccess = (catalogId: string) => {
     () => catalogAccessService.getInvite(catalogId),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 30000,
     }
   );

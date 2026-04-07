@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { categoryService } from '../services/categories';
 import type { Category, CategoryFormData } from '../../types';
@@ -14,6 +15,8 @@ export const useCategories = (catalogId: string) => {
     () => fetcher(catalogId),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 30000, // 30 seconds
     }
   );
@@ -78,7 +81,7 @@ export const useCategories = (catalogId: string) => {
     loading: isLoading,
     error: error ? (error instanceof Error ? error.message : 'Failed to fetch categories') : null,
     isValidating,
-    refetch: () => mutate(),
+    refetch: useCallback(() => mutate(), [mutate]),
     createCategory,
     updateCategory,
     deleteCategory,
@@ -93,6 +96,8 @@ export const useCategory = (id: string) => {
     () => categoryService.getById(id),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 30000, // 30 seconds
     }
   );
@@ -134,7 +139,7 @@ export const useCategory = (id: string) => {
     loading: isLoading,
     error: error ? (error instanceof Error ? error.message : 'Failed to fetch category') : null,
     isValidating,
-    refetch: () => mutate(),
+    refetch: useCallback(() => mutate(), [mutate]),
     updateCategory,
     deleteCategory
   };

@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import useSWR from 'swr';
 import { qrService } from '../services/qr';
 import type { QRLink } from '../../types';
@@ -14,6 +15,8 @@ export const useQRLinks = (catalogId: string) => {
     () => fetcher(catalogId),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 60000, // 1 minute
     }
   );
@@ -53,7 +56,7 @@ export const useQRLinks = (catalogId: string) => {
     loading: isLoading,
     error: error ? (error instanceof Error ? error.message : 'Failed to fetch QR codes') : null,
     isValidating,
-    refetch: () => mutate(),
+    refetch: useCallback(() => mutate(), [mutate]),
     generateQRForCatalog,
     deleteQR
   };
@@ -66,6 +69,8 @@ export const useQRLinkBySlug = (slug: string) => {
     () => qrService.getBySlug(slug),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 60000, // 1 minute
     }
   );
@@ -75,6 +80,6 @@ export const useQRLinkBySlug = (slug: string) => {
     loading: isLoading,
     error: error ? (error instanceof Error ? error.message : 'Failed to fetch QR code') : null,
     isValidating,
-    refetch: () => mutate()
+    refetch: useCallback(() => mutate(), [mutate])
   };
 };

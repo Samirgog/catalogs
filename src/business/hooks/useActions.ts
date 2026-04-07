@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { actionService } from '../services/actions';
 import type { Action, ActionFormData } from '../../types';
@@ -14,6 +15,8 @@ export const useActions = (catalogId: string) => {
     () => fetcher(catalogId),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 30000, // 30 seconds
     }
   );
@@ -88,7 +91,7 @@ export const useActions = (catalogId: string) => {
     loading: isLoading,
     error: error ? (error instanceof Error ? error.message : 'Failed to fetch actions') : null,
     isValidating,
-    refetch: () => mutate(),
+    refetch: useCallback(() => mutate(), [mutate]),
     createAction,
     updateAction,
     deleteAction,
@@ -103,6 +106,8 @@ export const useAction = (id: string) => {
     () => actionService.getById(id),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 30000, // 30 seconds
     }
   );
@@ -160,7 +165,7 @@ export const useAction = (id: string) => {
     loading: isLoading,
     error: error ? (error instanceof Error ? error.message : 'Failed to fetch action') : null,
     isValidating,
-    refetch: () => mutate(),
+    refetch: useCallback(() => mutate(), [mutate]),
     updateAction,
     deleteAction,
     toggleAction

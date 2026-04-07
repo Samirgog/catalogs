@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { itemService } from '../services/items';
 import type { Item, ItemFormData } from '../../types';
@@ -14,6 +15,8 @@ export const useItems = (categoryId: string) => {
     () => fetcher(categoryId),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 30000, // 30 seconds
     }
   );
@@ -78,7 +81,7 @@ export const useItems = (categoryId: string) => {
     loading: isLoading,
     error: error ? (error instanceof Error ? error.message : 'Failed to fetch items') : null,
     isValidating,
-    refetch: () => mutate(),
+    refetch: useCallback(() => mutate(), [mutate]),
     createItem,
     updateItem,
     deleteItem,
@@ -93,6 +96,8 @@ export const useItem = (id: string) => {
     () => itemService.getById(id),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 30000, // 30 seconds
     }
   );
@@ -134,7 +139,7 @@ export const useItem = (id: string) => {
     loading: isLoading,
     error: error ? (error instanceof Error ? error.message : 'Failed to fetch item') : null,
     isValidating,
-    refetch: () => mutate(),
+    refetch: useCallback(() => mutate(), [mutate]),
     updateItem,
     deleteItem
   };

@@ -79,7 +79,12 @@ export function CatalogEditorPage() {
   useAutoBackButton(`/catalogs`);
 
   // Use hooks for data management
-  const { catalog: fetchedCatalog, loading: catalogLoading } = useCatalog(
+  const {
+    catalog: fetchedCatalog,
+    loading: catalogLoading,
+    error: catalogLoadError,
+    refetch: refetchCatalog,
+  } = useCatalog(
     catalogId && catalogId !== 'new' ? catalogId : ''
   );
   const { createCatalog, updateCatalog, deleteCatalog } = useCatalogs();
@@ -467,6 +472,45 @@ export function CatalogEditorPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Spinner className="h-7 w-7" />
+      </div>
+    );
+  }
+
+  if (isEditing && catalogLoadError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="glass-card max-w-md rounded-xl p-6 text-center space-y-4">
+          <h2 className="text-lg font-semibold">Не удалось загрузить каталог</h2>
+          <p className="text-sm text-muted-foreground">{catalogLoadError}</p>
+          <div className="flex gap-3">
+            <Button className="flex-1" onClick={() => void refetchCatalog()}>
+              Повторить
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => navigate('/catalogs')}
+            >
+              К списку
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEditing && !fetchedCatalog) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="glass-card max-w-md rounded-xl p-6 text-center space-y-4">
+          <h2 className="text-lg font-semibold">Каталог не найден</h2>
+          <p className="text-sm text-muted-foreground">
+            Не удалось открыть каталог для редактирования.
+          </p>
+          <Button className="w-full" onClick={() => navigate('/catalogs')}>
+            Вернуться к списку
+          </Button>
+        </div>
       </div>
     );
   }

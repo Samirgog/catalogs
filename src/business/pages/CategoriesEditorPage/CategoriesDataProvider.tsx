@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useCategories } from '../../hooks/useCategories';
 import { itemService } from '../../services/items';
 import useSWR from 'swr';
@@ -38,23 +38,11 @@ export function CategoriesDataProvider({ catalogId, children }: CategoriesDataPr
     mutate: mutateItems
   } = useSWR(
     categoryIds.length > 0 ? ['items-by-categories', categoryIds] : null,
-    async () => {
-      // Fetch items for all categories in parallel
-      const itemsPromises = categoryIds.map(categoryId => 
-        itemService.getByCategoryId(categoryId)
-      );
-      const itemsArrays = await Promise.all(itemsPromises);
-      
-      // Flatten and add category_id to each item
-      return itemsArrays.flatMap((items, index) => 
-        items.map(item => ({
-          ...item,
-          category_id: categoryIds[index]
-        }))
-      );
-    },
+    () => itemService.getByCategoryIds(categoryIds),
     {
       revalidateOnFocus: false,
+      shouldRetryOnError: false,
+      errorRetryCount: 0,
       dedupingInterval: 30000,
       keepPreviousData: true
     }
@@ -79,13 +67,13 @@ export function CategoriesDataProvider({ catalogId, children }: CategoriesDataPr
   const error = categoriesError || (itemsError ? (itemsError instanceof Error ? itemsError.message : 'Failed to fetch items') : null);
 
   // Refresh function
-  const refreshData = () => {
-    refetchCategories();
-    mutateItems();
-  };
+  const refreshData = useCallback(() => {
+    void refetchCategories();
+    void mutateItems();
+  }, [mutateItems, refetchCategories]);
 
   // Item CRUD operations
-  const getItemOperations = (categoryId: string) => ({
+  const getItemOperations = useCallback((categoryId: string) => ({
     createItem: async (data: ItemFormData) => {
       const newItem = await itemService.create(data, categoryId);
       await mutateItems();
@@ -102,7 +90,7 @@ export function CategoriesDataProvider({ catalogId, children }: CategoriesDataPr
       await itemService.delete(id);
       await mutateItems();
     }
-  });
+  }), [mutateItems]);
 
   return (
     <>
