@@ -44,6 +44,9 @@ const FulfillmentMethodsPage = lazy(() =>
 const PlacesPage = lazy(() =>
   import('../business/pages').then((module) => ({ default: module.PlacesPage })),
 );
+const PlatformUsersPage = lazy(() =>
+  import('../business/pages').then((module) => ({ default: module.PlatformUsersPage })),
+);
 const CatalogEditorPage = lazy(() =>
   import('../business/pages/CatalogEditorPage').then((module) => ({ default: module.CatalogEditorPage })),
 );
@@ -217,6 +220,7 @@ function AnimatedAppRoutes({
               element={<FulfillmentMethodsPage />}
             />
             <Route path="/places" element={<PlacesPage />} />
+            <Route path="/platform-users" element={<PlatformUsersPage />} />
           </>
         )}
 

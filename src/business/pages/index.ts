@@ -7,3 +7,4 @@ export * from './StaffPage';
 export * from './FulfillmentMethodsPage';
 export * from './CatalogAccessPage';
 export * from './PlacesPage';
+export * from './PlatformUsersPage';

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, LifeBuoy, KeyRound, MapPinned } from 'lucide-react';
+import { Plus, Edit, LifeBuoy, KeyRound, MapPinned, UsersRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCatalogs } from '../hooks/useCatalogs';
 import { toast } from 'sonner';
@@ -99,6 +99,7 @@ export function CatalogsPage() {
   const [inviteCode, setInviteCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const [isJoinDrawerOpen, setIsJoinDrawerOpen] = useState(false);
+  const [isAdminDrawerOpen, setIsAdminDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (!error) return;
@@ -165,7 +166,66 @@ export function CatalogsPage() {
           </div>
           <div className="flex items-center gap-2">
             <BusinessTutorialLauncher currentSection="catalogs" />
-            {telegramPhoto ? (
+            {isPlatformAdmin ? (
+              <Drawer
+                open={isAdminDrawerOpen}
+                onOpenChange={setIsAdminDrawerOpen}
+              >
+                <DrawerTrigger asChild>
+                  <button
+                    type="button"
+                    className="rounded-full"
+                    aria-label="Открыть меню администратора платформы"
+                  >
+                    {telegramPhoto ? (
+                      <img
+                        src={telegramPhoto}
+                        alt="User avatar"
+                        className="w-10 h-10 rounded-full object-cover border border-border/40"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white">
+                        <span className="text-lg font-bold uppercase">
+                          {avatarText}
+                        </span>
+                      </div>
+                    )}
+                  </button>
+                </DrawerTrigger>
+                <DrawerContent>
+                  <DrawerHeader>
+                    <DrawerTitle>Инструменты платформы</DrawerTitle>
+                    <DrawerDescription>
+                      Действия, доступные только администратору платформы.
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  <div className="px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] space-y-3">
+                    <Button
+                      className="w-full h-12"
+                      variant="outline"
+                      onClick={() => {
+                        setIsAdminDrawerOpen(false);
+                        navigate('/places');
+                      }}
+                    >
+                      <MapPinned className="w-4 h-4 mr-2" />
+                      Пространства
+                    </Button>
+                    <Button
+                      className="w-full h-12"
+                      variant="outline"
+                      onClick={() => {
+                        setIsAdminDrawerOpen(false);
+                        navigate('/platform-users');
+                      }}
+                    >
+                      <UsersRound className="w-4 h-4 mr-2" />
+                      Пользователи
+                    </Button>
+                  </div>
+                </DrawerContent>
+              </Drawer>
+            ) : telegramPhoto ? (
               <img
                 src={telegramPhoto}
                 alt="User avatar"
@@ -359,16 +419,6 @@ export function CatalogsPage() {
           <LifeBuoy className="w-4 h-4 mr-2" />
           Связаться с поддержкой
         </Button>
-        {isPlatformAdmin && (
-          <Button
-            variant="outline"
-            className="w-full h-12 mt-2"
-            onClick={() => navigate('/places')}
-          >
-            <MapPinned className="w-4 h-4 mr-2" />
-            Пространства
-          </Button>
-        )}
       </div>
       <TourOverlay
         open={tutorial.open}
