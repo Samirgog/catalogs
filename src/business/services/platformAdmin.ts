@@ -1,4 +1,5 @@
-import { businessSupabase } from '../../lib/supabase';
+import { getTelegramWebApp } from '@/lib/telegram';
+import { fetchWithRetry } from '@/lib/http';
 import type { Catalog, User } from '../../types';
 
 export type PlatformUserWithCatalogs = Pick<
@@ -8,39 +9,41 @@ export type PlatformUserWithCatalogs = Pick<
   catalogs: Array<Pick<Catalog, 'id' | 'title' | 'created_at'>>;
 };
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+const getFunctionUrl = (name: string) => {
+  if (!SUPABASE_URL) {
+    throw new Error('Не настроен VITE_SUPABASE_URL');
+  }
+
+  return `${SUPABASE_URL}/functions/v1/${name}`;
+};
+
+const getInitData = () => {
+  const initData = getTelegramWebApp()?.initData || '';
+  if (!initData) {
+    throw new Error('Не найден Telegram initData');
+  }
+
+  return initData;
+};
+
 export const platformAdminService = {
   async getUsersWithCatalogs(): Promise<PlatformUserWithCatalogs[]> {
-    const { data: users, error: usersError } = await businessSupabase
-      .from('users')
-      .select('id, first_name, last_name, username, created_at')
-      .order('created_at', { ascending: false });
+    const response = await fetchWithRetry(getFunctionUrl('platform-admin-users'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        initData: getInitData(),
+      }),
+      timeoutMs: 25000,
+      retries: 2,
+    });
 
-    if (usersError) throw usersError;
-
-    const { data: catalogs, error: catalogsError } = await businessSupabase
-      .from('catalogs')
-      .select('id, title, created_at, owner_id')
-      .not('owner_id', 'is', null)
-      .order('created_at', { ascending: false });
-
-    if (catalogsError) throw catalogsError;
-
-    const catalogsByOwner = new Map<string, Array<Pick<Catalog, 'id' | 'title' | 'created_at'>>>();
-    for (const catalog of catalogs || []) {
-      const ownerId = String((catalog as Catalog & { owner_id?: string }).owner_id || '');
-      if (!ownerId) continue;
-      const current = catalogsByOwner.get(ownerId) || [];
-      current.push({
-        id: catalog.id,
-        title: catalog.title,
-        created_at: catalog.created_at,
-      });
-      catalogsByOwner.set(ownerId, current);
+    if (!response.ok) {
+      throw new Error(await response.text());
     }
 
-    return (users || []).map((user) => ({
-      ...user,
-      catalogs: catalogsByOwner.get(user.id) || [],
-    }));
+    return (await response.json()) as PlatformUserWithCatalogs[];
   },
 };

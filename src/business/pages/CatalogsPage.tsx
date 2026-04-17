@@ -20,6 +20,7 @@ import { catalogAccessService } from '../services/catalogAccess';
 import { showRequestError } from '../utils/request-feedback';
 import {
   Drawer,
+  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerHeader,
@@ -127,6 +128,13 @@ export function CatalogsPage() {
     window.open(`https://t.me/${supportUsername}?text=${text}`, '_blank');
   };
 
+  const handleAdminNavigate = (path: string) => {
+    setIsAdminDrawerOpen(false);
+    window.setTimeout(() => {
+      navigate(path);
+    }, 180);
+  };
+
   const handleJoinByCode = async () => {
     if (!inviteCode.trim() || !user?.id) return;
     try {
@@ -200,28 +208,26 @@ export function CatalogsPage() {
                     </DrawerDescription>
                   </DrawerHeader>
                   <div className="px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] space-y-3">
-                    <Button
-                      className="w-full h-12"
-                      variant="outline"
-                      onClick={() => {
-                        setIsAdminDrawerOpen(false);
-                        navigate('/places');
-                      }}
-                    >
-                      <MapPinned className="w-4 h-4 mr-2" />
-                      Пространства
-                    </Button>
-                    <Button
-                      className="w-full h-12"
-                      variant="outline"
-                      onClick={() => {
-                        setIsAdminDrawerOpen(false);
-                        navigate('/platform-users');
-                      }}
-                    >
-                      <UsersRound className="w-4 h-4 mr-2" />
-                      Пользователи
-                    </Button>
+                    <DrawerClose asChild>
+                      <Button
+                        className="w-full h-12"
+                        variant="outline"
+                        onClick={() => handleAdminNavigate('/places')}
+                      >
+                        <MapPinned className="w-4 h-4 mr-2" />
+                        Пространства
+                      </Button>
+                    </DrawerClose>
+                    <DrawerClose asChild>
+                      <Button
+                        className="w-full h-12"
+                        variant="outline"
+                        onClick={() => handleAdminNavigate('/platform-users')}
+                      >
+                        <UsersRound className="w-4 h-4 mr-2" />
+                        Пользователи
+                      </Button>
+                    </DrawerClose>
                   </div>
                 </DrawerContent>
               </Drawer>
