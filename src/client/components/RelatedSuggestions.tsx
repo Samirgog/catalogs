@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { clientRelatedItemsService } from '@/client/services/relatedItems';
@@ -15,7 +14,7 @@ type Props = {
 export function RelatedSuggestions({
   catalogId,
   sourceItemIds,
-  title = 'Можно добавить к заказу',
+  title = 'Добавьте также',
 }: Props) {
   const { addItem, items } = useCartStore();
   const [suggestions, setSuggestions] = useState<Item[]>([]);
@@ -44,10 +43,7 @@ export function RelatedSuggestions({
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Sparkles className="h-4 w-4" />
-          {title}
-        </CardTitle>
+        <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {suggestions.map((item) => (

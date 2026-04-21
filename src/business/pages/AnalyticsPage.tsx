@@ -5,6 +5,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { customerInsightsService } from '../services/customerInsights';
 import type { CatalogAnalyticsSnapshot } from '@/types';
+import { getTrafficSourceLabel } from '../utils/customerLabels';
 
 const MetricCard = ({
   title,
@@ -23,6 +24,40 @@ const MetricCard = ({
     </CardContent>
   </Card>
 );
+
+const MiniBarChart = ({
+  title,
+  items,
+}: {
+  title: string;
+  items: Array<{ id: string; label: string; value: number }>;
+}) => {
+  const maxValue = Math.max(...items.map((item) => item.value), 1);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {items.map((item) => (
+          <div key={item.id} className="space-y-1">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="truncate">{item.label}</span>
+              <span className="font-medium">{item.value}</span>
+            </div>
+            <div className="h-2 rounded-full bg-secondary/70 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${(item.value / maxValue) * 100}%` }}
+              />
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+};
 
 export function AnalyticsPage() {
   const { catalogId = '' } = useParams<{ catalogId: string }>();
@@ -109,40 +144,37 @@ export function AnalyticsPage() {
               </div>
             </div>
             <div className="text-sm text-muted-foreground">
-              Брошенных корзин: {analytics.abandoned_carts}
+              Брошенных корзин: {analytics.abandoned_carts}. Конверсия считается по уникальным клиентам, а не по числу событий.
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Популярные товары</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {analytics.popular_items.map((item) => (
-              <div key={item.item_id} className="rounded-2xl border border-border/60 p-3">
-                <div className="font-medium">{item.title}</div>
-                <div className="text-sm text-muted-foreground">
-                  Добавлено в заказы: {item.count}
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <MiniBarChart
+          title="Популярные товары"
+          items={analytics.popular_items.map((item) => ({
+            id: item.item_id,
+            label: item.title,
+            value: item.count,
+          }))}
+        />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Источники трафика</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {analytics.traffic_sources.map((source) => (
-              <div key={source.source} className="rounded-2xl border border-border/60 p-3 flex items-center justify-between">
-                <div className="font-medium">{source.source}</div>
-                <div className="text-sm text-muted-foreground">{source.count}</div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <MiniBarChart
+          title="Товары в избранном"
+          items={analytics.favorite_items.map((item) => ({
+            id: item.item_id,
+            label: item.title,
+            value: item.count,
+          }))}
+        />
+
+        <MiniBarChart
+          title="Источники трафика"
+          items={analytics.traffic_sources.map((source) => ({
+            id: source.source,
+            label: getTrafficSourceLabel(source.source),
+            value: source.count,
+          }))}
+        />
       </div>
     </div>
   );

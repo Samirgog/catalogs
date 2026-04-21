@@ -6,6 +6,12 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { customerInsightsService } from '../services/customerInsights';
 import type { CustomerEvent, CustomerNote, CustomerProfile, CustomerTag, Order } from '@/types';
+import { ExpandableCardSection } from '../components/ExpandableCardSection';
+import {
+  getCustomerEventLabel,
+  getReadableOrderStatus,
+  getTrafficSourceLabel,
+} from '../utils/customerLabels';
 
 export function CustomerProfilePage() {
   const { catalogId = '', customerId = '' } = useParams<{
@@ -20,6 +26,10 @@ export function CustomerProfilePage() {
   const [notes, setNotes] = useState<CustomerNote[]>([]);
   const [tags, setTags] = useState<CustomerTag[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ordersExpanded, setOrdersExpanded] = useState(true);
+  const [eventsExpanded, setEventsExpanded] = useState(false);
+  const [visibleOrdersCount, setVisibleOrdersCount] = useState(5);
+  const [visibleEventsCount, setVisibleEventsCount] = useState(6);
 
   useEffect(() => {
     let isMounted = true;
@@ -80,7 +90,7 @@ export function CustomerProfilePage() {
             </div>
             <div className="rounded-2xl bg-secondary/50 p-3">
               <div className="text-xs text-muted-foreground">Источник</div>
-              <div className="font-semibold">{profile.source || '—'}</div>
+              <div className="font-semibold">{getTrafficSourceLabel(profile.source)}</div>
             </div>
           </CardContent>
         </Card>
@@ -98,46 +108,55 @@ export function CustomerProfilePage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>История заказов</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {orders.length > 0 ? (
-              orders.map((order) => (
-                <div key={order.id} className="rounded-2xl border border-border/60 p-3">
-                  <div className="font-medium">Заказ #{order.order_number || '—'}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {order.created_at.slice(0, 10)} • {Math.round(order.total_price)} ₽
-                  </div>
-                  <div className="text-sm mt-1">Статус: {order.status}</div>
+        <ExpandableCardSection
+          title="История заказов"
+          expanded={ordersExpanded}
+          onToggle={() => setOrdersExpanded((value) => !value)}
+          canLoadMore={orders.length > visibleOrdersCount}
+          onLoadMore={() => setVisibleOrdersCount((value) => value + 5)}
+          loadMoreLabel="Показать еще заказы"
+        >
+          {orders.length > 0 ? (
+            orders.slice(0, visibleOrdersCount).map((order) => (
+              <div key={order.id} className="rounded-2xl border border-border/60 p-3">
+                <div className="font-medium">Заказ #{order.order_number || '—'}</div>
+                <div className="text-sm text-muted-foreground">
+                  {order.created_at.slice(0, 10)} • {Math.round(order.total_price)} ₽
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">Заказов пока нет.</p>
-            )}
-          </CardContent>
-        </Card>
+                <div className="text-sm mt-1">
+                  Статус: {getReadableOrderStatus(order)}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">Заказов пока нет.</p>
+          )}
+        </ExpandableCardSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>События в приложении</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {events.length > 0 ? (
-              events.map((event) => (
-                <div key={event.id} className="rounded-2xl border border-border/60 p-3">
-                  <div className="font-medium">{event.event_type}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {event.created_at.slice(0, 16).replace('T', ' ')} • {event.source}
-                  </div>
+        <ExpandableCardSection
+          title="События в приложении"
+          expanded={eventsExpanded}
+          onToggle={() => setEventsExpanded((value) => !value)}
+          canLoadMore={events.length > visibleEventsCount}
+          onLoadMore={() => setVisibleEventsCount((value) => value + 6)}
+          loadMoreLabel="Показать еще события"
+        >
+          {events.length > 0 ? (
+            events.slice(0, visibleEventsCount).map((event) => (
+              <div key={event.id} className="rounded-2xl border border-border/60 p-3">
+                <div className="font-medium">
+                  {getCustomerEventLabel(event.event_type)}
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">События пока не накоплены.</p>
-            )}
-          </CardContent>
-        </Card>
+                <div className="text-sm text-muted-foreground">
+                  {event.created_at.slice(0, 16).replace('T', ' ')} •{' '}
+                  {getTrafficSourceLabel(event.source)}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">События пока не накоплены.</p>
+          )}
+        </ExpandableCardSection>
 
         <Card>
           <CardHeader>

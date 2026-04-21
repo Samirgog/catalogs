@@ -2,6 +2,7 @@ import { Heart, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
+import { useNavigate } from 'react-router-dom';
 import { useCatalog } from '../hooks/useCatalogs';
 import { useFavoritesStore } from '../stores/favorites';
 import { useCartStore } from '../stores/cart';
@@ -11,11 +12,15 @@ type Props = {
 };
 
 export function FavoritesPage({ catalogId }: Props) {
+  const navigate = useNavigate();
   useAutoBackButton('/catalog');
   const { catalog } = useCatalog(catalogId);
   const favorites = useFavoritesStore((state) => state.getFavorites(catalogId));
   const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite);
-  const { addItem } = useCartStore();
+  const { items, addItem, removeItem, updateQuantity, getTotalItems, getTotalPrice } =
+    useCartStore();
+  const itemsCount = getTotalItems();
+  const total = getTotalPrice();
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -62,12 +67,52 @@ export function FavoritesPage({ catalogId }: Props) {
                 {typeof item.price === 'number' && (
                   <div className="text-sm font-semibold mt-1">{item.price} ₽</div>
                 )}
+                {(() => {
+                  const cartItem = items.find((cartItem) => cartItem.item.id === item.id);
+                  if (!cartItem) {
+                    return (
+                      <Button size="sm" className="mt-2" onClick={() => addItem(item as never, 1)}>
+                        <ShoppingCart className="h-4 w-4 mr-1" />
+                        В корзину
+                      </Button>
+                    );
+                  }
+
+                  return (
+                    <div className="mt-2 w-fit flex items-center rounded-xl overflow-hidden glass-card border-0">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-none h-8 px-3"
+                        onClick={() => {
+                          if (cartItem.quantity > 1) {
+                            updateQuantity(item.id, cartItem.quantity - 1);
+                          } else {
+                            removeItem(item.id);
+                          }
+                        }}
+                      >
+                        -
+                      </Button>
+                      <span className="px-3 font-medium min-w-[24px] text-center text-sm">
+                        {cartItem.quantity}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-none h-8 px-3"
+                        onClick={() => updateQuantity(item.id, cartItem.quantity + 1)}
+                      >
+                        +
+                      </Button>
+                      <span className="px-3 py-1 font-semibold bg-secondary text-sm rounded-r-xl">
+                        {item.price} ₽
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
               <div className="flex flex-col gap-2">
-                <Button size="sm" onClick={() => addItem(item as never, 1)}>
-                  <ShoppingCart className="h-4 w-4 mr-1" />
-                  В корзину
-                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -80,6 +125,23 @@ export function FavoritesPage({ catalogId }: Props) {
           </Card>
         ))}
       </div>
+
+      {itemsCount > 0 && (
+        <div className="fixed bottom-4 left-4 right-4 z-50">
+          <button
+            onClick={() => navigate('/cart')}
+            className="w-full h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-between px-5"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-white/15 flex items-center justify-center">
+                <ShoppingCart size={18} />
+              </div>
+              <span className="font-medium">Корзина · {itemsCount}</span>
+            </div>
+            <span className="text-lg font-semibold">{Math.round(total)} ₽</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -83,9 +83,20 @@ export function ItemCard({
   return (
     <>
       <Card
-        className="glass-card overflow-hidden cursor-pointer"
+        className="glass-card overflow-hidden cursor-pointer relative"
         onClick={handleOpen}
       >
+        <button
+          type="button"
+          className={`absolute right-3 top-3 z-10 h-9 w-9 rounded-full border backdrop-blur-sm flex items-center justify-center ${
+            isFavorite
+              ? 'border-rose-200 bg-rose-50/95 text-rose-500'
+              : 'border-border/60 bg-background/90 text-muted-foreground'
+          }`}
+          onClick={handleFavoriteToggle}
+        >
+          <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+        </button>
         <CardContent className="flex gap-4 p-3">
           <ItemCardContent
             imageUrl={srcImage}
@@ -97,25 +108,12 @@ export function ItemCard({
             titleClassName="font-medium text-base"
             descriptionClassName="font-normal text-muted-foreground text-xs mt-1"
             actions={
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  className={`h-9 w-9 rounded-full border flex items-center justify-center ${
-                    isFavorite
-                      ? 'border-rose-200 bg-rose-50 text-rose-500'
-                      : 'border-border/60 bg-background text-muted-foreground'
-                  }`}
-                  onClick={handleFavoriteToggle}
-                >
-                  <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
-                </button>
-                <ItemActions
-                  catalogId={catalogId}
-                  item={item}
-                  businessType={businessType}
-                  businessSubtype={businessSubtype}
-                />
-              </div>
+              <ItemActions
+                catalogId={catalogId}
+                item={item}
+                businessType={businessType}
+                businessSubtype={businessSubtype}
+              />
             }
           />
         </CardContent>

@@ -8,6 +8,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { customerInsightsService } from '../services/customerInsights';
 import type { CustomerProfile } from '@/types';
+import { getTrafficSourceLabel } from '../utils/customerLabels';
 
 const FILTERS = [
   { id: 'all', label: 'Все' },
@@ -144,6 +145,7 @@ export function CustomersPage() {
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                   <span>Первый визит: {customer.first_visit_at?.slice(0, 10) || '—'}</span>
                   <span>Последний визит: {customer.last_visit_at?.slice(0, 10) || '—'}</span>
+                  <span>Источник: {getTrafficSourceLabel(customer.source)}</span>
                 </div>
                 {customer.favorite_items.length > 0 && (
                   <div className="flex items-center gap-2 text-sm">

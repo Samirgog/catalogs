@@ -304,6 +304,12 @@ export const customerInsightsService = {
     const carts = events.filter((event) =>
       ['cart_add', 'cart_quantity_change'].includes(event.event_type)
     );
+    const visitCustomers = new Set(visits.map((event) => event.customer_id));
+    const cartCustomers = new Set(carts.map((event) => event.customer_id));
+    const orderCustomers = new Set(orders.map((order) => order.customer_id));
+    const convertedCartCustomers = Array.from(cartCustomers).filter((customerId) =>
+      orderCustomers.has(customerId)
+    ).length;
     const itemCounter = new Map<string, { title: string; count: number }>();
     const favoriteCounter = new Map<string, number>();
     const sourceCounter = new Map<CustomerTrafficSource, number>();
@@ -366,10 +372,16 @@ export const customerInsightsService = {
       average_check: averageCheck,
       revenue_total: orders.reduce((sum, order) => sum + Number(order.total_price || 0), 0),
       conversion_visit_to_cart:
-        visits.length > 0 ? (carts.length / visits.length) * 100 : 0,
+        visitCustomers.size > 0
+          ? Math.min(100, (cartCustomers.size / visitCustomers.size) * 100)
+          : 0,
       conversion_cart_to_order:
-        carts.length > 0 ? (orders.length / carts.length) * 100 : 0,
-      abandoned_carts: events.filter((event) => event.event_type === 'session_without_purchase').length,
+        cartCustomers.size > 0
+          ? Math.min(100, (convertedCartCustomers / cartCustomers.size) * 100)
+          : 0,
+      abandoned_carts: Array.from(cartCustomers).filter(
+        (customerId) => !orderCustomers.has(customerId)
+      ).length,
       popular_items: Array.from(itemCounter.entries())
         .map(([item_id, value]) => ({ item_id, title: value.title, count: value.count }))
         .sort((a, b) => b.count - a.count)

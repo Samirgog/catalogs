@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 type Props = {
   isSavingCatalog: boolean;
+  itemsLabel: string;
   onConfigureCategories: () => void;
   onConfigureActions: () => void;
   onConfigureFulfillment: () => void;
@@ -14,6 +15,7 @@ type Props = {
 
 export function NavActionButtons({
   isSavingCatalog,
+  itemsLabel,
   onConfigureCategories,
   onConfigureActions,
   onConfigureFulfillment,
@@ -28,7 +30,7 @@ export function NavActionButtons({
         <div className="text-sm font-medium text-muted-foreground">Основные разделы</div>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: 'Категории', icon: FolderOpen, onClick: onConfigureCategories },
+            { label: itemsLabel, icon: FolderOpen, onClick: onConfigureCategories },
             { label: 'Оплата', icon: Settings, onClick: onConfigureActions },
             { label: 'Получение', icon: Truck, onClick: onConfigureFulfillment },
             { label: 'Ссылка и QR', icon: Link, onClick: onGenerateLink },

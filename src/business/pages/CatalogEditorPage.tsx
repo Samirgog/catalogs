@@ -603,6 +603,7 @@ export function CatalogEditorPage() {
 
         <NavActionButtons
           isSavingCatalog={isSavingCatalog}
+          itemsLabel={formData.type === 'services' ? 'Услуги' : 'Товары'}
           onConfigureCategories={handleConfigureCategories}
           onConfigureActions={handleConfigureActions}
           onConfigureFulfillment={handleConfigureFulfillment}
