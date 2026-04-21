@@ -1,4 +1,11 @@
-import { BarChart3, ChevronRight, HeartHandshake, Megaphone, Repeat2, Users2 } from 'lucide-react';
+import {
+  BarChart3,
+  ChevronRight,
+  // HeartHandshake,
+  // Megaphone,
+  Repeat2,
+  Users2,
+} from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
@@ -22,18 +29,18 @@ const sections = [
     icon: Repeat2,
     path: 'related',
   },
-  {
-    title: 'Рассылки и сегменты',
-    description: 'Подготовка к массовым сообщениям и возврату клиентов.',
-    icon: Megaphone,
-    path: 'campaigns',
-  },
-  {
-    title: 'Автосценарии',
-    description: 'Напоминания, скидки после заказа и VIP-механики.',
-    icon: HeartHandshake,
-    path: 'automations',
-  },
+  // {
+  //   title: 'Рассылки и сегменты',
+  //   description: 'Подготовка к массовым сообщениям и возврату клиентов.',
+  //   icon: Megaphone,
+  //   path: 'campaigns',
+  // },
+  // {
+  //   title: 'Автосценарии',
+  //   description: 'Напоминания, скидки после заказа и VIP-механики.',
+  //   icon: HeartHandshake,
+  //   path: 'automations',
+  // },
 ];
 
 export function GrowthHubPage() {
@@ -51,7 +58,7 @@ export function GrowthHubPage() {
       </div>
 
       <div className="p-4 space-y-3">
-        {sections.map((section) => {
+        {sections.map(section => {
           const Icon = section.icon;
           return (
             <Card

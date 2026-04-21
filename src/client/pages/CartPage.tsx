@@ -6,9 +6,7 @@ import { useEffect, useState } from 'react';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
 import { useCreateOrder } from '../hooks/useOrders';
-import {
-  setCurrentOrder,
-} from '../utils/currentOrder';
+import { setCurrentOrder } from '../utils/currentOrder';
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
@@ -28,7 +26,7 @@ export const CartPage = ({ catalogId }: Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useAutoBackButton('/catalog');
-  const cartItemIds = items.map((item) => item.item.id);
+  const cartItemIds = items.map(item => item.item.id);
 
   useEffect(() => {
     if (items.length === 0) {
@@ -40,7 +38,7 @@ export const CartPage = ({ catalogId }: Props) => {
       `client-abandoned-cart:${catalogId}`,
       JSON.stringify({
         updated_at: Date.now(),
-        items: items.map((item) => ({
+        items: items.map(item => ({
           item_id: item.item.id,
           title: item.item.title,
           quantity: item.quantity,
@@ -62,7 +60,8 @@ export const CartPage = ({ catalogId }: Props) => {
         metadata: {
           items_count: items.length,
           total_price: items.reduce(
-            (sum, cartItem) => sum + (cartItem.item.price ?? 0) * cartItem.quantity,
+            (sum, cartItem) =>
+              sum + (cartItem.item.price ?? 0) * cartItem.quantity,
             0
           ),
         },
@@ -156,7 +155,7 @@ export const CartPage = ({ catalogId }: Props) => {
         <RelatedSuggestions
           catalogId={catalogId}
           sourceItemIds={cartItemIds}
-          title="Допродажи перед оформлением"
+          title="Добавить к заказу?"
         />
       </div>
 
