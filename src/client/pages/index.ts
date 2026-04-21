@@ -4,3 +4,4 @@ export * from './CheckoutPage';
 export * from './CatalogPage';
 export * from './OrderStatusPage';
 export * from './FoodcourtCatalogsPage';
+export * from './FavoritesPage';

@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
-import { requirePlatformAdmin, supabaseService } from '../_shared/telegramAuth.ts';
+import { supabaseService } from '../_shared/telegramAuth.ts';
+import { requirePlatformAdmin } from '../_shared/requirePlatformAdmin.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

@@ -42,6 +42,7 @@ import {
   validateFulfillmentInput,
 } from '../utils/orderForm';
 import { clientPaymentService } from '../services/payments';
+import { customerIntelligenceService } from '../services/customerIntelligence';
 
 type Props = {
   catalogId: string;
@@ -144,6 +145,15 @@ export function CheckoutPage({ catalogId }: Props) {
       });
 
       if (selectedAction.kind === 'payment_in_chat') {
+        await customerIntelligenceService.trackEvent({
+          catalogId,
+          customerId: user?.id,
+          orderId: order.id,
+          eventType: 'payment_method_selected',
+          metadata: {
+            payment_method: selectedAction.kind,
+          },
+        });
         if (!selectedAction.telegramUrl) {
           setError('Ссылка на Telegram не настроена продавцом.');
           toast.error('Ссылка на Telegram не настроена продавцом');
@@ -151,6 +161,16 @@ export function CheckoutPage({ catalogId }: Props) {
         }
         await updateOrder(order.id, orderPayload);
         await updateStatus(order.id, 'submitted');
+        await customerIntelligenceService.trackEvent({
+          catalogId,
+          customerId: user?.id,
+          orderId: order.id,
+          eventType: 'order_checkout_completed',
+          metadata: {
+            payment_method: selectedAction.kind,
+            fulfillment_method: selectedFulfillment,
+          },
+        });
         setCurrentOrder(order);
         const fulfillmentFields = getFulfillmentFields({
           selectedFulfillment,
@@ -176,6 +196,15 @@ export function CheckoutPage({ catalogId }: Props) {
       }
 
       if (selectedAction.kind === 'online_yookassa') {
+        await customerIntelligenceService.trackEvent({
+          catalogId,
+          customerId: user?.id,
+          orderId: order.id,
+          eventType: 'payment_method_selected',
+          metadata: {
+            payment_method: selectedAction.kind,
+          },
+        });
         const updatedOrder = await updateOrder(order.id, orderPayload);
         persistFulfillmentDraft({
           selectedFulfillment,
@@ -201,6 +230,26 @@ export function CheckoutPage({ catalogId }: Props) {
       } else {
         await updateStatus(order.id, 'submitted');
       }
+
+      await customerIntelligenceService.trackEvent({
+        catalogId,
+        customerId: user?.id,
+        orderId: order.id,
+        eventType: 'payment_method_selected',
+        metadata: {
+          payment_method: selectedAction.kind,
+        },
+      });
+      await customerIntelligenceService.trackEvent({
+        catalogId,
+        customerId: user?.id,
+        orderId: order.id,
+        eventType: 'order_checkout_completed',
+        metadata: {
+          payment_method: selectedAction.kind,
+          fulfillment_method: selectedFulfillment,
+        },
+      });
 
       setCurrentOrder(order);
       clearCart();

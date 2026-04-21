@@ -26,6 +26,8 @@ import { OrderItemsCard } from './OrderStatusPage/components/OrderItemsCard';
 import { ActiveOrdersCard } from './OrderStatusPage/components/ActiveOrdersCard';
 import { OrderNextActionsCard } from './OrderStatusPage/components/OrderNextActionsCard';
 import { clientPaymentService } from '../services/payments';
+import { useCartStore } from '../stores/cart';
+import { customerIntelligenceService } from '../services/customerIntelligence';
 
 type LocationState = {
   action?: ClientActionOption;
@@ -50,6 +52,7 @@ export function OrderStatusPage() {
   const [archiveOrders, setArchiveOrders] = useState<
     Array<{ id: string; orderNumber: string; status: string }>
   >([]);
+  const { addItem, clearCart } = useCartStore();
   const currentPlaceId = localStorage.getItem('client-current-place-id') || '';
   useAutoBackButton(currentPlaceId ? '/foodcourt' : '/catalog');
 
@@ -162,6 +165,15 @@ export function OrderStatusPage() {
 
     try {
       await updateStatus(displayedOrder.id, 'cancelled');
+      await customerIntelligenceService.trackEvent({
+        catalogId: displayedOrder.catalog_id,
+        customerId: displayedOrder.customer_id,
+        orderId: displayedOrder.id,
+        eventType: 'order_cancelled',
+        metadata: {
+          status: displayedOrder.status,
+        },
+      });
       await mutate();
       clearCurrentOrder();
       toast.success(`${labels.orderWord} отменена`);
@@ -223,6 +235,48 @@ export function OrderStatusPage() {
       return;
     }
     navigate('/catalog');
+  };
+
+  const handleRepeatOrder = () => {
+    if (!displayedOrder) return;
+    clearCart();
+    for (const item of parsedItems) {
+      addItem(
+        {
+          id: String(item.item_id || ''),
+          category_id: String(item.category_id || ''),
+          title: String(item.title || 'Товар'),
+          description:
+            typeof item.description === 'string' ? item.description : undefined,
+          detailed_description:
+            typeof item.detailed_description === 'string'
+              ? item.detailed_description
+              : undefined,
+          price:
+            typeof item.price === 'number'
+              ? item.price
+              : Number(item.price || 0),
+          image_url:
+            typeof item.image_url === 'string' ? item.image_url : undefined,
+          is_available: true,
+          position: 0,
+          metadata: {},
+          created_at: '',
+          updated_at: '',
+        },
+        typeof item.quantity === 'number' ? item.quantity : Number(item.quantity || 1)
+      );
+    }
+    void customerIntelligenceService.trackEvent({
+      catalogId: displayedOrder.catalog_id,
+      customerId: displayedOrder.customer_id,
+      orderId: displayedOrder.id,
+      eventType: 'repeat_order',
+      metadata: {
+        source_order_id: displayedOrder.id,
+      },
+    });
+    navigate('/cart');
   };
 
   if (!orderId) {
@@ -363,6 +417,19 @@ export function OrderStatusPage() {
           archiveOrders={archiveOrders}
           onOpenOrder={id => navigate(`/order/${id}`, { state: null })}
         />
+
+        {parsedItems.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Повторный заказ</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button className="w-full" variant="outline" onClick={handleRepeatOrder}>
+                Повторить заказ
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         <OrderNextActionsCard status={status} selectedAction={selectedAction} />
       </div>

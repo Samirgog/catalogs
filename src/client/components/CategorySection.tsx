@@ -2,6 +2,7 @@ import { ItemCard } from "./ItemCard";
 import type { CatalogSubtype, CatalogType, Item } from "../../types";
 
 type Props = {
+  catalogId: string;
   id: string;
   title: string;
   items: Item[];
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export function CategorySection({
+  catalogId,
   id,
   title,
   items,
@@ -26,6 +28,7 @@ export function CategorySection({
             {visibleItems.map((item) => {
               return (
                 <ItemCard
+                  catalogId={catalogId}
                   key={item.id}
                   title={item.title}
                   description={item.description}

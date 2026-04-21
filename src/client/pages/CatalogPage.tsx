@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ShoppingCart } from 'lucide-react';
+import { Heart, ShoppingCart } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useCartStore } from '../stores/cart';
+import { useFavoritesStore } from '../stores/favorites';
 import { CatalogHeader, CategorySection, CategoryTabs } from '../components';
 import { type CatalogType } from '../../types';
 import { useCatalog } from '../hooks/useCatalogs';
@@ -10,6 +11,8 @@ import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
 import { useTelegramNavigation } from '@/hooks/useTelegramNavigation';
 import { FloatingOrdersButton } from '../components/FloatingOrdersButton';
+import { useCurrentUser } from '@/useTelegramAuth';
+import { customerIntelligenceService } from '../services/customerIntelligence';
 
 type Props = {
   catalogId: string;
@@ -18,12 +21,14 @@ type Props = {
 export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { userId } = useCurrentUser();
   const fromFoodcourt = Boolean(
     (location.state as { fromFoodcourt?: boolean } | null)?.fromFoodcourt
   );
   const { setShowBackButton } = useTelegramNavigation('/foodcourt');
   const { catalog, isLoading, isError } = useCatalog(catalogId);
   const { getTotalItems, getTotalPrice } = useCartStore();
+  const favoritesCount = useFavoritesStore((state) => state.getFavorites(catalogId).length);
   const [ordersCount, setOrdersCount] = useState(0);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
@@ -62,7 +67,11 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
       localStorage.setItem('client-table-number', table);
     }
     localStorage.setItem('client-current-catalog-id', catalogId);
-  }, []);
+  }, [catalogId]);
+
+  useEffect(() => {
+    void customerIntelligenceService.trackCatalogVisit(catalogId, userId);
+  }, [catalogId, userId]);
 
   useEffect(() => {
     const syncOrders = () => {
@@ -103,6 +112,10 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
     navigate(`/order/${lastOrderId}`);
   };
 
+  const handleGoToFavorites = () => {
+    navigate('/favorites');
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <CatalogHeader
@@ -111,6 +124,22 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
         address={catalog.address}
         workTimeText={workTimeText}
       />
+
+      <div className="px-4 pt-4">
+        <button
+          type="button"
+          onClick={handleGoToFavorites}
+          className="w-full rounded-2xl border border-border/60 bg-background px-4 py-3 flex items-center justify-between"
+        >
+          <span className="flex items-center gap-2 font-medium">
+            <Heart className="h-4 w-4 text-rose-500" />
+            Избранное
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {favoritesCount} товаров
+          </span>
+        </button>
+      </div>
 
       <CategoryTabs
         categories={categories.map(c => ({
@@ -122,6 +151,7 @@ export const CatalogPage: React.FunctionComponent<Props> = ({ catalogId }) => {
       <div className="p-4 space-y-6 pb-28">
         {categories.map(c => (
           <CategorySection
+            catalogId={catalogId}
             key={c.id}
             id={c.id}
             title={c.title}

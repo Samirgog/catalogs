@@ -259,6 +259,119 @@ export type CatalogPaymentGateway = {
   updated_at: string;
 };
 
+export type CustomerTrafficSource = 'qr_code' | 'direct_link' | 'repeat_visit';
+
+export type CustomerEventType =
+  | 'first_visit'
+  | 'repeat_visit'
+  | 'catalog_view'
+  | 'category_view'
+  | 'item_view'
+  | 'cart_add'
+  | 'cart_remove'
+  | 'cart_quantity_change'
+  | 'favorite_add'
+  | 'favorite_remove'
+  | 'checkout_started'
+  | 'payment_method_selected'
+  | 'order_checkout_completed'
+  | 'order_cancelled'
+  | 'session_without_purchase'
+  | 'returned_later'
+  | 'promo_used'
+  | 'repeat_order';
+
+export type CustomerEvent = {
+  id: string;
+  catalog_id: string;
+  customer_id: string;
+  order_id?: string | null;
+  event_type: CustomerEventType;
+  source: CustomerTrafficSource;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+export type CustomerFavorite = {
+  id: string;
+  catalog_id: string;
+  customer_id: string;
+  item_id: string;
+  created_at: string;
+  item?: Pick<Item, 'id' | 'title' | 'price' | 'image_url' | 'description' | 'category_id'>;
+};
+
+export type RelatedItemLink = {
+  id: string;
+  catalog_id: string;
+  source_item_id: string;
+  related_item_id: string;
+  priority: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CustomerTagCode =
+  | 'vip'
+  | 'problematic'
+  | 'regular'
+  | 'wholesale'
+  | 'favorite_client'
+  | 'do_not_disturb';
+
+export type CustomerTag = {
+  id: string;
+  catalog_id: string;
+  customer_id: string;
+  tag: CustomerTagCode;
+  created_at: string;
+};
+
+export type CustomerNote = {
+  id: string;
+  catalog_id: string;
+  customer_id: string;
+  note: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CustomerProfile = {
+  customer_id: string;
+  name: string;
+  username?: string;
+  phone?: string;
+  first_visit_at?: string;
+  last_visit_at?: string;
+  orders_count: number;
+  total_spent: number;
+  average_check: number;
+  source?: CustomerTrafficSource;
+  status: 'new' | 'regular' | 'vip' | 'lost' | 'no_orders';
+  last_order?: Order | null;
+  favorite_items: Array<Pick<Item, 'id' | 'title' | 'price' | 'image_url'>>;
+  tags: CustomerTagCode[];
+  revenue: number;
+};
+
+export type CatalogAnalyticsSnapshot = {
+  customers_total: number;
+  new_today: number;
+  new_week: number;
+  new_month: number;
+  returning_customers: number;
+  retention_rate: number;
+  average_check: number;
+  revenue_total: number;
+  conversion_visit_to_cart: number;
+  conversion_cart_to_order: number;
+  abandoned_carts: number;
+  popular_items: Array<{ item_id: string; title: string; count: number }>;
+  favorite_items: Array<{ item_id: string; title: string; count: number }>;
+  traffic_sources: Array<{ source: CustomerTrafficSource; count: number }>;
+  stale_customers: number;
+};
+
 export type CatalogPaymentGatewayFormData = {
   provider: 'yookassa';
   is_enabled?: boolean;

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Heart } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Drawer,
@@ -9,8 +10,12 @@ import {
 import type { Item, CatalogSubtype, CatalogType } from "../../types";
 import { ItemActions } from "./ItemActions";
 import { ItemCardContent } from '@/components/item/ItemCardContent';
+import { useFavoritesStore } from '../stores/favorites';
+import { useCurrentUser } from '@/useTelegramAuth';
+import { customerIntelligenceService } from '../services/customerIntelligence';
 
 type Props = {
+  catalogId: string;
   srcImage?: string;
   title?: string;
   price?: number;
@@ -21,6 +26,7 @@ type Props = {
 };
 
 export function ItemCard({
+  catalogId,
   srcImage,
   title,
   description,
@@ -29,12 +35,56 @@ export function ItemCard({
   businessSubtype,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const { userId } = useCurrentUser();
+  const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite);
+  const isFavorite = useFavoritesStore((state) => state.isFavorite(catalogId, item.id));
+
+  const handleOpen = () => {
+    setOpen(true);
+    void customerIntelligenceService.trackEvent({
+      catalogId,
+      customerId: userId,
+      eventType: 'item_view',
+      metadata: {
+        item_id: item.id,
+        item_title: item.title,
+      },
+    });
+  };
+
+  const handleFavoriteToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    const nextFavorite = toggleFavorite(catalogId, {
+      id: item.id,
+      title: item.title,
+      price: item.price,
+      image_url: item.image_url,
+      description: item.description,
+      category_id: item.category_id,
+    });
+
+    void customerIntelligenceService.trackEvent({
+      catalogId,
+      customerId: userId,
+      eventType: nextFavorite ? 'favorite_add' : 'favorite_remove',
+      metadata: {
+        item_id: item.id,
+        item_title: item.title,
+      },
+    });
+    void customerIntelligenceService.syncFavorite(
+      nextFavorite ? 'add' : 'remove',
+      catalogId,
+      userId || '',
+      item.id
+    );
+  };
 
   return (
     <>
       <Card
         className="glass-card overflow-hidden cursor-pointer"
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
       >
         <CardContent className="flex gap-4 p-3">
           <ItemCardContent
@@ -47,11 +97,25 @@ export function ItemCard({
             titleClassName="font-medium text-base"
             descriptionClassName="font-normal text-muted-foreground text-xs mt-1"
             actions={
-              <ItemActions
-                item={item}
-                businessType={businessType}
-                businessSubtype={businessSubtype}
-              />
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  className={`h-9 w-9 rounded-full border flex items-center justify-center ${
+                    isFavorite
+                      ? 'border-rose-200 bg-rose-50 text-rose-500'
+                      : 'border-border/60 bg-background text-muted-foreground'
+                  }`}
+                  onClick={handleFavoriteToggle}
+                >
+                  <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                </button>
+                <ItemActions
+                  catalogId={catalogId}
+                  item={item}
+                  businessType={businessType}
+                  businessSubtype={businessSubtype}
+                />
+              </div>
             }
           />
         </CardContent>
@@ -81,6 +145,7 @@ export function ItemCard({
             )}
             <div>
               <ItemActions
+                catalogId={catalogId}
                 item={item}
                 businessType={businessType}
                 businessSubtype={businessSubtype}

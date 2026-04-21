@@ -8,3 +8,8 @@ export * from './FulfillmentMethodsPage';
 export * from './CatalogAccessPage';
 export * from './PlacesPage';
 export * from './PlatformUsersPage';
+export * from './GrowthHubPage';
+export * from './CustomersPage';
+export * from './CustomerProfilePage';
+export * from './AnalyticsPage';
+export * from './RelatedItemsPage';

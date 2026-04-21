@@ -19,6 +19,9 @@ const CatalogPage = lazy(() =>
 const FoodcourtCatalogsPage = lazy(() =>
   import('../client/pages').then((module) => ({ default: module.FoodcourtCatalogsPage })),
 );
+const FavoritesPage = lazy(() =>
+  import('../client/pages').then((module) => ({ default: module.FavoritesPage })),
+);
 const OrderStatusPage = lazy(() =>
   import('../client/pages').then((module) => ({ default: module.OrderStatusPage })),
 );
@@ -46,6 +49,21 @@ const PlacesPage = lazy(() =>
 );
 const PlatformUsersPage = lazy(() =>
   import('../business/pages').then((module) => ({ default: module.PlatformUsersPage })),
+);
+const GrowthHubPage = lazy(() =>
+  import('../business/pages').then((module) => ({ default: module.GrowthHubPage })),
+);
+const CustomersPage = lazy(() =>
+  import('../business/pages').then((module) => ({ default: module.CustomersPage })),
+);
+const CustomerProfilePage = lazy(() =>
+  import('../business/pages').then((module) => ({ default: module.CustomerProfilePage })),
+);
+const AnalyticsPage = lazy(() =>
+  import('../business/pages').then((module) => ({ default: module.AnalyticsPage })),
+);
+const RelatedItemsPage = lazy(() =>
+  import('../business/pages').then((module) => ({ default: module.RelatedItemsPage })),
 );
 const CatalogEditorPage = lazy(() =>
   import('../business/pages/CatalogEditorPage').then((module) => ({ default: module.CatalogEditorPage })),
@@ -160,6 +178,10 @@ function AnimatedAppRoutes({
               path="/catalog"
               element={<CatalogPage catalogId={userEntry.catalogId!} />}
             />
+            <Route
+              path="/favorites"
+              element={<FavoritesPage catalogId={userEntry.catalogId!} />}
+            />
             <Route path="/order/:orderId" element={<OrderStatusPage />} />
           </>
         )}
@@ -174,6 +196,7 @@ function AnimatedAppRoutes({
             <Route path="/catalog/:catalogId" element={<CatalogByRoute />} />
             <Route path="/order/:orderId" element={<OrderStatusPage />} />
             <Route path="/cart" element={<CartByContext />} />
+            <Route path="/favorites" element={<FavoritesByContext />} />
             <Route path="/checkout/:orderId" element={<CheckoutByRoute />} />
             <Route path="/booking/:orderId" element={<BookingByRoute />} />
             <Route path="/booking" element={<BookingByRoute />} />
@@ -221,6 +244,16 @@ function AnimatedAppRoutes({
             />
             <Route path="/places" element={<PlacesPage />} />
             <Route path="/platform-users" element={<PlatformUsersPage />} />
+            <Route path="/catalogs/:catalogId/growth" element={<GrowthHubPage />} />
+            <Route path="/catalogs/:catalogId/customers" element={<CustomersPage />} />
+            <Route
+              path="/catalogs/:catalogId/customers/:customerId"
+              element={<CustomerProfilePage />}
+            />
+            <Route path="/catalogs/:catalogId/analytics" element={<AnalyticsPage />} />
+            <Route path="/catalogs/:catalogId/related" element={<RelatedItemsPage />} />
+            <Route path="/catalogs/:catalogId/campaigns" element={<GrowthHubPage />} />
+            <Route path="/catalogs/:catalogId/automations" element={<GrowthHubPage />} />
           </>
         )}
 
@@ -247,6 +280,12 @@ function CartByContext() {
   const resolvedCatalogId = localStorage.getItem('client-current-catalog-id') || '';
   if (!resolvedCatalogId) return <Navigate to="/" replace />;
   return <CartPage catalogId={resolvedCatalogId} />;
+}
+
+function FavoritesByContext() {
+  const resolvedCatalogId = localStorage.getItem('client-current-catalog-id') || '';
+  if (!resolvedCatalogId) return <Navigate to="/" replace />;
+  return <FavoritesPage catalogId={resolvedCatalogId} />;
 }
 
 function BookingByRoute() {

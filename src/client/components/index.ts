@@ -5,3 +5,4 @@ export * from './ItemActions';
 export * from './ItemCard';
 export * from './CartItemRow';
 export * from './CartSummary';
+export * from './RelatedSuggestions';

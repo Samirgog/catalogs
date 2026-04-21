@@ -2,7 +2,7 @@ import { useCartStore } from '@/client/stores/cart';
 import { CartItemRow } from '@/client/components';
 import { CartSummary } from '@/client/components';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
 import { useCreateOrder } from '../hooks/useOrders';
@@ -12,6 +12,8 @@ import {
 import { useAutoBackButton } from '@/hooks/useTelegramNavigation';
 import { toast } from 'sonner';
 import { Spinner } from '@/components/ui/spinner';
+import { RelatedSuggestions } from '../components';
+import { customerIntelligenceService } from '../services/customerIntelligence';
 
 type Props = {
   catalogId: string;
@@ -26,6 +28,26 @@ export const CartPage = ({ catalogId }: Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useAutoBackButton('/catalog');
+  const cartItemIds = items.map((item) => item.item.id);
+
+  useEffect(() => {
+    if (items.length === 0) {
+      localStorage.removeItem(`client-abandoned-cart:${catalogId}`);
+      return;
+    }
+
+    localStorage.setItem(
+      `client-abandoned-cart:${catalogId}`,
+      JSON.stringify({
+        updated_at: Date.now(),
+        items: items.map((item) => ({
+          item_id: item.item.id,
+          title: item.item.title,
+          quantity: item.quantity,
+        })),
+      })
+    );
+  }, [catalogId, items]);
 
   const handleGoToCheckout = async () => {
     if (!catalog || items.length === 0 || isSubmitting) return;
@@ -33,6 +55,18 @@ export const CartPage = ({ catalogId }: Props) => {
     try {
       setIsSubmitting(true);
       setError(null);
+      await customerIntelligenceService.trackEvent({
+        catalogId,
+        customerId: userId,
+        eventType: 'checkout_started',
+        metadata: {
+          items_count: items.length,
+          total_price: items.reduce(
+            (sum, cartItem) => sum + (cartItem.item.price ?? 0) * cartItem.quantity,
+            0
+          ),
+        },
+      });
       const order = await createOrder({
         catalog_id: catalog.id,
         customer_id: userId || 'anonymous',
@@ -118,6 +152,12 @@ export const CartPage = ({ catalogId }: Props) => {
         {items.map(item => (
           <CartItemRow key={item.item.id} item={item} />
         ))}
+
+        <RelatedSuggestions
+          catalogId={catalogId}
+          sourceItemIds={cartItemIds}
+          title="Допродажи перед оформлением"
+        />
       </div>
 
       {/* Summary */}

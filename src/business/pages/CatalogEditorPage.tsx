@@ -609,6 +609,7 @@ export function CatalogEditorPage() {
           onGenerateLink={handleGenerateLink}
           onConfigureStaff={handleConfigureStaff}
           onConfigureAccess={handleConfigureAccess}
+          onOpenGrowth={() => navigate(`/catalogs/${catalogId}/growth`)}
         />
 
         <DangerZoneCard

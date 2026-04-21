@@ -4,19 +4,24 @@ import { useCartStore } from '../stores/cart';
 import type { CatalogSubtype, CatalogType, Item } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { useBookingStore } from '../stores';
+import { useCurrentUser } from '@/useTelegramAuth';
+import { customerIntelligenceService } from '../services/customerIntelligence';
 
 type Props = {
+  catalogId?: string;
   item: Item;
   businessType?: CatalogType;
   businessSubtype?: CatalogSubtype;
 };
 
 export function ItemActions({
+  catalogId,
   item,
   businessType = 'goods',
   businessSubtype,
 }: Props) {
   const navigate = useNavigate();
+  const { userId } = useCurrentUser();
   const { items, addItem, removeItem, updateQuantity } = useCartStore();
   const { setSelectedItem } = useBookingStore();
 
@@ -27,16 +32,49 @@ export function ItemActions({
   const handleAddToCart = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     addItem(item, 1);
+    if (catalogId) {
+      void customerIntelligenceService.trackEvent({
+        catalogId,
+        customerId: userId,
+        eventType: 'cart_add',
+        metadata: {
+          item_id: item.id,
+          item_title: item.title,
+          quantity: 1,
+        },
+      });
+    }
   };
 
   const handleRemoveFromCart = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (cartItem && cartItem.quantity > 1) {
-      // Decrease quantity by 1
       updateQuantity(item.id, cartItem.quantity - 1);
+      if (catalogId) {
+        void customerIntelligenceService.trackEvent({
+          catalogId,
+          customerId: userId,
+          eventType: 'cart_quantity_change',
+          metadata: {
+            item_id: item.id,
+            item_title: item.title,
+            quantity: cartItem.quantity - 1,
+          },
+        });
+      }
     } else {
-      // Remove item if quantity is 1
       removeItem(item.id);
+      if (catalogId) {
+        void customerIntelligenceService.trackEvent({
+          catalogId,
+          customerId: userId,
+          eventType: 'cart_remove',
+          metadata: {
+            item_id: item.id,
+            item_title: item.title,
+          },
+        });
+      }
     }
   };
 
@@ -44,6 +82,18 @@ export function ItemActions({
     e?.stopPropagation();
     if (cartItem) {
       updateQuantity(item.id, cartItem.quantity + 1);
+      if (catalogId) {
+        void customerIntelligenceService.trackEvent({
+          catalogId,
+          customerId: userId,
+          eventType: 'cart_quantity_change',
+          metadata: {
+            item_id: item.id,
+            item_title: item.title,
+            quantity: cartItem.quantity + 1,
+          },
+        });
+      }
     }
   };
 
