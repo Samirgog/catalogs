@@ -1,8 +1,8 @@
 import {
   BarChart3,
   ChevronRight,
-  // HeartHandshake,
-  // Megaphone,
+  HeartHandshake,
+  Megaphone,
   Repeat2,
   Users2,
 } from 'lucide-react';
@@ -29,18 +29,18 @@ const sections = [
     icon: Repeat2,
     path: 'related',
   },
-  // {
-  //   title: 'Рассылки и сегменты',
-  //   description: 'Подготовка к массовым сообщениям и возврату клиентов.',
-  //   icon: Megaphone,
-  //   path: 'campaigns',
-  // },
-  // {
-  //   title: 'Автосценарии',
-  //   description: 'Напоминания, скидки после заказа и VIP-механики.',
-  //   icon: HeartHandshake,
-  //   path: 'automations',
-  // },
+  {
+    title: 'Рассылки и сегменты',
+    description: 'Массовые сообщения, промокоды и выбор аудитории.',
+    icon: Megaphone,
+    path: 'campaigns',
+  },
+  {
+    title: 'Автосценарии',
+    description: 'Напоминания, возврат клиентов и VIP-механики.',
+    icon: HeartHandshake,
+    path: 'automations',
+  },
 ];
 
 export function GrowthHubPage() {

@@ -6,6 +6,8 @@ export type User = {
   first_name: string;
   last_name?: string;
   username?: string;
+  birthday_at?: string | null;
+  marketing_opt_in?: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -259,7 +261,13 @@ export type CatalogPaymentGateway = {
   updated_at: string;
 };
 
-export type CustomerTrafficSource = 'qr_code' | 'direct_link' | 'repeat_visit';
+export type CustomerTrafficSource =
+  | 'qr_code'
+  | 'direct_link'
+  | 'repeat_visit'
+  | 'instagram'
+  | 'ads'
+  | 'other';
 
 export type CustomerEventType =
   | 'first_visit'
@@ -370,6 +378,112 @@ export type CatalogAnalyticsSnapshot = {
   favorite_items: Array<{ item_id: string; title: string; count: number }>;
   traffic_sources: Array<{ source: CustomerTrafficSource; count: number }>;
   stale_customers: number;
+};
+
+export type MarketingAudienceSegment =
+  | 'all'
+  | 'new_today'
+  | 'new_week'
+  | 'vip'
+  | 'lost_7_days'
+  | 'lost_30_days'
+  | 'abandoned_cart'
+  | 'one_order'
+  | 'many_orders'
+  | 'high_avg_check'
+  | 'source_qr_code'
+  | 'source_direct_link'
+  | 'source_repeat_visit'
+  | 'source_instagram'
+  | 'source_ads'
+  | 'burger_lovers';
+
+export type MarketingMessageKind =
+  | 'text'
+  | 'button_to_catalog'
+  | 'promo_code'
+  | 'offer'
+  | 'product_selection';
+
+export type MarketingCampaignStatus = 'draft' | 'queued' | 'sending' | 'sent' | 'failed';
+
+export type MarketingCampaign = {
+  id: string;
+  catalog_id: string;
+  title: string;
+  audience_segment: MarketingAudienceSegment;
+  message_kind: MarketingMessageKind;
+  message_title?: string | null;
+  message_text: string;
+  cta_label?: string | null;
+  cta_url?: string | null;
+  promo_code?: string | null;
+  product_ids: string[];
+  scheduled_at?: string | null;
+  sent_at?: string | null;
+  status: MarketingCampaignStatus;
+  recipient_count: number;
+  success_count: number;
+  failed_count: number;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MarketingAutomationTrigger =
+  | 'after_first_order'
+  | 'no_order_7_days'
+  | 'no_order_30_days'
+  | 'abandoned_cart'
+  | 'birthday'
+  | 'burger_lovers'
+  | 'vip_offer';
+
+export type MarketingAutomation = {
+  id: string;
+  catalog_id: string;
+  title: string;
+  trigger_key: MarketingAutomationTrigger;
+  is_enabled: boolean;
+  cooldown_hours: number;
+  delay_minutes: number;
+  audience_segment: MarketingAudienceSegment;
+  message_title?: string | null;
+  message_text: string;
+  cta_label?: string | null;
+  cta_url?: string | null;
+  promo_code?: string | null;
+  product_ids: string[];
+  settings: Record<string, unknown>;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MarketingRunStatus = 'pending' | 'sent' | 'failed' | 'skipped';
+
+export type MarketingCampaignRun = {
+  id: string;
+  campaign_id: string;
+  customer_id: string;
+  chat_id?: number | null;
+  status: MarketingRunStatus;
+  error?: string | null;
+  sent_at?: string | null;
+  created_at: string;
+};
+
+export type MarketingAutomationRun = {
+  id: string;
+  automation_id: string;
+  customer_id: string;
+  event_id?: string | null;
+  order_id?: string | null;
+  run_key: string;
+  status: MarketingRunStatus;
+  error?: string | null;
+  sent_at?: string | null;
+  created_at: string;
 };
 
 export type CatalogPaymentGatewayFormData = {

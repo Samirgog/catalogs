@@ -2,7 +2,7 @@ import { useCartStore } from '@/client/stores/cart';
 import { CartItemRow } from '@/client/components';
 import { CartSummary } from '@/client/components';
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useCurrentUser } from '@/useTelegramAuth';
 import { useCatalog } from '../hooks/useCatalogs';
 import { useCreateOrder } from '../hooks/useOrders';
@@ -26,6 +26,8 @@ export const CartPage = ({ catalogId }: Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useAutoBackButton('/catalog');
+  const checkoutStartedRef = useRef(false);
+  const abandonedTrackedRef = useRef(false);
   const cartItemIds = items.map(item => item.item.id);
 
   useEffect(() => {
@@ -47,12 +49,35 @@ export const CartPage = ({ catalogId }: Props) => {
     );
   }, [catalogId, items]);
 
+  useEffect(() => {
+    return () => {
+      if (
+        items.length > 0 &&
+        !checkoutStartedRef.current &&
+        !abandonedTrackedRef.current &&
+        userId
+      ) {
+        abandonedTrackedRef.current = true;
+        void customerIntelligenceService.trackEvent({
+          catalogId,
+          customerId: userId,
+          eventType: 'session_without_purchase',
+          metadata: {
+            stage: 'cart',
+            items_count: items.length,
+          },
+        });
+      }
+    };
+  }, [catalogId, items.length, userId]);
+
   const handleGoToCheckout = async () => {
     if (!catalog || items.length === 0 || isSubmitting) return;
 
     try {
       setIsSubmitting(true);
       setError(null);
+      checkoutStartedRef.current = true;
       await customerIntelligenceService.trackEvent({
         catalogId,
         customerId: userId,

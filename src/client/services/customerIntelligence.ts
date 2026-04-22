@@ -45,9 +45,11 @@ export const resolveTrafficSource = (
   const explicitSource =
     searchParams.get('source') || hashParams.get('source') || '';
 
+  if (explicitSource && explicitSource !== 'qr' && explicitSource !== 'qr_code') {
+    return explicitSource as CustomerTrafficSource;
+  }
+
   if (
-    explicitSource === 'qr' ||
-    explicitSource === 'qr_code' ||
     searchParams.get('table') ||
     hashParams.get('table') ||
     localStorage.getItem('client-current-place-id')

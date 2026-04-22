@@ -13,3 +13,5 @@ export * from './CustomersPage';
 export * from './CustomerProfilePage';
 export * from './AnalyticsPage';
 export * from './RelatedItemsPage';
+export * from './MarketingCampaignsPage';
+export * from './MarketingAutomationsPage';

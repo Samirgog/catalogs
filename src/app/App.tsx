@@ -56,6 +56,12 @@ const GrowthHubPage = lazy(() =>
 const CustomersPage = lazy(() =>
   import('../business/pages').then((module) => ({ default: module.CustomersPage })),
 );
+const MarketingCampaignsPage = lazy(() =>
+  import('../business/pages').then((module) => ({ default: module.MarketingCampaignsPage })),
+);
+const MarketingAutomationsPage = lazy(() =>
+  import('../business/pages').then((module) => ({ default: module.MarketingAutomationsPage })),
+);
 const CustomerProfilePage = lazy(() =>
   import('../business/pages').then((module) => ({ default: module.CustomerProfilePage })),
 );
@@ -252,8 +258,8 @@ function AnimatedAppRoutes({
             />
             <Route path="/catalogs/:catalogId/analytics" element={<AnalyticsPage />} />
             <Route path="/catalogs/:catalogId/related" element={<RelatedItemsPage />} />
-            <Route path="/catalogs/:catalogId/campaigns" element={<GrowthHubPage />} />
-            <Route path="/catalogs/:catalogId/automations" element={<GrowthHubPage />} />
+            <Route path="/catalogs/:catalogId/campaigns" element={<MarketingCampaignsPage />} />
+            <Route path="/catalogs/:catalogId/automations" element={<MarketingAutomationsPage />} />
           </>
         )}
 

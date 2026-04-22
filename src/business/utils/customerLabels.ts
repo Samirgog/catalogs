@@ -9,6 +9,12 @@ export const getTrafficSourceLabel = (source?: CustomerTrafficSource | string | 
       return 'Прямая ссылка';
     case 'repeat_visit':
       return 'Повторный заход';
+    case 'instagram':
+      return 'Instagram';
+    case 'ads':
+      return 'Реклама';
+    case 'other':
+      return 'Другое';
     default:
       return source || 'Неизвестно';
   }

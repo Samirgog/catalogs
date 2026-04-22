@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,6 +79,8 @@ export function CheckoutPage({ catalogId }: Props) {
   const [tableNumber, setTableNumber] = useState(
     () => localStorage.getItem('client-table-number') || ''
   );
+  const checkoutCompletedRef = useRef(false);
+  const paymentRedirectRef = useRef(false);
 
   useEffect(() => {
     if (customerName) return;
@@ -105,6 +107,28 @@ export function CheckoutPage({ catalogId }: Props) {
     if (fulfillmentOptions.includes(selectedFulfillment)) return;
     setSelectedFulfillment(fulfillmentOptions[0]);
   }, [fulfillmentOptions, selectedFulfillment]);
+
+  useEffect(() => {
+    return () => {
+      if (
+        order &&
+        user?.id &&
+        !checkoutCompletedRef.current &&
+        !paymentRedirectRef.current
+      ) {
+        void customerIntelligenceService.trackEvent({
+          catalogId,
+          customerId: user.id,
+          orderId: order.id,
+          eventType: 'session_without_purchase',
+          metadata: {
+            stage: 'checkout',
+            order_status: order.status,
+          },
+        });
+      }
+    };
+  }, [catalogId, order, user?.id]);
 
   const selectedAction =
     actionOptions.find(option => option.id === selectedActionId) ??
@@ -161,6 +185,7 @@ export function CheckoutPage({ catalogId }: Props) {
         }
         await updateOrder(order.id, orderPayload);
         await updateStatus(order.id, 'submitted');
+        checkoutCompletedRef.current = true;
         await customerIntelligenceService.trackEvent({
           catalogId,
           customerId: user?.id,
@@ -211,8 +236,10 @@ export function CheckoutPage({ catalogId }: Props) {
           deliveryAddress,
           tableNumber,
         });
+        checkoutCompletedRef.current = true;
         setCurrentOrder(updatedOrder);
         const payment = await clientPaymentService.createYookassaPayment(order.id);
+        paymentRedirectRef.current = true;
         clearCart();
         window.location.href = payment.confirmationUrl;
         return;
@@ -230,6 +257,7 @@ export function CheckoutPage({ catalogId }: Props) {
       } else {
         await updateStatus(order.id, 'submitted');
       }
+      checkoutCompletedRef.current = true;
 
       await customerIntelligenceService.trackEvent({
         catalogId,
